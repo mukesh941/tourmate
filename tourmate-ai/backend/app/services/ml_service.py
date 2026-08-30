@@ -1,0 +1,99 @@
+import numpy as np
+from sklearn.cluster import KMeans
+from app.schemas.place import TouristPlaceResponse
+
+async def generate_place_clusters(places: list[TouristPlaceResponse], k: int) -> dict:
+    if not places:
+        return {"clusters": [], "centroids": []}
+        
+    if len(places) < k:
+        k = len(places)
+        
+    # Extract coordinates (assuming GeoJSON Point [lng, lat])
+    coords = []
+    for place in places:
+        if place.location and place.location.coordinates and len(place.location.coordinates) >= 2:
+            # We will cluster by [lat, lng] for intuitive map visualization
+            coords.append([place.location.coordinates[1], place.location.coordinates[0]])
+        else:
+            coords.append([0.0, 0.0]) # fallback
+            
+    X = np.array(coords)
+    
+    # Run K-Means
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+    labels = kmeans.fit_predict(X)
+    centroids = kmeans.cluster_centers_.tolist()
+    
+    # Group places by cluster
+    clusters = []
+    for i in range(k):
+        clusters.append({
+            "cluster_id": i,
+            "centroid": centroids[i], # [lat, lng]
+            "places": []
+        })
+        
+    for place, label in zip(places, labels):
+        clusters[label]["places"].append(place)
+        
+    return {
+        "k": k,
+        "centroids": centroids,
+        "clusters": clusters
+    }
+
+from sklearn.neighbors import NearestNeighbors
+
+async def get_knn_recommendations(places: list[TouristPlaceResponse], user_interests: list[str], k: int = 10) -> list[TouristPlaceResponse]:
+    if not places:
+        return []
+    
+    if len(places) < k:
+        k = len(places)
+
+    features = ["history", "nature", "culture", "adventure", "food", "shopping", "architecture"]
+    
+    # Build place vectors
+    X = []
+    for p in places:
+        scores = p.feature_scores
+        X.append([
+            scores.history,
+            scores.nature,
+            scores.culture,
+            scores.adventure,
+            scores.food,
+            scores.shopping,
+            scores.architecture
+        ])
+        
+    X = np.array(X)
+    
+    # Build user vector
+    user_vec = []
+    for f in features:
+        if f in user_interests:
+            user_vec.append(10.0) # High weight for interested feature
+        else:
+            user_vec.append(0.0)
+            
+    user_vec = np.array([user_vec])
+    
+    # Use KNN to find closest places based on cosine similarity
+    # Cosine is good for feature vectors to measure angle/alignment rather than pure magnitude
+    knn = NearestNeighbors(n_neighbors=k, metric='cosine')
+    
+    # Handle edge case where all vectors might be 0
+    if not X.any():
+        return places[:k]
+        
+    knn.fit(X)
+    
+    distances, indices = knn.kneighbors(user_vec)
+    
+    recommended_places = []
+    for idx in indices[0]:
+        recommended_places.append(places[idx])
+        
+    return recommended_places

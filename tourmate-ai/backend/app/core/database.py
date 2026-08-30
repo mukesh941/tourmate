@@ -1,0 +1,28 @@
+"""
+Single Motor (async MongoDB) client, shared across the app.
+Import `get_db()` in services/routes - never open a new connection per-request.
+"""
+from motor.motor_asyncio import AsyncIOMotorClient
+from app.core.config import settings
+
+_client: AsyncIOMotorClient | None = None
+
+
+def get_client() -> AsyncIOMotorClient:
+    global _client
+    if _client is None:
+        _client = AsyncIOMotorClient(settings.mongo_uri)
+    return _client
+
+
+def get_db():
+    return get_client()[settings.mongo_db_name]
+
+
+async def ensure_indexes():
+    """Create indexes idempotently. Called once on startup."""
+    db = get_db()
+    await db.users.create_index("email", unique=True)
+    await db.tourist_places.create_index("name")
+    await db.tourist_places.create_index([("location", "2dsphere")])
+    await db.tourist_places.create_index("destination_id")
