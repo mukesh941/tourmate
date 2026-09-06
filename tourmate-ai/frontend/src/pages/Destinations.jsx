@@ -16,11 +16,11 @@ export default function Destinations() {
         {destinations.map(d => (
           <Link key={d.id} to={`/destinations/${d.id}`} className="group block bg-white dark:bg-slate-800 rounded-xl shadow-md dark:shadow-none overflow-hidden hover:shadow-xl dark:shadow-none transition transform hover:-translate-y-1">
             <div className="h-48 bg-gray-200 dark:bg-slate-700 overflow-hidden relative">
-              {d.cover_image ? (
-                <img src={d.cover_image} alt={d.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
-              )}
+              <img 
+                src={d.cover_image || `https://picsum.photos/seed/${encodeURIComponent(d.name)}/800/600`} 
+                alt={d.name} 
+                className="w-full h-full object-cover group-hover:scale-105 transition duration-300" 
+              />
             </div>
             <div className="p-5">
               <h2 className="text-2xl font-bold text-gray-800 dark:text-slate-100 mb-1">{d.name}</h2>

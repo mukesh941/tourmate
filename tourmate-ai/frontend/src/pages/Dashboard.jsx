@@ -3,7 +3,10 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import OnboardingModal from "../components/OnboardingModal";
-
+import VoiceSearch from "../components/VoiceSearch";
+import ImageUpload from "../components/ImageUpload";
+import { Trees, Landmark, Palette, Mountain, Utensils, Star, Heart, MapPin } from 'lucide-react';
+import { motion } from 'framer-motion';
 export default function Dashboard() {
   const { user, token } = useAuth();
   const [preferences, setPreferences] = useState(null);
@@ -55,12 +58,45 @@ export default function Dashboard() {
   };
 
   const categories = [
-    { name: "Nature", icon: "🌲", color: "bg-green-100 text-green-700" },
-    { name: "History", icon: "🏛️", color: "bg-amber-100 text-amber-700" },
-    { name: "Culture", icon: "🎭", color: "bg-purple-100 text-purple-700" },
-    { name: "Adventure", icon: "🧗", color: "bg-red-100 text-red-700" },
-    { name: "Food", icon: "🍜", color: "bg-orange-100 text-orange-700" },
+    { name: "Nature", icon: <Trees className="w-5 h-5" />, color: "border border-gray-200 hover:border-green-500 text-gray-700 hover:text-green-600 bg-white" },
+    { name: "History", icon: <Landmark className="w-5 h-5" />, color: "border border-gray-200 hover:border-amber-500 text-gray-700 hover:text-amber-600 bg-white" },
+    { name: "Culture", icon: <Palette className="w-5 h-5" />, color: "border border-gray-200 hover:border-purple-500 text-gray-700 hover:text-purple-600 bg-white" },
+    { name: "Adventure", icon: <Mountain className="w-5 h-5" />, color: "border border-gray-200 hover:border-red-500 text-gray-700 hover:text-red-600 bg-white" },
+    { name: "Food", icon: <Utensils className="w-5 h-5" />, color: "border border-gray-200 hover:border-orange-500 text-gray-700 hover:text-orange-600 bg-white" },
   ];
+
+  const handleCategoryClick = async (categoryName) => {
+    setLoading(true);
+    const match = categoryName.match(/\(([^)]+)\)/);
+    const searchWord = match ? match[1] : categoryName.split(' ')[0];
+    const categoryType = categoryName.split(' ')[0];
+    
+    try {
+      // Try searching by the state first (e.g. Kerala)
+      let res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/places?q=${searchWord}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // If no results, fallback to the category name (e.g. Nature)
+      if (!res.data.data || res.data.data.length === 0) {
+        res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/places?q=${categoryType}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+      
+      setRecommendations(res.data.data || []);
+      
+      // Scroll to recommendations section
+      const recSection = document.getElementById('recommendations-section');
+      if (recSection) {
+        recSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900/50 pb-20">
@@ -71,43 +107,80 @@ export default function Dashboard() {
       />
 
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-brand-800 via-brand-600 to-accent-600 text-white py-20 px-6 overflow-hidden">
-        {/* Animated background blobs */}
-        <div className="absolute top-0 left-0 w-72 h-72 bg-accent-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-        <div className="absolute top-0 right-0 w-72 h-72 bg-brand-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+      <div className="relative bg-gray-900 text-white py-24 px-6 min-h-[450px] flex items-center justify-center overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da?ixlib=rb-4.0.3&auto=format&fit=crop&w=2071&q=80" 
+            alt="Beautiful landscape" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/40"></div>
+        </div>
 
-        <div className="max-w-7xl mx-auto relative z-10 animate-fade-in-up">
-          <h1 className="text-4xl md:text-6xl font-display font-extrabold tracking-tight mb-4 drop-shadow-md">
-            Hello, {user?.name?.split(' ')[0] || 'Traveler'}! 🌍
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-7xl mx-auto relative z-10 w-full text-center md:text-left"
+        >
+          <h1 className="text-4xl md:text-6xl font-display font-extrabold tracking-tight mb-4">
+            Hello, {user?.name?.split(' ')[0] || 'Traveler'}.
           </h1>
-          <p className="text-lg md:text-xl text-brand-50 max-w-2xl font-light">
+          <p className="text-lg md:text-xl text-gray-100 max-w-2xl font-normal drop-shadow-md mx-auto md:mx-0">
             {preferences 
               ? `Ready for your next trip? We've found the perfect spots based on your love for ${preferences.interests.slice(0, 2).join(" and ")}.`
               : "Discover the world's most incredible destinations tailored perfectly to you."}
           </p>
           
-          <div className="mt-8 flex flex-wrap gap-4">
-            <Link to="/places" className="bg-white text-brand-700 font-bold px-8 py-3.5 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 inline-block">
+          <div className="mt-8 flex flex-col sm:flex-row flex-wrap justify-center md:justify-start items-center gap-4">
+            <Link to="/places" className="bg-white text-gray-900 font-bold px-8 py-3.5 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgb(255,255,255,0.2)] hover:bg-gray-50 transition-all duration-300 transform hover:-translate-y-1">
               Explore Destinations
             </Link>
-            <Link to="/itinerary-builder" className="glass text-white font-semibold px-8 py-3.5 rounded-full hover:bg-white/20 transition-all duration-300 inline-block">
+            <Link to="/itinerary-builder" className="glass hover:glass-hover text-white font-bold px-8 py-3.5 rounded-xl transition-all duration-300">
               Plan an Itinerary
             </Link>
+            
+            <div className="flex items-center gap-3 mt-2 sm:mt-0">
+              <button 
+                onClick={() => {
+                  if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((position) => {
+                      window.location.href = `/places?lat=${position.coords.latitude}&lng=${position.coords.longitude}&radius_km=50`;
+                    }, (error) => {
+                      alert("Unable to get your location. Please ensure location services are enabled.");
+                    });
+                  } else {
+                    alert("Geolocation is not supported by your browser.");
+                  }
+                }}
+                className="flex items-center justify-center p-3.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm rounded-xl transition-all duration-300"
+                title="Places Near Me"
+              >
+                <MapPin className="w-5 h-5" />
+              </button>
+              
+              <VoiceSearch />
+              <ImageUpload />
+            </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 -mt-10 relative z-20">
         {/* Quick Categories */}
-        <div className="glass rounded-2xl p-6 mb-12 flex flex-wrap gap-4 justify-between items-center shadow-lg animate-fade-in-up-delay-1">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-12 flex flex-wrap gap-4 justify-between items-center shadow-sm animate-fade-in-up-delay-1">
           <span className="font-bold text-gray-800 dark:text-slate-200 text-sm uppercase tracking-widest font-display">Browse by Vibe</span>
           <div className="flex gap-4 overflow-x-auto pb-2 sm:pb-0 custom-scrollbar w-full sm:w-auto flex-1">
             {categories.map(c => (
-              <button key={c.name} className={`flex items-center gap-2 ${c.color} px-5 py-2.5 rounded-xl font-bold hover:scale-105 hover:shadow-md transition-all duration-300 whitespace-nowrap`}>
+              <Link 
+                key={c.name} 
+                to={`/category/${c.name.toLowerCase()}`}
+                className={`flex items-center gap-2 ${c.color} px-5 py-2.5 rounded-xl font-bold hover:scale-105 hover:shadow-md transition-all duration-300 whitespace-nowrap`}
+              >
                 <span>{c.icon}</span>
                 {c.name}
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -115,15 +188,15 @@ export default function Dashboard() {
         {/* My Favorites */}
         {favorites.length > 0 && (
           <div className="mb-12 animate-fade-in-up-delay-2">
-            <h2 className="text-3xl font-display font-extrabold text-gray-900 dark:text-white flex items-center mb-6">
-              ❤️ My Favorites
+            <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-6">
+              <Heart className="w-6 h-6 text-red-500 fill-red-500" /> My Favorites
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {favorites.map(place => (
-                <Link to={`/places/${place.id}`} key={place.id} className="group glass rounded-2xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full border border-gray-100 dark:border-slate-700">
+                <Link to={`/places/${place.id}`} key={place.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full border border-gray-200 dark:border-slate-700">
                   <div className="relative h-48 overflow-hidden bg-gray-200 dark:bg-slate-700">
                     <img 
-                      src={place.images?.[0] || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"} 
+                      src={place.images?.[0] || `https://picsum.photos/seed/${encodeURIComponent(place.name)}/800/600`} 
                       alt={place.name} 
                       className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
                     />
@@ -142,11 +215,11 @@ export default function Dashboard() {
         )}
 
         {/* Recommended Places */}
-        <div className="animate-fade-in-up-delay-2">
+        <div id="recommendations-section" className="animate-fade-in-up-delay-2">
           <div className="flex justify-between items-end mb-6">
             <div>
-              <h2 className="text-3xl font-display font-extrabold text-gray-900 dark:text-white flex items-center">
-                ✨ Recommended for You
+              <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Star className="w-6 h-6 text-brand-500 fill-brand-500" /> Recommended for You
               </h2>
               <p className="text-gray-500 dark:text-slate-400 text-sm mt-1 font-medium">Curated specifically for your travel style</p>
             </div>
@@ -158,26 +231,26 @@ export default function Dashboard() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[1,2,3,4].map(i => (
-                <div key={i} className="animate-pulse glass rounded-2xl h-80"></div>
+                <div key={i} className="animate-pulse bg-white border border-gray-200 rounded-2xl h-80 shadow-sm"></div>
               ))}
             </div>
           ) : recommendations.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {recommendations.map(place => (
-                <Link to={`/places/${place.id}`} key={place.id} className="group glass rounded-2xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full border border-gray-100 dark:border-slate-700">
+                <Link to={`/places/${place.id}`} key={place.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full border border-gray-200 dark:border-slate-700">
                   <div className="relative h-56 overflow-hidden bg-gray-200 dark:bg-slate-700">
                     <img 
-                      src={place.images?.[0] || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"} 
+                      src={place.images?.[0] || `https://picsum.photos/seed/${encodeURIComponent(place.name)}/800/600`} 
                       alt={place.name} 
                       className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
                     />
-                    <div className="absolute top-3 left-3 glass px-3 py-1 rounded-lg text-sm font-bold text-gray-900 flex items-center gap-1">
-                      ⭐ {place.rating?.toFixed(1)}
+                    <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg text-sm font-bold text-gray-900 flex items-center gap-1 shadow-sm">
+                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> {place.rating?.toFixed(1)}
                     </div>
                   </div>
                   
                   <div className="p-5 flex flex-col flex-1">
-                    <h3 className="font-bold font-display text-xl text-gray-900 dark:text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-brand-600 group-hover:to-accent-500 transition-all duration-300 line-clamp-1 mb-2">{place.name}</h3>
+                    <h3 className="font-bold font-display text-xl text-gray-900 dark:text-white group-hover:text-brand-600 transition-colors duration-300 line-clamp-1 mb-2">{place.name}</h3>
                     <p className="text-sm text-gray-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">{place.description}</p>
                     
                     <div className="flex flex-wrap gap-2 mt-auto">
@@ -196,8 +269,8 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-20 glass rounded-2xl">
-              <div className="text-6xl mb-6 animate-bounce">🏜️</div>
+            <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-200 rounded-2xl shadow-sm">
+              <div className="mb-6"><MapPin className="w-16 h-16 text-gray-300" /></div>
               <h3 className="text-2xl font-display font-bold text-gray-800 dark:text-slate-100 mb-2">No recommendations found</h3>
               <p className="text-gray-500 dark:text-slate-400 mb-8 text-center max-w-sm text-lg">We couldn't find any places matching your exact preferences right now.</p>
               <button 

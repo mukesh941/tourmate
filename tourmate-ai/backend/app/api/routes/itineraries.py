@@ -36,7 +36,7 @@ async def generate_itinerary(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No valid places found")
         
     generated_schedule = generate_itinerary_via_llm(
-        places_info, payload.days, payload.start_time, payload.end_time
+        places_info, payload.days, payload.start_time, payload.end_time, payload.accommodation, payload.energy_level
     )
     
     return Envelope(success=True, data=generated_schedule)

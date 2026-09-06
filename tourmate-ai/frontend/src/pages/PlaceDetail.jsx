@@ -135,7 +135,58 @@ export default function PlaceDetail() {
             </button>
           </div>
           <p className="text-gray-700 dark:text-slate-300 leading-relaxed text-lg mb-6">{place.description}</p>
-          
+
+          {/* Action Buttons Row */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            {place.location?.coordinates && (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${place.location.coordinates[1]},${place.location.coordinates[0]}&travelmode=driving`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+                Get Directions
+              </a>
+            )}
+            {place.location?.coordinates && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-0.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9 9a2 2 0 114 0 2 2 0 01-4 0z" />
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a4 4 0 00-3.446 6.032l-2.261 2.26a1 1 0 101.414 1.415l2.261-2.261A4 4 0 1011 5z" clipRule="evenodd" />
+                </svg>
+                View on Maps
+              </a>
+            )}
+          </div>
+
+          {/* Embedded Google Maps */}
+          {place.location?.coordinates && (
+            <div className="rounded-2xl overflow-hidden shadow-lg mb-6 border border-gray-200 dark:border-slate-600">
+              <div className="bg-gray-100 dark:bg-slate-700 px-4 py-3 flex items-center gap-2">
+                <span className="text-lg">📍</span>
+                <span className="font-semibold text-gray-800 dark:text-slate-100 text-sm">Location — {place.name}</span>
+              </div>
+              <iframe
+                title={`Map of ${place.name}`}
+                width="100%"
+                height="350"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                src={`https://maps.google.com/maps?q=${place.location.coordinates[1]},${place.location.coordinates[0]}&z=15&output=embed`}
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             {place.history && (
               <div>

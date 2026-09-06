@@ -36,3 +36,5 @@ class ItineraryGenerateRequest(BaseModel):
     days: int = Field(..., ge=1, le=7)
     start_time: str = Field(default="09:00")
     end_time: str = Field(default="20:00")
+    accommodation: Optional[str] = Field(default=None)
+    energy_level: str = Field(default="Moderate")

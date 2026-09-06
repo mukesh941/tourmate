@@ -1,12 +1,13 @@
 """
 Auth endpoints: POST /api/auth/register, POST /api/auth/login, GET /api/auth/me
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 
 from app.api.deps import get_current_user_dependency
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserPublic
 from app.schemas.common import Envelope
 from app.services.auth_service import AuthError, login_user, register_user
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -21,7 +22,8 @@ async def register(payload: RegisterRequest):
 
 
 @router.post("/login", response_model=Envelope[TokenResponse])
-async def login(payload: LoginRequest):
+@limiter.limit("5/minute")
+async def login(request: Request, payload: LoginRequest):
     try:
         tokens = await login_user(payload)
     except AuthError as exc:

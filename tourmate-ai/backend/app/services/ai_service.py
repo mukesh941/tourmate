@@ -58,7 +58,7 @@ def get_ai_response(user_message: str, history: List[Dict[str, str]], context: s
 
 import json
 
-def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: str, end_time: str) -> List[Dict]:
+def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: str, end_time: str, accommodation: str = None, energy_level: str = "Moderate") -> List[Dict]:
     api_key = settings.gemini_api_key
     if not api_key:
         from fastapi import HTTPException
@@ -70,24 +70,33 @@ def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: s
     model = genai.GenerativeModel('gemini-3.6-flash', generation_config={"response_mime_type": "application/json"})
     
     prompt = f"""
-    You are an expert travel planner. Create a realistic, detailed day-by-day itinerary for {days} days.
+    You are an expert travel planner. Create realistic, detailed day-by-day itineraries for {days} days.
     The daily schedule should run roughly from {start_time} to {end_time}.
     
-    You must include all of the following places in the itinerary, distributing them logically by proximity or theme:
+    CRITICAL CONSTRAINTS:
+    - Accommodation/Starting Point: {accommodation if accommodation else 'Not specified. Assume a central downtown location.'}
+    - Energy Level (Fatigue Limit): {energy_level}. If 'Relaxed', schedule fewer places per day and add more rest time. If 'Intense', pack the schedule.
+    
+    You must include all of the following places in the itinerary, distributing them logically by proximity to the accommodation or theme:
     {json.dumps(places_info, indent=2)}
     
-    Also, please add generic activities like "Breakfast", "Lunch", "Dinner", or "Travel time" where appropriate.
+    Generate 3 DIFFERENT alternative route options (e.g., Option 1 is Optimal, Option 2 is a different sequence, Option 3 is a reversed sequence).
     
-    Your response MUST be a valid JSON array of objects representing each day. Use this exact schema:
+    Your response MUST be a valid JSON array of objects representing the alternatives. Use this exact schema:
     [
       {{
-        "day": 1,
-        "activities": [
+        "route_name": "Option 1: Optimal Flow",
+        "schedule": [
           {{
-            "time": "09:00",
-            "place_id": "optional_id_if_it_is_one_of_the_provided_places",
-            "name": "Activity or Place Name",
-            "description": "Brief description of what to do"
+            "day": 1,
+            "activities": [
+              {{
+                "time": "09:00",
+                "place_id": "optional_id",
+                "name": "Activity or Place Name",
+                "description": "Brief description"
+              }}
+            ]
           }}
         ]
       }}

@@ -15,6 +15,20 @@ async def get_all_places(
 ) -> list[TouristPlaceResponse]:
     db = get_db()
     query = {}
+    
+    # Restrict to India
+    indian_dests = []
+    async for dest in db.destinations.find({"country": {"$regex": re.compile("^India$", re.IGNORECASE)}}):
+        indian_dests.append(str(dest["_id"]))
+        
+    if destination_id:
+        if destination_id in indian_dests:
+            query["destination_id"] = destination_id
+        else:
+            return []
+    else:
+        query["destination_id"] = {"$in": indian_dests}
+
     if lat is not None and lng is not None:
         query["location"] = {
             "$near": {
@@ -26,12 +40,28 @@ async def get_all_places(
             }
         }
     
-    if destination_id:
-        query["destination_id"] = destination_id
     if category_id:
         query["category_id"] = category_id
     if q:
-        query["name"] = {"$regex": re.compile(q, re.IGNORECASE)}
+        # Check if q exactly matches a category name (e.g. from the Vibe buttons)
+        matched_category = await db.categories.find_one({"name": {"$regex": re.compile(f"^{q}$", re.IGNORECASE)}})
+        if matched_category:
+            query["category_id"] = str(matched_category["_id"])
+        else:
+            # Find destinations that match the query
+            matched_dests = []
+            async for dest in db.destinations.find({"name": {"$regex": re.compile(q, re.IGNORECASE)}}):
+                if str(dest["_id"]) in indian_dests:
+                    matched_dests.append(str(dest["_id"]))
+            
+            or_conditions = [
+                {"name": {"$regex": re.compile(q, re.IGNORECASE)}},
+                {"description": {"$regex": re.compile(q, re.IGNORECASE)}}
+            ]
+            if matched_dests:
+                or_conditions.append({"destination_id": {"$in": matched_dests}})
+                
+            query["$or"] = or_conditions
     if min_rating:
         query["rating"] = {"$gte": float(min_rating)}
         
@@ -74,8 +104,13 @@ async def get_recommended_places(user_id: str) -> list[TouristPlaceResponse]:
     db = get_db()
     prefs = await get_user_preferences(user_id)
     
-    # Fetch all places (in a real app, you would pre-filter this or use vector search)
-    cursor = db.tourist_places.find({})
+    # Get all destination IDs for India
+    indian_dests = []
+    async for dest in db.destinations.find({"country": {"$regex": re.compile("^India$", re.IGNORECASE)}}):
+        indian_dests.append(str(dest["_id"]))
+        
+    # Fetch all places located in India
+    cursor = db.tourist_places.find({"destination_id": {"$in": indian_dests}})
     all_places = []
     async for doc in cursor:
         doc["id"] = str(doc["_id"])

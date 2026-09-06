@@ -136,7 +136,7 @@ export default function Places() {
               {/* Image Header */}
               <div className="relative h-48 bg-gray-200 dark:bg-slate-700 overflow-hidden">
                 <img 
-                  src={p.images?.[0] || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"} 
+                  src={p.images?.[0] || `https://picsum.photos/seed/${encodeURIComponent(p.name)}/800/600`} 
                   alt={p.name} 
                   className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
                 />

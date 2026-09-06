@@ -78,22 +78,22 @@ export default function ChatbotWidget() {
       
       {/* Chat Window */}
       {isOpen && (
-        <div className="bg-white dark:bg-slate-800 w-80 sm:w-96 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 mb-4 overflow-hidden flex flex-col h-[500px] max-h-[70vh] transition-all transform origin-bottom-right">
+        <div className="glass dark:glass-dark w-80 sm:w-96 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/50 dark:border-slate-700/50 mb-4 overflow-hidden flex flex-col h-[500px] max-h-[70vh] transition-all transform origin-bottom-right animate-scale-in">
           
           {/* Header */}
-          <div className="bg-gradient-to-r from-brand-600 to-brand-500 text-white p-4 flex justify-between items-center shadow-md dark:shadow-none z-10">
+          <div className="bg-gradient-to-r from-brand-600/90 to-brand-500/90 backdrop-blur-md text-white p-4 flex justify-between items-center z-10 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white dark:bg-slate-800/20 rounded-full flex items-center justify-center text-xl">
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-xl shadow-inner">
                 🤖
               </div>
               <div>
-                <h3 className="font-bold text-sm">TourMate Guide</h3>
-                <p className="text-[10px] text-brand-100 uppercase tracking-wider">AI Assistant</p>
+                <h3 className="font-bold text-sm tracking-wide">TourMate Guide</h3>
+                <p className="text-[10px] text-brand-50 uppercase tracking-wider font-semibold">AI Assistant</p>
               </div>
             </div>
             <button 
               onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white dark:bg-slate-800/20 p-1.5 rounded-lg transition-colors"
+              className="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors"
             >
               ✕
             </button>

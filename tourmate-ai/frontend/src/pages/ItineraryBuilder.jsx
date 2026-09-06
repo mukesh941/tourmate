@@ -14,9 +14,12 @@ export default function ItineraryBuilder() {
   const [days, setDays] = useState(3);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("20:00");
+  const [accommodation, setAccommodation] = useState("");
+  const [energyLevel, setEnergyLevel] = useState("Moderate");
   const [title, setTitle] = useState("My Awesome Trip");
   
-  const [generatedItinerary, setGeneratedItinerary] = useState(null);
+  const [generatedItinerary, setGeneratedItinerary] = useState(null); // Now an array of options
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
   const [loadingPlaces, setLoadingPlaces] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -60,11 +63,14 @@ export default function ItineraryBuilder() {
           place_ids: selectedPlaces.map(p => p.id),
           days: parseInt(days),
           start_time: startTime,
-          end_time: endTime
+          end_time: endTime,
+          accommodation: accommodation || undefined,
+          energy_level: energyLevel
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setGeneratedItinerary(res.data.data);
+      setSelectedOptionIndex(0);
     } catch (err) {
       console.error(err);
       const msg = err.response?.data?.detail || "Failed to generate itinerary. Please try again.";
@@ -83,7 +89,7 @@ export default function ItineraryBuilder() {
         {
           title: title,
           days: parseInt(days),
-          schedule: generatedItinerary
+          schedule: generatedItinerary[selectedOptionIndex].schedule
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -136,6 +142,18 @@ export default function ItineraryBuilder() {
                 <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">End Time</label>
                 <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none" />
               </div>
+            </div>
+            <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Accommodation / Starting Point</label>
+              <input type="text" placeholder="e.g. Taj Hotel, Mumbai" value={accommodation} onChange={e => setAccommodation(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none text-sm placeholder-gray-400" />
+            </div>
+            <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Pace & Energy Level</label>
+              <select value={energyLevel} onChange={e => setEnergyLevel(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none text-sm cursor-pointer">
+                <option value="Relaxed">Relaxed (Less walking, more rest)</option>
+                <option value="Moderate">Moderate (Standard pace)</option>
+                <option value="Intense">Intense (Pack as much as possible!)</option>
+              </select>
             </div>
           </div>
 
@@ -230,21 +248,47 @@ export default function ItineraryBuilder() {
                     placeholder="Name your amazing trip..."
                   />
                 </div>
-                <button 
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-white text-brand-700 hover:bg-gray-50 px-8 py-3 rounded-xl font-bold shadow-lg transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-70 disabled:transform-none shrink-0"
-                >
-                  {saving ? "Saving..." : "💾 Save to Profile"}
-                </button>
+                <div className="flex gap-3 shrink-0">
+                  <button 
+                    onClick={() => window.print()}
+                    className="bg-white/20 text-white hover:bg-white/30 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:-translate-y-1 backdrop-blur-sm"
+                  >
+                    📄 Save PDF
+                  </button>
+                  <button 
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="bg-white text-brand-700 hover:bg-gray-50 px-8 py-3 rounded-xl font-bold shadow-lg transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-70 disabled:transform-none"
+                  >
+                    {saving ? "Saving..." : "💾 Save to Profile"}
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="p-6 sm:p-10 space-y-12 bg-white/50 dark:bg-slate-900/50">
-              {generatedItinerary.map((dayPlan, idx) => (
-                <div key={idx} className="relative">
-                  <h3 className="text-2xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-accent-600 mb-6 flex items-center gap-3">
-                    <span className="bg-gradient-to-r from-brand-600 to-accent-600 text-white w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-md">
+            <div className="p-6 sm:p-10 space-y-8 bg-white/50 dark:bg-slate-900/50 print:bg-white print:text-black">
+              
+              {/* Route Alternative Selector */}
+              <div className="flex flex-wrap gap-2 pb-4 border-b border-gray-200 dark:border-slate-700 print:hidden">
+                {generatedItinerary.map((option, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedOptionIndex(idx)}
+                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all duration-300 ${
+                      selectedOptionIndex === idx 
+                        ? "bg-brand-600 text-white shadow-md" 
+                        : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {option.route_name || `Option ${idx + 1}`}
+                  </button>
+                ))}
+              </div>
+
+              {generatedItinerary[selectedOptionIndex]?.schedule?.map((dayPlan, idx) => (
+                <div key={idx} className="relative print:break-inside-avoid">
+                  <h3 className="text-2xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-accent-600 mb-6 flex items-center gap-3 print:text-brand-700">
+                    <span className="bg-gradient-to-r from-brand-600 to-accent-600 text-white w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-md print:bg-brand-600">
                       {dayPlan.day}
                     </span>
                     Day {dayPlan.day}
@@ -252,21 +296,28 @@ export default function ItineraryBuilder() {
                   
                   <div className="space-y-6 pl-5 sm:pl-10 relative">
                     {/* Continuous vertical timeline line */}
-                    <div className="absolute top-4 bottom-4 left-[27px] sm:left-[47px] w-0.5 bg-gradient-to-b from-brand-300 via-accent-300 to-transparent"></div>
+                    <div className="absolute top-4 bottom-4 left-[27px] sm:left-[47px] w-0.5 bg-gradient-to-b from-brand-300 via-accent-300 to-transparent print:bg-gray-300"></div>
                     
                     {dayPlan.activities?.map((act, i) => (
-                      <div key={i} className="relative z-10 group">
+                      <div key={i} className="relative z-10 group print:break-inside-avoid">
                         {/* Timeline dot */}
-                        <div className="absolute w-4 h-4 bg-white dark:bg-slate-800 rounded-full -left-[19px] top-4 border-4 border-brand-500 shadow-sm dark:shadow-none group-hover:scale-125 transition-transform duration-300 group-hover:border-accent-500"></div>
+                        <div className="absolute w-4 h-4 bg-white dark:bg-slate-800 rounded-full -left-[19px] top-4 border-4 border-brand-500 shadow-sm dark:shadow-none group-hover:scale-125 transition-transform duration-300 group-hover:border-accent-500 print:border-gray-500"></div>
                         
-                        <div className="glass bg-white dark:bg-slate-800 rounded-2xl p-5 border border-gray-100 dark:border-slate-700 hover:shadow-xl dark:hover:shadow-brand-900/20 hover:-translate-y-1 transition-all duration-300 ml-4">
+                        <div className="glass bg-white dark:bg-slate-800 rounded-2xl p-5 border border-gray-100 dark:border-slate-700 hover:shadow-xl dark:hover:shadow-brand-900/20 hover:-translate-y-1 transition-all duration-300 ml-4 print:border-gray-300 print:shadow-none">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
-                            <span className="font-bold font-display text-gray-900 dark:text-white text-xl">{act.name}</span>
-                            <span className="text-brand-700 dark:text-brand-300 font-bold bg-brand-50 dark:bg-brand-900/40 px-3 py-1 rounded-lg text-sm shrink-0 border border-brand-100 dark:border-brand-800 shadow-sm self-start">
+                            <a 
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.name)}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="font-bold font-display text-gray-900 dark:text-white text-xl hover:text-brand-600 dark:hover:text-brand-400 transition-colors underline decoration-brand-200 underline-offset-4 decoration-2 print:text-black print:no-underline"
+                            >
+                              {act.name} ↗
+                            </a>
+                            <span className="text-brand-700 dark:text-brand-300 font-bold bg-brand-50 dark:bg-brand-900/40 px-3 py-1 rounded-lg text-sm shrink-0 border border-brand-100 dark:border-brand-800 shadow-sm self-start print:border-gray-300 print:bg-white print:text-black">
                               {act.time}
                             </span>
                           </div>
-                          <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed mt-2">{act.description}</p>
+                          <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed mt-2 print:text-gray-800">{act.description}</p>
                         </div>
                       </div>
                     ))}

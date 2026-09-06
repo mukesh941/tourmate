@@ -17,13 +17,14 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
   };
 
   return (
-    <nav className="glass sticky top-0 z-50 transition-colors">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+    <nav className="glass sticky top-4 z-50 mx-4 md:mx-auto max-w-7xl rounded-2xl mb-4 transition-all duration-300">
+      <div className="px-6 h-16 flex items-center justify-between">
         <Link to="/" className="text-2xl font-display font-bold text-gradient tracking-tight">TourMate AI</Link>
         <div className="space-x-1 md:space-x-4 flex items-center">
           {[
             { to: '/destinations', label: t('Destinations') },
             { to: '/places', label: t('Explore Places') },
+            { to: '/guides', label: t('Local Guides') },
             { to: '/map/clusters', label: t('AI Cluster Map') },
             { to: '/map/route', label: t('Route Planner') },
             { to: '/itinerary-builder', label: t('AI Itineraries') },

@@ -10,11 +10,13 @@ import Destinations from "./pages/Destinations";
 import DestinationDetail from "./pages/DestinationDetail";
 import Places from "./pages/Places";
 import PlaceDetail from "./pages/PlaceDetail";
+import CategoryPage from "./pages/CategoryPage";
 import ClusteredMapView from "./pages/ClusteredMapView";
 import RoutePlannerView from "./pages/RoutePlannerView";
 import ItineraryBuilder from "./pages/ItineraryBuilder";
 import MyItineraries from "./pages/MyItineraries";
 import LandmarkRecognition from "./pages/LandmarkRecognition";
+import Guides from "./pages/Guides";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageDestinations from "./pages/admin/ManageDestinations";
 import ManageCategories from "./pages/admin/ManageCategories";
@@ -55,11 +57,13 @@ export default function App() {
         <Route path="/destinations/:id" element={<DestinationDetail />} />
         <Route path="/places" element={<Places />} />
         <Route path="/places/:id" element={<PlaceDetail />} />
+        <Route path="/category/:categoryName" element={<CategoryPage />} />
         <Route path="/map/clusters" element={<ClusteredMapView />} />
         <Route path="/map/route" element={<RoutePlannerView />} />
         <Route path="/itinerary-builder" element={<ProtectedRoute><ItineraryBuilder /></ProtectedRoute>} />
         <Route path="/my-itineraries" element={<ProtectedRoute><MyItineraries /></ProtectedRoute>} />
         <Route path="/landmark-recognition" element={<ProtectedRoute><LandmarkRecognition /></ProtectedRoute>} />
+        <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
 
         <Route
           path="/dashboard"
