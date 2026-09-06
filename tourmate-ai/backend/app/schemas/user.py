@@ -13,6 +13,11 @@ class UserProfileUpdate(BaseModel):
     preferred_language: Optional[str] = None
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6, description="Minimum 6 characters")
+
+
 class UserPreferencesUpdate(BaseModel):
     interests: List[str] = Field(default_factory=list)
     budget_range: Optional[str] = None

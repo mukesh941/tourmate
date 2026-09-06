@@ -1,8 +1,9 @@
 from bson import ObjectId
 
 from app.core.database import get_db
+from app.core.security import hash_password, verify_password
 from app.schemas.auth import UserPublic
-from app.schemas.user import UserPreferencesUpdate, UserProfileUpdate
+from app.schemas.user import ChangePasswordRequest, UserPreferencesUpdate, UserProfileUpdate
 
 
 async def update_user_profile(user_id: str, payload: UserProfileUpdate) -> UserPublic:
@@ -22,6 +23,20 @@ async def update_user_profile(user_id: str, payload: UserProfileUpdate) -> UserP
         email=user["email"],
         role=user.get("role", "user"),
         preferred_language=user.get("preferred_language", "en")
+    )
+
+
+async def change_password(user_id: str, payload: ChangePasswordRequest) -> None:
+    db = get_db()
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise ValueError("User not found")
+    if not verify_password(payload.current_password, user.get("password_hash", "")):
+        raise ValueError("Current password is incorrect")
+    new_hash = hash_password(payload.new_password)
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"password_hash": new_hash}}
     )
 
 

@@ -60,6 +60,13 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
               <Link to="/dashboard" className="text-brand-600 font-bold hover:text-brand-700 ml-2 hidden md:block">
                 {t('Dashboard')}
               </Link>
+              <Link
+                to="/change-password"
+                className="bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 px-4 py-2 rounded-lg font-medium transition shadow-sm hover:shadow-md ml-2 text-sm md:text-base hidden md:block"
+                title="Change Password"
+              >
+                🔒 Password
+              </Link>
               <button
                 onClick={handleLogout}
                 className="bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 px-4 py-2 rounded-lg font-medium transition shadow-sm hover:shadow-md ml-2 text-sm md:text-base"

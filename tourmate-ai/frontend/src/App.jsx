@@ -22,6 +22,7 @@ import ManageDestinations from "./pages/admin/ManageDestinations";
 import ManageCategories from "./pages/admin/ManageCategories";
 import ManagePlaces from "./pages/admin/ManagePlaces";
 import ManageUsers from "./pages/admin/ManageUsers";
+import ChangePassword from "./pages/ChangePassword";
 
 import { useState, useEffect } from "react";
 
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="/my-itineraries" element={<ProtectedRoute><MyItineraries /></ProtectedRoute>} />
         <Route path="/landmark-recognition" element={<ProtectedRoute><LandmarkRecognition /></ProtectedRoute>} />
         <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
+        <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
 
         <Route
           path="/dashboard"
