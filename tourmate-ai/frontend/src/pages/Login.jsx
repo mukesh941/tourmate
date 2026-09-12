@@ -18,7 +18,16 @@ export default function Login() {
       await login(email, password);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.detail || "Login failed. Check your credentials.");
+      const detail = err.response?.data?.detail;
+      const errorMsg =
+        err.response?.data?.error ||
+        (Array.isArray(detail)
+          ? detail.map((d) => d.msg || JSON.stringify(d)).join(", ")
+          : detail) ||
+        (err.code === "ERR_NETWORK" || !err.response
+          ? "Cannot connect to server. Please ensure the backend is running on port 8000."
+          : "Login failed. Check your credentials.");
+      setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
     } finally {
       setSubmitting(false);
     }

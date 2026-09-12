@@ -19,7 +19,16 @@ export default function Register() {
       await register(form.name, form.email, form.password);
       navigate("/login");
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.detail || "Registration failed.");
+      const detail = err.response?.data?.detail;
+      const errorMsg =
+        err.response?.data?.error ||
+        (Array.isArray(detail)
+          ? detail.map((d) => d.msg || JSON.stringify(d)).join(", ")
+          : detail) ||
+        (err.code === "ERR_NETWORK" || !err.response
+          ? "Cannot connect to server. Please ensure the backend is running on port 8000."
+          : "Registration failed.");
+      setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
     } finally {
       setSubmitting(false);
     }
