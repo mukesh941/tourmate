@@ -136,9 +136,12 @@ export default function Places() {
               {/* Image Header */}
               <div className="relative h-48 bg-gray-200 dark:bg-slate-700 overflow-hidden">
                 <img 
-                  src={p.images?.[0] || `https://picsum.photos/seed/${encodeURIComponent(p.name)}/800/600`} 
+                  src={p.images?.[0] || "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80"} 
                   alt={p.name} 
                   className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
+                  onError={(e) => {
+                    e.target.src = "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80";
+                  }}
                 />
                 <div className="absolute top-3 right-3 glass px-2 py-1 rounded-lg text-xs font-bold text-gray-900 shadow-sm flex items-center gap-1">
                   ⭐ {p.rating.toFixed(1)}

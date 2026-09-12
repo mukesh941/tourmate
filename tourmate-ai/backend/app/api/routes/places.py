@@ -9,11 +9,12 @@ from app.services.place_service import (
     get_all_places, get_place, create_place, update_place, delete_place, get_recommended_places
 )
 from app.services.ml_service import generate_place_clusters
-from app.services.route_service import optimize_route
+from app.services.route_service import optimize_route, astar_route_optimization
 from pydantic import BaseModel
 
 class RouteOptimizeRequest(BaseModel):
     place_ids: List[str]
+    algorithm: Optional[str] = "astar"
 
 router = APIRouter(prefix="/places", tags=["places"])
 
@@ -49,12 +50,9 @@ async def optimize_route_endpoint(payload: RouteOptimizeRequest):
         if p:
             places.append(p)
             
-    optimized_places, total_distance = optimize_route(places)
+    res = astar_route_optimization(places)
     
-    return Envelope(success=True, data={
-        "optimized_places": optimized_places,
-        "total_distance_km": round(total_distance, 2)
-    })
+    return Envelope(success=True, data=res)
 
 @router.get("/{place_id}", response_model=Envelope[TouristPlaceResponse])
 async def read_place(place_id: str):

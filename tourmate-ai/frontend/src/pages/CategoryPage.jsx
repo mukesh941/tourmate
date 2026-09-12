@@ -116,9 +116,12 @@ export default function CategoryPage() {
               <Link to={`/places/${place.id}`} key={place.id} className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full border border-gray-200 dark:border-slate-700">
                 <div className="relative h-56 overflow-hidden bg-gray-200 dark:bg-slate-700">
                   <img 
-                    src={place.images?.[0] || HERO_IMAGES.default} 
+                    src={place.images?.[0] || HERO_IMAGES[normalizedCategory] || HERO_IMAGES.default} 
                     alt={place.name} 
                     className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
+                    onError={(e) => {
+                      e.target.src = HERO_IMAGES[normalizedCategory] || HERO_IMAGES.default;
+                    }}
                   />
                   <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg text-xs font-bold text-gray-900 shadow-sm">
                     ⭐ {place.rating?.toFixed(1) || "0.0"}

@@ -19,3 +19,8 @@ export const getReviews = async (placeId) => {
   const res = await api.get(`/interactions/reviews/${placeId}`);
   return res.data.data;
 };
+
+export const getSentimentSummary = async (placeId) => {
+  const res = await api.get(`/interactions/reviews/${placeId}/sentiment-summary`);
+  return res.data.data;
+};

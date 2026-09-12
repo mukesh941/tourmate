@@ -22,6 +22,8 @@ from app.api.routes.itineraries import router as itineraries_router
 from app.api.routes.interactions import router as interactions_router
 from app.api.routes.admin import router as admin_router
 from app.api.routes.guides import router as guides_router
+from app.api.routes.applications import router as applications_router
+from app.api.routes.hotels import router as hotels_router
 from app.core.config import settings
 from app.core.database import ensure_indexes
 from app.core.limiter import limiter
@@ -64,9 +66,10 @@ app.include_router(itineraries_router, prefix="/api")
 app.include_router(interactions_router, prefix="/api/interactions")
 app.include_router(admin_router, prefix="/api")
 app.include_router(guides_router, prefix="/api")
+app.include_router(applications_router, prefix="/api")
+app.include_router(hotels_router, prefix="/api")
 
-
-
+@app.get("/health")
 @app.get("/api/health")
 async def health():
     return {"success": True, "data": {"status": "ok"}, "error": None}

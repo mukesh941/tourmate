@@ -1,8 +1,29 @@
+# Dependencies
 node_modules/
+**/node_modules/
+
+# Production build output
 dist/
+**/dist/
+
+# Python cache & virtual environments
 __pycache__/
-venv/
-.env
-.env.local
-.DS_Store
+**/__pycache__/
 *.pyc
+**/*.pyc
+.pytest_cache/
+**/.pytest_cache/
+venv/
+**/venv/
+.venv/
+**/.venv/
+
+# Environment files
+.env
+**/.env
+.env.local
+**/.env.local
+
+# OS files
+.DS_Store
+Thumbs.db

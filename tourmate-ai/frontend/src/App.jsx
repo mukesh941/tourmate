@@ -17,6 +17,8 @@ import ItineraryBuilder from "./pages/ItineraryBuilder";
 import MyItineraries from "./pages/MyItineraries";
 import LandmarkRecognition from "./pages/LandmarkRecognition";
 import Guides from "./pages/Guides";
+import Hotels from "./pages/Hotels";
+import HotelDetail from "./pages/HotelDetail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageDestinations from "./pages/admin/ManageDestinations";
 import ManageCategories from "./pages/admin/ManageCategories";
@@ -65,6 +67,8 @@ export default function App() {
         <Route path="/my-itineraries" element={<ProtectedRoute><MyItineraries /></ProtectedRoute>} />
         <Route path="/landmark-recognition" element={<ProtectedRoute><LandmarkRecognition /></ProtectedRoute>} />
         <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
+        <Route path="/hotels" element={<Hotels />} />
+        <Route path="/hotels/:id" element={<HotelDetail />} />
         <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
 
         <Route

@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import OnboardingModal from "../components/OnboardingModal";
 import VoiceSearch from "../components/VoiceSearch";
 import ImageUpload from "../components/ImageUpload";
-import { Trees, Landmark, Palette, Mountain, Utensils, Star, Heart, MapPin } from 'lucide-react';
+import { Trees, Landmark, Palette, Mountain, Utensils, Star, Heart, MapPin, Hotel, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 export default function Dashboard() {
   const { user, token } = useAuth();
@@ -140,6 +140,9 @@ export default function Dashboard() {
             <Link to="/itinerary-builder" className="glass hover:glass-hover text-white font-bold px-8 py-3.5 rounded-xl transition-all duration-300">
               Plan an Itinerary
             </Link>
+            <Link to="/hotels" className="glass hover:glass-hover text-white font-bold px-8 py-3.5 rounded-xl transition-all duration-300 flex items-center gap-2">
+              <Hotel className="w-5 h-5 text-brand-400" /> Book Stays
+            </Link>
             
             <div className="flex items-center gap-3 mt-2 sm:mt-0">
               <button 
@@ -185,6 +188,31 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Featured Hotels & Stays Banner */}
+        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-6 sm:p-8 mb-12 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6 border border-blue-800/60">
+          <div className="flex items-center gap-4">
+            <div className="p-3.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 text-white shrink-0">
+              <Hotel className="w-8 h-8 text-brand-300" />
+            </div>
+            <div>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-500/30 text-brand-300 border border-brand-400/30 mb-1 inline-block">
+                Accommodations for Tourists
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold font-display">Need a Place to Stay on Your Travels?</h3>
+              <p className="text-sm text-blue-200 mt-1 max-w-xl">
+                Browse verified heritage palaces, beachfront resorts, alpine chalets, and boutique stays across Udaipur, Jaipur, Goa, Manali, and more.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/hotels"
+            className="px-6 py-3 bg-white text-gray-900 hover:bg-gray-100 font-bold rounded-xl shadow-md transition flex items-center gap-2 whitespace-nowrap shrink-0 transform active:scale-95"
+          >
+            <span>Explore Hotels & Stays</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
         {/* My Favorites */}
         {favorites.length > 0 && (
           <div className="mb-12 animate-fade-in-up-delay-2">
@@ -196,9 +224,12 @@ export default function Dashboard() {
                 <Link to={`/places/${place.id}`} key={place.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full border border-gray-200 dark:border-slate-700">
                   <div className="relative h-48 overflow-hidden bg-gray-200 dark:bg-slate-700">
                     <img 
-                      src={place.images?.[0] || `https://picsum.photos/seed/${encodeURIComponent(place.name)}/800/600`} 
+                      src={place.images?.[0] || "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80"} 
                       alt={place.name} 
                       className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
+                      onError={(e) => {
+                        e.target.src = "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80";
+                      }}
                     />
                   </div>
                   <div className="p-5 flex flex-col flex-1">
@@ -240,9 +271,12 @@ export default function Dashboard() {
                 <Link to={`/places/${place.id}`} key={place.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full border border-gray-200 dark:border-slate-700">
                   <div className="relative h-56 overflow-hidden bg-gray-200 dark:bg-slate-700">
                     <img 
-                      src={place.images?.[0] || `https://picsum.photos/seed/${encodeURIComponent(place.name)}/800/600`} 
+                      src={place.images?.[0] || "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80"} 
                       alt={place.name} 
                       className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
+                      onError={(e) => {
+                        e.target.src = "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80";
+                      }}
                     />
                     <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg text-sm font-bold text-gray-900 flex items-center gap-1 shadow-sm">
                       <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> {place.rating?.toFixed(1)}

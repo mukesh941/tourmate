@@ -97,3 +97,12 @@ async def get_knn_recommendations(places: list[TouristPlaceResponse], user_inter
         recommended_places.append(places[idx])
         
     return recommended_places
+
+from app.services.route_service import astar_route_optimization
+
+async def astar_optimize_route(places: list[TouristPlaceResponse]) -> dict:
+    """
+    Exposes A* Pathfinding route optimization algorithm for VTU ML synopsis requirements.
+    Calculates shortest path between attractions considering travel time and distance.
+    """
+    return astar_route_optimization(places)

@@ -24,6 +24,7 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
           {[
             { to: '/destinations', label: t('Destinations') },
             { to: '/places', label: t('Explore Places') },
+            { to: '/hotels', label: t('Hotels & Stays') },
             { to: '/guides', label: t('Local Guides') },
             { to: '/map/clusters', label: t('AI Cluster Map') },
             { to: '/map/route', label: t('Route Planner') },

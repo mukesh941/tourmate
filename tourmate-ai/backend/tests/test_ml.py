@@ -120,3 +120,46 @@ def test_route_optimization_multiple_stops():
     assert total_distance > 0.0
     # Every place visited exactly once
     assert {p.id for p in opt_places} == {"p1", "p2", "p3"}
+
+
+def test_astar_route_optimization():
+    from app.services.route_service import astar_route_optimization, astar_search
+
+    p1 = create_mock_place("p1", "India Gate", 28.6129, 77.2295)
+    p2 = create_mock_place("p2", "Red Fort", 28.6562, 77.2410)
+    p3 = create_mock_place("p3", "Humayun's Tomb", 28.5933, 77.2507)
+
+    res = astar_route_optimization([p1, p2, p3])
+    assert len(res["optimized_places"]) == 3
+    assert res["total_distance_km"] > 0.0
+    assert "A* Pathfinding" in res["algorithm_used"]
+    assert "f(n) = g(n) + h(n)" in res["evaluation_function"]
+    assert len(res["segments"]) == 2
+    assert "from_name" in res["segments"][0]
+    assert "estimated_time_mins" in res["segments"][0]
+
+    # Test direct A* node search
+    coords = [(28.6129, 77.2295), (28.6562, 77.2410), (28.5933, 77.2507)]
+    path = astar_search(0, 2, coords, allowed_indices={1, 2})
+    assert len(path) >= 2
+    assert path[0] == 0
+    assert path[-1] == 2
+
+
+def test_sentiment_analysis():
+    from app.services.sentiment_service import analyze_sentiment
+
+    # Positive review
+    pos_res = analyze_sentiment("The architecture is breathtaking and stunning, exceptionally peaceful experience!", 5)
+    assert pos_res["sentiment_label"] == "Positive"
+    assert pos_res["sentiment_score"] > 0.70
+    assert pos_res["sentiment_emoji"] == "😊"
+
+    # Negative review with negation
+    neg_res = analyze_sentiment("Extremely dirty and overcrowded, rude staff and total scam!", 1)
+    assert neg_res["sentiment_label"] == "Negative"
+    assert neg_res["sentiment_emoji"] == "🙁"
+
+    # Negated positive word -> negative
+    not_good_res = analyze_sentiment("The place was not clean and not pleasant.", 2)
+    assert not_good_res["sentiment_label"] in ["Negative", "Neutral"]

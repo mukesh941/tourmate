@@ -60,7 +60,7 @@ async def seed():
     for d in dests:
         res = await db.destinations.insert_one(DestinationInDB(
             name=d["name"], country=d["country"], description=d["description"],
-            location=GeoJSONPoint(coordinates=[d["lng"], d["lat"]]), images=[d["image_url"]]
+            cover_image=d["image_url"]
         ).dict())
         dest_ids[d["name"]] = str(res.inserted_id)
 
