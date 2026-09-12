@@ -13,7 +13,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=Envelope[UserPublic], status_code=status.HTTP_201_CREATED)
-async def register(payload: RegisterRequest):
+@limiter.limit("10/minute")
+async def register(request: Request, payload: RegisterRequest):
     try:
         user = await register_user(payload)
     except AuthError as exc:

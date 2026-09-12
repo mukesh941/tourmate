@@ -10,9 +10,23 @@ _client: AsyncIOMotorClient | None = None
 
 def get_client() -> AsyncIOMotorClient:
     global _client
+    if _client is not None:
+        try:
+            if _client.get_io_loop().is_closed():
+                _client = None
+        except Exception:
+            _client = None
+
     if _client is None:
         _client = AsyncIOMotorClient(settings.mongo_uri)
     return _client
+
+
+def close_client():
+    global _client
+    if _client is not None:
+        _client.close()
+        _client = None
 
 
 def get_db():

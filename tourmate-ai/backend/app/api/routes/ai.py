@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from typing import List, Optional
 from pydantic import BaseModel
 from app.api.deps import get_current_user_dependency
@@ -6,6 +6,7 @@ from app.schemas.auth import UserPublic
 from app.schemas.common import Envelope
 from app.services.ai_service import get_ai_response
 from app.services.place_service import get_place
+from app.core.limiter import limiter
 
 class ChatMessage(BaseModel):
     role: str # "user" or "model"
@@ -20,7 +21,8 @@ class ChatRequest(BaseModel):
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 @router.post("/chat", response_model=Envelope[dict])
-async def chat_endpoint(payload: ChatRequest, current_user: UserPublic = Depends(get_current_user_dependency)):
+@limiter.limit("20/minute")
+async def chat_endpoint(request: Request, payload: ChatRequest, current_user: UserPublic = Depends(get_current_user_dependency)):
     context = None
     if payload.place_id:
         place = await get_place(payload.place_id)
@@ -37,7 +39,9 @@ from fastapi import UploadFile, File
 from app.services.ai_service import predict_landmark_from_image
 
 @router.post("/recognize-landmark", response_model=Envelope[dict])
+@limiter.limit("10/minute")
 async def recognize_landmark(
+    request: Request,
     file: UploadFile = File(...),
     current_user: UserPublic = Depends(get_current_user_dependency)
 ):
