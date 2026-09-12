@@ -1,0 +1,10 @@
+{
+  "buildCommand": "cd tourmate-ai/frontend && npm install && npm run build",
+  "outputDirectory": "tourmate-ai/frontend/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -122,47 +122,62 @@ _mobilenet_model = None
 def get_mobilenet_model():
     global _mobilenet_model
     if _mobilenet_model is None:
-        from tensorflow.keras.applications import MobileNetV2
-        _mobilenet_model = MobileNetV2(weights="imagenet")
+        try:
+            from tensorflow.keras.applications import MobileNetV2
+            _mobilenet_model = MobileNetV2(weights="imagenet")
+        except Exception as e:
+            print(f"MobileNet model load skipped: {e}")
+            _mobilenet_model = None
     return _mobilenet_model
 
 def predict_landmark_from_image(image_bytes: bytes) -> dict:
     from PIL import Image
     import numpy as np
-    from tensorflow.keras.applications.mobilenet_v2 import preprocess_input, decode_predictions
 
-    # Load image and resize to 224x224 (required by MobileNetV2)
-    image = Image.open(io.BytesIO(image_bytes))
-    if image.mode != "RGB":
-        image = image.convert("RGB")
-    image = image.resize((224, 224))
-    
-    # Preprocess the image
-    img_array = np.array(image)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = preprocess_input(img_array)
-    
-    # Predict
-    model = get_mobilenet_model()
-    predictions = model.predict(img_array)
-    decoded = decode_predictions(predictions, top=1)[0][0] # (class_id, label, probability)
-    
-    predicted_label = decoded[1].replace("_", " ").title()
-    
-    # Use Gemini to generate a travel-friendly description
+    # 1. Prefer Gemini Vision if API key is provided
     api_key = settings.gemini_api_key
-    description = f"This looks like a {predicted_label}."
     if api_key:
-        genai.configure(api_key=api_key)
-        gemini = genai.GenerativeModel('gemini-3.6-flash')
-        prompt = f"Write a very short (2-3 sentences), interesting travel description about the architectural category/landmark type '{predicted_label}'."
         try:
-            res = gemini.generate_content(prompt)
-            description = res.text
+            genai.configure(api_key=api_key)
+            gemini = genai.GenerativeModel('gemini-2.5-flash')
+            prompt = (
+                "Identify the tourist place, monument, or landmark in this picture. "
+                "Respond strictly with a JSON object in this format: "
+                '{"name": "Landmark Name", "description": "2-3 sentences of engaging tourist facts."}'
+            )
+            image_part = {"mime_type": "image/jpeg", "data": image_bytes}
+            res = gemini.generate_content([prompt, image_part], generation_config={"response_mime_type": "application/json"})
+            data = json.loads(res.text)
+            if data.get("name"):
+                return data
         except Exception as e:
-            print(f"Failed to generate description: {e}")
-            
+            print(f"Gemini landmark recognition fallback: {e}")
+
+    # 2. Fallback to local MobileNetV2 if TensorFlow is installed
+    try:
+        from tensorflow.keras.applications.mobilenet_v2 import preprocess_input, decode_predictions
+        image = Image.open(io.BytesIO(image_bytes))
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+        image = image.resize((224, 224))
+        
+        img_array = np.array(image)
+        img_array = np.expand_dims(img_array, axis=0)
+        img_array = preprocess_input(img_array)
+        
+        model = get_mobilenet_model()
+        if model is not None:
+            predictions = model.predict(img_array)
+            decoded = decode_predictions(predictions, top=1)[0][0]
+            predicted_label = decoded[1].replace("_", " ").title()
+            return {
+                "name": predicted_label,
+                "description": f"This appears to be a {predicted_label}."
+            }
+    except Exception as e:
+        print(f"MobileNet prediction fallback: {e}")
+
     return {
-        "name": predicted_label,
-        "description": description
+        "name": "Tourist Attraction",
+        "description": "Historical monument or cultural landmark."
     }

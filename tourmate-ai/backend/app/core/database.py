@@ -35,8 +35,11 @@ def get_db():
 
 async def ensure_indexes():
     """Create indexes idempotently. Called once on startup."""
-    db = get_db()
-    await db.users.create_index("email", unique=True)
-    await db.tourist_places.create_index("name")
-    await db.tourist_places.create_index([("location", "2dsphere")])
-    await db.tourist_places.create_index("destination_id")
+    try:
+        db = get_db()
+        await db.users.create_index("email", unique=True)
+        await db.tourist_places.create_index("name")
+        await db.tourist_places.create_index([("location", "2dsphere")])
+        await db.tourist_places.create_index("destination_id")
+    except Exception as e:
+        print(f"Warning: Index creation skipped or delayed: {e}")

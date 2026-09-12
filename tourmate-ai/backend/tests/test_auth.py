@@ -10,7 +10,12 @@ async def test_health_check(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_rate_limiter_login(client: AsyncClient):
+async def test_rate_limiter_login(client: AsyncClient, monkeypatch):
+    from app.services.auth_service import AuthError
+    async def mock_login(payload):
+        raise AuthError("Incorrect email or password.")
+    monkeypatch.setattr("app.api.routes.auth.login_user", mock_login)
+
     # Limit is 5/minute
     for _ in range(5):
         await client.post("/api/auth/login", json={"email": "rate_limit_test@example.com", "password": "fake"})
