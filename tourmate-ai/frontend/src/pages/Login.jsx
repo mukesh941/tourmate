@@ -25,7 +25,7 @@ export default function Login() {
           ? detail.map((d) => d.msg || JSON.stringify(d)).join(", ")
           : detail) ||
         (err.code === "ERR_NETWORK" || !err.response
-          ? "Cannot connect to server. Please ensure the backend is running on port 8000."
+          ? "Cannot connect to server. The backend may be temporarily unavailable, please try again."
           : "Login failed. Check your credentials.");
       setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
     } finally {

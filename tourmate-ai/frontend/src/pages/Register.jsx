@@ -26,7 +26,7 @@ export default function Register() {
           ? detail.map((d) => d.msg || JSON.stringify(d)).join(", ")
           : detail) ||
         (err.code === "ERR_NETWORK" || !err.response
-          ? "Cannot connect to server. Please ensure the backend is running on port 8000."
+          ? "Cannot connect to server. The backend may be temporarily unavailable, please try again."
           : "Registration failed.");
       setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
     } finally {
