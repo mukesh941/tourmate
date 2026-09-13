@@ -51,6 +51,7 @@ async def add_security_headers(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=r"https://.*\.vercel\.app|https://.*\.netlify\.app|http://localhost:.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -68,6 +69,10 @@ app.include_router(admin_router, prefix="/api")
 app.include_router(guides_router, prefix="/api")
 app.include_router(applications_router, prefix="/api")
 app.include_router(hotels_router, prefix="/api")
+
+@app.get("/")
+async def root():
+    return {"success": True, "data": {"message": "TourMate AI API"}, "error": None}
 
 @app.get("/health")
 @app.get("/api/health")
