@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTranslation } from "react-i18next";
-import { ChevronDown, Menu, X, User, LogOut, Lock, Settings, Map, Compass, Navigation, MapPin, Building, Briefcase, Camera, Route } from "lucide-react";
+import { ChevronDown, Menu, X, User, LogOut, Lock, Settings, Map, Compass, Navigation, MapPin, Building, Briefcase, Camera, Route, ShieldCheck } from "lucide-react";
 
 export default function Navbar({ toggleDarkMode, darkMode }) {
   const { user, logout } = useAuth();
@@ -108,6 +108,16 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
               )}
             </div>
             
+            {user && user.role === "admin" && (
+              <Link
+                to="/admin"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold text-sm border border-red-200 dark:border-red-800/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Admin
+              </Link>
+            )}
+
             <div className="h-6 w-px bg-gray-200 dark:bg-slate-700 mx-2"></div>
 
             <div className="relative group ml-2">
@@ -162,8 +172,8 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
                       <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{user.email}</p>
                     </div>
                     {user.role === "admin" && (
-                      <Link to="/admin" className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                        <Settings className="w-4 h-4" /> {t('Admin')}
+                      <Link to="/admin" className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-bold">
+                        <ShieldCheck className="w-4 h-4" /> Admin Panel
                       </Link>
                     )}
                     <Link to="/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
