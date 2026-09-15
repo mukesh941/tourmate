@@ -1,24 +1,137 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { Hotel, MapPin, Star, Wifi, Coffee, Waves, ArrowRight } from "lucide-react";
+
+function HotelSuggestionCard({ hotel }) {
+  const amenityIcons = {
+    "WiFi": <Wifi className="w-3 h-3" />,
+    "Free WiFi": <Wifi className="w-3 h-3" />,
+    "Pool": <Waves className="w-3 h-3" />,
+    "Restaurant": <Coffee className="w-3 h-3" />,
+    "Breakfast": <Coffee className="w-3 h-3" />,
+  };
+  return (
+    <div className="flex gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-3 hover:shadow-md transition-all group">
+      <div className="w-14 h-14 rounded-lg bg-amber-200 dark:bg-amber-900/40 flex items-center justify-center shrink-0 overflow-hidden">
+        {hotel.images && hotel.images.length > 0 ? (
+          <img src={hotel.images[0]} alt={hotel.name} className="w-full h-full object-cover rounded-lg" />
+        ) : (
+          <Hotel className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{hotel.name}</p>
+          <Link
+            to={`/hotels/${hotel.id}`}
+            className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full shrink-0 hover:bg-amber-200 transition flex items-center gap-0.5"
+          >
+            View <ArrowRight className="w-2.5 h-2.5" />
+          </Link>
+        </div>
+        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+          <MapPin className="w-3 h-3" />
+          <span className="truncate">{hotel.city || hotel.address || "Nearby"}</span>
+        </div>
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          <div className="flex items-center gap-0.5 text-amber-500">
+            <Star className="w-3 h-3 fill-amber-500" />
+            <span className="text-xs font-bold">{hotel.rating ? hotel.rating.toFixed(1) : "4.0"}</span>
+          </div>
+          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+            &#8377;{(hotel.price_per_night || 3000).toLocaleString("en-IN")}/night
+          </span>
+          {(hotel.amenities || []).slice(0, 3).map(a => (
+            <span key={a} className="flex items-center gap-0.5 text-[10px] text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded-full border dark:border-slate-700">
+              {amenityIcons[a] || null} {a}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NearbyHotelsSuggestion({ places, destinationName }) {
+  const [hotels, setHotels] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchNearbyHotels = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (places && places.length > 0 && places[0].location && places[0].location.coordinates) {
+        const [lng, lat] = places[0].location.coordinates;
+        params.lat = lat;
+        params.lng = lng;
+        params.radius_km = 50;
+      } else if (destinationName) {
+        params.city = destinationName.split(",")[0].trim();
+      }
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels`, { params });
+      setHotels((res.data.data || []).slice(0, 3));
+    } catch (err) {
+      console.error("Hotel suggestions error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [places, destinationName]);
+
+  useEffect(() => {
+    fetchNearbyHotels();
+  }, [fetchNearbyHotels]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 animate-pulse py-3">
+        <Hotel className="w-4 h-4" />
+        Finding nearby hotels...
+      </div>
+    );
+  }
+  if (!hotels.length) return null;
+
+  return (
+    <div className="bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200 dark:border-amber-900/30 rounded-2xl p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+          <Hotel className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+        </div>
+        <h4 className="text-sm font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
+          Suggested Stays Nearby
+        </h4>
+      </div>
+      <p className="text-[11px] text-gray-500 dark:text-slate-400 mb-4 ml-9">
+        Top-rated hotels close to your itinerary stops
+      </p>
+      <div className="space-y-3">
+        {hotels.map(h => <HotelSuggestionCard key={h.id} hotel={h} />)}
+      </div>
+      <Link
+        to="/hotels"
+        className="mt-4 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline"
+      >
+        Browse all hotels <ArrowRight className="w-3.5 h-3.5" />
+      </Link>
+    </div>
+  );
+}
 
 export default function ItineraryBuilder() {
   const { token } = useAuth();
   const navigate = useNavigate();
-  
   const [allPlaces, setAllPlaces] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedPlaces, setSelectedPlaces] = useState([]);
-  
   const [days, setDays] = useState(3);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("20:00");
   const [accommodation, setAccommodation] = useState("");
   const [energyLevel, setEnergyLevel] = useState("Moderate");
   const [title, setTitle] = useState("My Awesome Trip");
-  
-  const [generatedItinerary, setGeneratedItinerary] = useState(null); // Now an array of options
+  const [generatedItinerary, setGeneratedItinerary] = useState(null);
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
   const [loadingPlaces, setLoadingPlaces] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -55,7 +168,7 @@ export default function ItineraryBuilder() {
   };
 
   const handleGenerate = async () => {
-    if (selectedPlaces.length === 0) return;
+    if (selectedPlaces.length === 0 && !destinationName) return;
     setGenerating(true);
     try {
       const res = await axios.post(
@@ -105,43 +218,33 @@ export default function ItineraryBuilder() {
     }
   };
 
-  const filteredPlaces = allPlaces.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) && 
+  const filteredPlaces = allPlaces.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) &&
     !selectedPlaces.find(sp => sp.id === p.id)
   );
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-gray-50 dark:bg-[#0f172a] overflow-hidden relative">
-      
-      {/* Animated background blobs */}
       <div className="absolute top-20 right-20 w-96 h-96 bg-accent-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob pointer-events-none"></div>
       <div className="absolute bottom-20 left-1/3 w-96 h-96 bg-brand-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000 pointer-events-none"></div>
 
-      {/* Sidebar Left: Form */}
+      {/* Sidebar */}
       <div className="w-full md:w-[420px] glass border-r border-white/20 dark:border-slate-700/50 flex flex-col z-10 shrink-0">
         <div className="p-6 bg-gradient-to-r from-brand-800 to-brand-600 border-b border-brand-700 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-xl"></div>
-          <h1 className="text-2xl font-display font-extrabold text-white tracking-tight relative z-10">AI Trip Builder ✨</h1>
+          <h1 className="text-2xl font-display font-extrabold text-white tracking-tight relative z-10">AI Trip Builder &#x2728;</h1>
           <p className="text-sm text-brand-100 mt-1 relative z-10 font-light">Let Gemini plan your perfect itinerary</p>
         </div>
-        
+
         <div className="p-6 flex-1 overflow-y-auto space-y-8 custom-scrollbar">
-          {/* Main Destination Input */}
           <div className="space-y-4 animate-fade-in-up">
             <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-3">Where to?</h2>
             <div className="glass rounded-xl p-4 border border-brand-200 dark:border-brand-800 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all bg-white/50 dark:bg-slate-800/80">
-              <input 
-                type="text" 
-                placeholder="E.g. Kerala, Goa, Paris, Japan..." 
-                value={destinationName} 
-                onChange={e => setDestinationName(e.target.value)} 
-                className="w-full bg-transparent border-none p-0 text-gray-900 dark:text-white font-bold text-lg focus:ring-0 outline-none placeholder-gray-400" 
-              />
+              <input type="text" placeholder="E.g. Kerala, Goa, Paris, Japan..." value={destinationName} onChange={e => setDestinationName(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-900 dark:text-white font-bold text-lg focus:ring-0 outline-none placeholder-gray-400" />
             </div>
             <p className="text-xs text-brand-600 dark:text-brand-400 font-medium">Type any destination in the world and our AI will plan everything!</p>
           </div>
 
-          {/* Settings */}
           <div className="space-y-4 animate-fade-in-up-delay-1">
             <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-3">Trip Settings</h2>
             <div className="grid grid-cols-2 gap-4">
@@ -165,7 +268,7 @@ export default function ItineraryBuilder() {
               <input type="text" placeholder="e.g. Taj Hotel, Mumbai" value={accommodation} onChange={e => setAccommodation(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none text-sm placeholder-gray-400" />
             </div>
             <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
-              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Pace & Energy Level</label>
+              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Pace &amp; Energy Level</label>
               <select value={energyLevel} onChange={e => setEnergyLevel(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none text-sm cursor-pointer">
                 <option value="Relaxed">Relaxed (Less walking, more rest)</option>
                 <option value="Moderate">Moderate (Standard pace)</option>
@@ -174,14 +277,12 @@ export default function ItineraryBuilder() {
             </div>
           </div>
 
-          {/* Optional: Selected Specific Places */}
           <div className="animate-fade-in-up-delay-1 border-t border-gray-200 dark:border-slate-700 pt-6">
             <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1 flex items-center justify-between">
               Specific Places (Optional)
               <span className="bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 px-2 py-0.5 rounded-full text-[10px] font-black">{selectedPlaces.length}</span>
             </h2>
             <p className="text-[10px] text-gray-400 dark:text-slate-500 mb-3">Force the AI to include these specific spots.</p>
-            
             <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2 mb-3">
               {selectedPlaces.map(p => (
                 <div key={p.id} className="flex justify-between items-center glass border border-gray-100 dark:border-slate-700/50 p-2.5 rounded-xl shadow-sm group transition-all hover:border-brand-200">
@@ -192,14 +293,9 @@ export default function ItineraryBuilder() {
                 </div>
               ))}
             </div>
-
-            {/* Search Places */}
             <div className="relative mb-3">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-              <input 
-                type="text" placeholder="Search specific attractions..." value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 glass border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 outline-none transition-all dark:text-white"
-              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">&#x1F50D;</span>
+              <input type="text" placeholder="Search specific attractions..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2.5 glass border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 outline-none transition-all dark:text-white" />
             </div>
             <div className="max-h-48 overflow-y-auto space-y-1.5 custom-scrollbar pr-2">
               {loadingPlaces ? (
@@ -209,7 +305,7 @@ export default function ItineraryBuilder() {
               ) : filteredPlaces.map(p => (
                 <button key={p.id} onClick={() => handleAddPlace(p)} className="w-full text-left flex justify-between items-center p-3 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-xl text-sm border border-transparent hover:border-brand-100 dark:hover:border-brand-800 transition-all group">
                   <span className="truncate pr-2 font-medium text-gray-700 dark:text-slate-300 group-hover:text-brand-700 dark:group-hover:text-brand-300">{p.name}</span>
-                  <span className="text-brand-400 group-hover:text-brand-600 bg-white dark:bg-slate-800 rounded-full p-1 shadow-sm font-bold">＋</span>
+                  <span className="text-brand-400 group-hover:text-brand-600 bg-white dark:bg-slate-800 rounded-full p-1 shadow-sm font-bold">&#xFF0B;</span>
                 </button>
               ))}
             </div>
@@ -227,17 +323,17 @@ export default function ItineraryBuilder() {
                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 Crafting magic...
               </span>
-            ) : "✨ Generate AI Itinerary"}
+            ) : "&#x2728; Generate AI Itinerary"}
           </button>
         </div>
       </div>
-      
-      {/* Main Right: Results */}
+
+      {/* Main Right */}
       <div className="flex-1 overflow-y-auto p-4 md:p-8 relative z-10 custom-scrollbar">
         {!generatedItinerary ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-6 animate-fade-in-up">
             <div className="w-32 h-32 bg-brand-50 dark:bg-slate-800 rounded-full flex items-center justify-center shadow-inner border border-brand-100 dark:border-slate-700">
-              <span className="text-6xl animate-bounce">🗺️</span>
+              <span className="text-6xl animate-bounce">&#x1F5FA;&#xFE0F;</span>
             </div>
             <div className="text-center">
               <h2 className="text-2xl font-display font-bold text-gray-700 dark:text-slate-300 mb-2">Your blank canvas awaits</h2>
@@ -246,89 +342,51 @@ export default function ItineraryBuilder() {
           </div>
         ) : (
           <div className="max-w-4xl mx-auto glass rounded-3xl shadow-xl border border-white/20 dark:border-slate-700 overflow-hidden animate-fade-in-up">
-            {/* Header Banner */}
             <div className="bg-gradient-to-r from-accent-600 to-brand-600 p-8 sm:p-10 relative overflow-hidden text-white">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl pointer-events-none"></div>
-              
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
                 <div className="flex-1">
                   <span className="text-brand-100 font-bold tracking-widest text-xs uppercase mb-2 block">Your AI-Generated Plan</span>
-                  <input 
-                    type="text" 
-                    value={title} 
-                    onChange={e => setTitle(e.target.value)}
-                    className="text-3xl sm:text-4xl font-display font-extrabold bg-transparent border-b-2 border-transparent hover:border-white/30 focus:border-white focus:bg-white/10 rounded-t px-1 py-2 outline-none w-full transition-all text-white placeholder-brand-200"
-                    placeholder="Name your amazing trip..."
-                  />
+                  <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="text-3xl sm:text-4xl font-display font-extrabold bg-transparent border-b-2 border-transparent hover:border-white/30 focus:border-white focus:bg-white/10 rounded-t px-1 py-2 outline-none w-full transition-all text-white placeholder-brand-200" placeholder="Name your amazing trip..." />
                 </div>
                 <div className="flex gap-3 shrink-0">
-                  <button 
-                    onClick={() => window.print()}
-                    className="bg-white/20 text-white hover:bg-white/30 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:-translate-y-1 backdrop-blur-sm"
-                  >
-                    📄 Save PDF
-                  </button>
-                  <button 
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="bg-white text-brand-700 hover:bg-gray-50 px-8 py-3 rounded-xl font-bold shadow-lg transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-70 disabled:transform-none"
-                  >
-                    {saving ? "Saving..." : "💾 Save to Profile"}
-                  </button>
+                  <button onClick={() => window.print()} className="bg-white/20 text-white hover:bg-white/30 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:-translate-y-1 backdrop-blur-sm">&#x1F4C4; Save PDF</button>
+                  <button onClick={handleSave} disabled={saving} className="bg-white text-brand-700 hover:bg-gray-50 px-8 py-3 rounded-xl font-bold shadow-lg transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-70 disabled:transform-none">{saving ? "Saving..." : "&#x1F4BE; Save to Profile"}</button>
                 </div>
               </div>
             </div>
 
             <div className="p-6 sm:p-10 space-y-8 bg-white/50 dark:bg-slate-900/50 print:bg-white print:text-black">
-              
-              {/* Route Alternative Selector */}
               <div className="flex flex-wrap gap-2 pb-4 border-b border-gray-200 dark:border-slate-700 print:hidden">
                 {generatedItinerary.map((option, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedOptionIndex(idx)}
-                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all duration-300 ${
-                      selectedOptionIndex === idx 
-                        ? "bg-brand-600 text-white shadow-md" 
-                        : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700"
-                    }`}
-                  >
+                  <button key={idx} onClick={() => setSelectedOptionIndex(idx)}
+                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all duration-300 ${selectedOptionIndex === idx ? "bg-brand-600 text-white shadow-md" : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700"}`}>
                     {option.route_name || `Option ${idx + 1}`}
                   </button>
                 ))}
               </div>
 
+              {/* Hotel Suggestions */}
+              <NearbyHotelsSuggestion places={selectedPlaces} destinationName={destinationName} />
+
+              {/* Day-by-day schedule */}
               {generatedItinerary[selectedOptionIndex]?.schedule?.map((dayPlan, idx) => (
                 <div key={idx} className="relative print:break-inside-avoid">
                   <h3 className="text-2xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-accent-600 mb-6 flex items-center gap-3 print:text-brand-700">
-                    <span className="bg-gradient-to-r from-brand-600 to-accent-600 text-white w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-md print:bg-brand-600">
-                      {dayPlan.day}
-                    </span>
+                    <span className="bg-gradient-to-r from-brand-600 to-accent-600 text-white w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-md print:bg-brand-600">{dayPlan.day}</span>
                     Day {dayPlan.day}
                   </h3>
-                  
                   <div className="space-y-6 pl-5 sm:pl-10 relative">
-                    {/* Continuous vertical timeline line */}
                     <div className="absolute top-4 bottom-4 left-[27px] sm:left-[47px] w-0.5 bg-gradient-to-b from-brand-300 via-accent-300 to-transparent print:bg-gray-300"></div>
-                    
                     {dayPlan.activities?.map((act, i) => (
                       <div key={i} className="relative z-10 group print:break-inside-avoid">
-                        {/* Timeline dot */}
                         <div className="absolute w-4 h-4 bg-white dark:bg-slate-800 rounded-full -left-[19px] top-4 border-4 border-brand-500 shadow-sm dark:shadow-none group-hover:scale-125 transition-transform duration-300 group-hover:border-accent-500 print:border-gray-500"></div>
-                        
                         <div className="glass bg-white dark:bg-slate-800 rounded-2xl p-5 border border-gray-100 dark:border-slate-700 hover:shadow-xl dark:hover:shadow-brand-900/20 hover:-translate-y-1 transition-all duration-300 ml-4 print:border-gray-300 print:shadow-none">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
-                            <a 
-                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.name)}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="font-bold font-display text-gray-900 dark:text-white text-xl hover:text-brand-600 dark:hover:text-brand-400 transition-colors underline decoration-brand-200 underline-offset-4 decoration-2 print:text-black print:no-underline"
-                            >
-                              {act.name} ↗
+                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.name)}`} target="_blank" rel="noopener noreferrer" className="font-bold font-display text-gray-900 dark:text-white text-xl hover:text-brand-600 dark:hover:text-brand-400 transition-colors underline decoration-brand-200 underline-offset-4 decoration-2 print:text-black print:no-underline">
+                              {act.name} &#x2197;
                             </a>
-                            <span className="text-brand-700 dark:text-brand-300 font-bold bg-brand-50 dark:bg-brand-900/40 px-3 py-1 rounded-lg text-sm shrink-0 border border-brand-100 dark:border-brand-800 shadow-sm self-start print:border-gray-300 print:bg-white print:text-black">
-                              {act.time}
-                            </span>
+                            <span className="text-brand-700 dark:text-brand-300 font-bold bg-brand-50 dark:bg-brand-900/40 px-3 py-1 rounded-lg text-sm shrink-0 border border-brand-100 dark:border-brand-800 shadow-sm self-start print:border-gray-300 print:bg-white print:text-black">{act.time}</span>
                           </div>
                           <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed mt-2 print:text-gray-800">{act.description}</p>
                         </div>
