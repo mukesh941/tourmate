@@ -123,7 +123,7 @@ export default function Guides() {
                     </div>
                   )}
                   <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur text-gray-900 text-sm font-bold px-3 py-1 rounded-lg shadow-sm">
-                    ${guide.hourly_rate}/hr
+                    ₹{guide.hourly_rate}/hr
                   </div>
                 </div>
                 
@@ -234,12 +234,12 @@ export default function Guides() {
                   
                   <div className="bg-gray-50 dark:bg-slate-700/50 rounded-xl p-4 mb-6">
                     <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400 mb-2">
-                      <span>${selectedGuide.hourly_rate} x {bookingHours} hours</span>
-                      <span>${(selectedGuide.hourly_rate * bookingHours).toFixed(2)}</span>
+                      <span>₹{selectedGuide.hourly_rate} x {bookingHours} hours</span>
+                      <span>₹{(selectedGuide.hourly_rate * bookingHours).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between font-bold text-gray-900 dark:text-white pt-2 border-t border-gray-200 dark:border-slate-600">
                       <span>Total</span>
-                      <span className="text-lg text-brand-600 dark:text-brand-400">${(selectedGuide.hourly_rate * bookingHours).toFixed(2)}</span>
+                      <span className="text-lg text-brand-600 dark:text-brand-400">₹{(selectedGuide.hourly_rate * bookingHours).toFixed(2)}</span>
                     </div>
                   </div>
 
