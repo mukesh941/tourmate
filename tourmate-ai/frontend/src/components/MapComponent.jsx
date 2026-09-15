@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -19,13 +19,30 @@ function ChangeView({ center, zoom }) {
 }
 
 const MapComponent = ({ places = [], routePath = null, center = [20.5937, 78.9629], zoom = 5, onMarkerClick }) => {
+  const [isDark, setIsDark] = useState(
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  );
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const tileUrl = isDark 
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+
   return (
-    <div className="w-full h-full min-h-[400px] rounded-lg overflow-hidden shadow-md dark:shadow-none">
+    <div className="w-full h-full min-h-[400px] rounded-lg overflow-hidden shadow-md dark:shadow-none bg-gray-100 dark:bg-slate-800">
       <MapContainer center={center} zoom={zoom} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
         <ChangeView center={center} zoom={zoom} />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+          url={tileUrl}
         />
         {places.map((place) => {
           if (!place.location || !place.location.coordinates) return null;

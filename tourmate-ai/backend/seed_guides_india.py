@@ -66,29 +66,27 @@ async def seed_guides():
     
     guides_to_add = []
     
-    # Generate 5-8 guides per city
+    # Generate exactly 1 guide per city
     for city in cities:
-        num_guides = random.randint(5, 8)
-        for _ in range(num_guides):
-            name = f"{random.choice(first_names)} {random.choice(last_names)}"
-            
-            # Everyone speaks English, plus 1-2 local languages
-            langs = ["English"]
-            extra_langs = random.sample(languages_pool[1:], random.randint(1, 2))
-            langs.extend(extra_langs)
-            
-            guide = {
-                "name": name,
-                "languages": list(set(langs)),
-                "rating": round(random.uniform(3.8, 5.0), 1),
-                "reviews_count": random.randint(5, 500),
-                "hourly_rate": round(random.uniform(500.0, 3000.0), 0),
-                "bio": random.choice(bios),
-                "verified": random.choice([True, True, True, False]), # 75% verified
-                "image_url": random.choice(portraits),
-                "location": f"{city}, India"
-            }
-            guides_to_add.append(GuideInDB(**guide).dict())
+        name = f"{random.choice(first_names)} {random.choice(last_names)}"
+        
+        # Everyone speaks English, plus 1-2 local languages
+        langs = ["English"]
+        extra_langs = random.sample(languages_pool[1:], random.randint(1, 2))
+        langs.extend(extra_langs)
+        
+        guide = {
+            "name": name,
+            "languages": list(set(langs)),
+            "rating": round(random.uniform(4.5, 5.0), 1),
+            "reviews_count": random.randint(50, 500),
+            "hourly_rate": round(random.uniform(500.0, 3000.0), 0),
+            "bio": random.choice(bios),
+            "verified": True, # All verified
+            "image_url": random.choice(portraits),
+            "location": f"{city}, India"
+        }
+        guides_to_add.append(GuideInDB(**guide).dict())
             
     print(f"Adding {len(guides_to_add)} guides across India to the database...")
     
