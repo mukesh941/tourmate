@@ -110,19 +110,19 @@ export default function RoutePlannerView() {
           <div className="p-4 border-b dark:border-slate-700 bg-gradient-to-r from-brand-50 to-teal-50 dark:from-slate-800 dark:to-slate-700/80">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100/80 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50">
                     ML Algorithm
                   </span>
-                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
                     A* Pathfinding
                   </span>
                 </div>
-                <h1 className="text-xl font-black text-gray-900 dark:text-white mt-1">
-                  A* Route Navigator
+                <h1 className="text-2xl font-display font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand-700 to-teal-600 dark:from-brand-400 dark:to-teal-300 mt-0.5">
+                  Route Navigator
                 </h1>
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
-                  Heuristic route optimization: <span className="font-mono text-brand-600 font-semibold">f(n) = g(n) + h(n)</span>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                  Heuristic optimization: <span className="font-mono text-[10px] bg-gray-100 dark:bg-slate-800/50 px-1 py-0.5 rounded text-gray-600 dark:text-slate-300">f(n) = g(n) + h(n)</span>
                 </p>
               </div>
               {optimizedRoute && (
@@ -265,27 +265,32 @@ export default function RoutePlannerView() {
                 onChange={e => setSearch(e.target.value)}
                 className="w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 outline-none mb-3"
               />
-              <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                {loading ? (
-                  <div className="text-center text-xs text-gray-400 py-3">Loading places...</div>
-                ) : filteredPlaces.length === 0 ? (
-                  <div className="text-center text-xs text-gray-400 py-3">No matching attractions</div>
-                ) : (
-                  filteredPlaces.map(p => (
-                    <button 
-                      key={p.id}
-                      onClick={() => handleAddPlace(p)}
-                      className="w-full text-left flex justify-between items-center p-2 hover:bg-brand-50 dark:hover:bg-slate-700/50 rounded-xl transition border border-transparent hover:border-brand-200"
-                    >
-                      <div className="min-w-0 pr-2">
-                        <span className="text-xs font-semibold text-gray-800 dark:text-slate-200 truncate block">{p.name}</span>
-                        <span className="text-[10px] text-gray-500 dark:text-slate-400">{p.category?.name || "Attraction"}</span>
-                      </div>
-                      <span className="text-brand-600 font-bold text-sm shrink-0">＋</span>
-                    </button>
-                  ))
-                )}
-              </div>
+              <div className="max-h-44 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+              {loading ? (
+                <div className="text-center text-xs text-gray-400 py-6">Loading places...</div>
+              ) : filteredPlaces.length === 0 ? (
+                <div className="text-center py-6 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed dark:border-slate-700">
+                  <span className="block text-xl mb-1 opacity-50">🔍</span>
+                  <span className="text-xs text-gray-500 dark:text-slate-400">No matching attractions found</span>
+                </div>
+              ) : (
+                filteredPlaces.map(p => (
+                  <button 
+                    key={p.id}
+                    onClick={() => handleAddPlace(p)}
+                    className="w-full text-left flex justify-between items-center p-2.5 bg-gray-50 dark:bg-slate-800/50 hover:bg-brand-50 dark:hover:bg-slate-700/80 rounded-xl transition border border-transparent hover:border-brand-200 dark:hover:border-brand-500/30 group"
+                  >
+                    <div className="min-w-0 pr-3">
+                      <span className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate block group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">{p.name}</span>
+                      <span className="text-[11px] text-gray-500 dark:text-slate-400">{p.category?.name || "Attraction"}</span>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 flex items-center justify-center text-brand-600 dark:text-brand-400 font-black shadow-sm group-hover:bg-brand-600 group-hover:border-brand-600 group-hover:text-white transition-all shrink-0">
+                      ＋
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
             </div>
           </div>
         </div>
