@@ -34,8 +34,8 @@ export function AuthProvider({ children }) {
     await loadMe();
   };
 
-  const register = async (name, email, password) => {
-    await api.post("/auth/register", { name, email, password });
+  const register = async (name, email, password, isAdmin = false) => {
+    await api.post("/auth/register", { name, email, password, is_admin: isAdmin });
   };
 
   const logout = () => {

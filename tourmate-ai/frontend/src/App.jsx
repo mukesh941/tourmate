@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 
 import Destinations from "./pages/Destinations";
 import DestinationDetail from "./pages/DestinationDetail";
+import ExploreDestination from "./pages/ExploreDestination";
 import Places from "./pages/Places";
 import PlaceDetail from "./pages/PlaceDetail";
 import CategoryPage from "./pages/CategoryPage";
@@ -58,6 +59,7 @@ export default function App() {
         
         <Route path="/destinations" element={<Destinations />} />
         <Route path="/destinations/:id" element={<DestinationDetail />} />
+        <Route path="/explore" element={<ExploreDestination />} />
         <Route path="/places" element={<Places />} />
         <Route path="/places/:id" element={<PlaceDetail />} />
         <Route path="/category/:categoryName" element={<CategoryPage />} />

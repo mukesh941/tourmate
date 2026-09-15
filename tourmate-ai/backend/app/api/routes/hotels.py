@@ -22,7 +22,10 @@ async def list_hotels(
     min_price: Optional[float] = Query(None, description="Minimum price per night"),
     max_price: Optional[float] = Query(None, description="Maximum price per night"),
     min_rating: Optional[float] = Query(None, description="Minimum star rating"),
-    amenity: Optional[str] = Query(None, description="Required amenity")
+    amenity: Optional[str] = Query(None, description="Required amenity"),
+    lat: Optional[float] = Query(None, description="Latitude for geo-search"),
+    lng: Optional[float] = Query(None, description="Longitude for geo-search"),
+    radius_km: Optional[float] = Query(10.0, description="Radius in kilometers for geo-search")
 ):
     hotels = await get_all_hotels(
         city=city,
@@ -30,7 +33,10 @@ async def list_hotels(
         min_price=min_price,
         max_price=max_price,
         min_rating=min_rating,
-        amenity=amenity
+        amenity=amenity,
+        lat=lat,
+        lng=lng,
+        radius_km=radius_km
     )
     return Envelope(success=True, data=hotels)
 

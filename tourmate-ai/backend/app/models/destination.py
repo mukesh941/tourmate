@@ -7,3 +7,5 @@ class DestinationInDB(BaseModel):
     description: str = Field(default="")
     cover_image: str = Field(default="")
     popularity_score: float = Field(default=0.0)
+    lat: float | None = None
+    lng: float | None = None

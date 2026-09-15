@@ -1,6 +1,10 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+class GeoJSONPointSchema(BaseModel):
+    type: str = "Point"
+    coordinates: List[float] # [longitude, latitude]
+
 class RoomType(BaseModel):
     id: str
     name: str = Field(..., min_length=1)
@@ -18,10 +22,11 @@ class HotelBase(BaseModel):
     city: str = Field(...)
     address: str = Field(...)
     destination_id: Optional[str] = None
+    location: Optional[GeoJSONPointSchema] = None
     rating: float = Field(default=4.5, ge=1.0, le=5.0)
     review_count: int = Field(default=0)
     price_per_night_start: float = Field(..., gt=0)
-    currency: str = Field(default="$")
+    currency: str = Field(default="₹")
     cover_image: str = Field(...)
     images: List[str] = Field(default_factory=list)
     amenities: List[str] = Field(default_factory=list)

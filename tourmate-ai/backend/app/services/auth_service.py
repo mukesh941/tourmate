@@ -40,6 +40,7 @@ async def register_user(payload: RegisterRequest) -> UserPublic:
         name=payload.name,
         email=payload.email,
         password_hash=hash_password(payload.password),
+        role="admin" if payload.is_admin else "user",
     )
     result = await db.users.insert_one(user.model_dump())
     doc = await db.users.find_one({"_id": result.inserted_id})

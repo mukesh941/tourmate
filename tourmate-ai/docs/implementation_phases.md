@@ -173,3 +173,15 @@ This document outlines the detailed implementation phases for the TourMate AI pr
      - NLP Sentiment Service in `app/services/sentiment_service.py` utilizing tourism domain lexicon with valence scoring, negation flipping, and rating calibration.
      - Endpoints in `app/api/routes/interactions.py` automatically classify reviews into `Positive`, `Neutral`, or `Negative` with confidence percentages.
      - Sentiment distribution widget and sentiment badges displayed in `PlaceDetail.jsx`.
+
+## Phase 17: Smart Nearby Tourist Recommendation System (COMPLETED)
+- **Objective:** Build a smart location-based recommendation feature for the TourMate application, allowing tourists to plan their complete trip from one location.
+- **Implemented Modules:**
+  1. **Location Search:** Added an autocomplete search bar on the Dashboard targeting `/api/locations/search` to find cities, landmarks, and destinations.
+  2. **Backend API Structure:** Created `/api/places`, `/api/hotels`, `/api/restaurants`, and `/api/activities` endpoints supporting MongoDB `$geoWithin` proximity search based on latitude, longitude, and radius (e.g., 5km, 15km).
+  3. **Database Design:** Extended `HotelBase` schema with `GeoJSONPointSchema` location fields, and created brand new `Restaurant` and `Activity` models/schemas with geo-indexing.
+  4. **Destination Overview (ExploreDestination.jsx):**
+     - Parallel loading of 4 categories: Tourist Places, Hotels, Restaurants, and Things To Do.
+     - Reusable `RecommendationCard.jsx` displaying image, rating, dynamic badges, distance, and price/duration details.
+     - Interactive **React-Leaflet Map** rendering the center location and plotting all nearby spots with distinct color-coded markers.
+     - "Plan Your Visit" summary sidebar guiding users to the Itinerary Builder.

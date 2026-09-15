@@ -73,12 +73,12 @@ export default function Hotels() {
       if (selectedAmenity) params.append("amenity", selectedAmenity);
 
       if (priceFilter === "budget") {
-        params.append("max_price", "130");
+        params.append("max_price", "8500");
       } else if (priceFilter === "mid") {
-        params.append("min_price", "130");
-        params.append("max_price", "200");
+        params.append("min_price", "8500");
+        params.append("max_price", "15000");
       } else if (priceFilter === "luxury") {
-        params.append("min_price", "200");
+        params.append("min_price", "15000");
       }
 
       const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels?${params.toString()}`);
@@ -150,9 +150,9 @@ export default function Hotels() {
               className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 text-gray-900 dark:text-slate-100"
             >
               <option value="all">Any Price</option>
-              <option value="budget">Under $130 / night</option>
-              <option value="mid">$130 - $200 / night</option>
-              <option value="luxury">$200+ / night (Luxury)</option>
+              <option value="budget">Under ₹8,500 / night</option>
+              <option value="mid">₹8,500 - ₹15,000 / night</option>
+              <option value="luxury">₹15,000+ / night (Luxury)</option>
             </select>
           </div>
 

@@ -10,7 +10,10 @@ async def get_all_hotels(
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     min_rating: Optional[float] = None,
-    amenity: Optional[str] = None
+    amenity: Optional[str] = None,
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    radius_km: Optional[float] = 10.0
 ) -> List[HotelResponse]:
     db = get_db()
     filters = {}
@@ -39,6 +42,14 @@ async def get_all_hotels(
 
     if amenity:
         filters["amenities"] = {"$regex": amenity, "$options": "i"}
+
+    if lat is not None and lng is not None:
+        radius_radians = radius_km / 6378.1
+        filters["location"] = {
+            "$geoWithin": {
+                "$centerSphere": [[lng, lat], radius_radians]
+            }
+        }
 
     cursor = db.hotels.find(filters).sort("rating", -1)
     hotels = []
