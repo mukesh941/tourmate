@@ -23,6 +23,7 @@ export default function ItineraryBuilder() {
   const [loadingPlaces, setLoadingPlaces] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [destinationName, setDestinationName] = useState("");
 
   useEffect(() => {
     const fetchPlaces = async () => {
@@ -60,6 +61,7 @@ export default function ItineraryBuilder() {
       const res = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/itineraries/generate`,
         {
+          destination_name: destinationName,
           place_ids: selectedPlaces.map(p => p.id),
           days: parseInt(days),
           start_time: startTime,
@@ -124,6 +126,21 @@ export default function ItineraryBuilder() {
         </div>
         
         <div className="p-6 flex-1 overflow-y-auto space-y-8 custom-scrollbar">
+          {/* Main Destination Input */}
+          <div className="space-y-4 animate-fade-in-up">
+            <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-3">Where to?</h2>
+            <div className="glass rounded-xl p-4 border border-brand-200 dark:border-brand-800 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all bg-white/50 dark:bg-slate-800/80">
+              <input 
+                type="text" 
+                placeholder="E.g. Kerala, Goa, Paris, Japan..." 
+                value={destinationName} 
+                onChange={e => setDestinationName(e.target.value)} 
+                className="w-full bg-transparent border-none p-0 text-gray-900 dark:text-white font-bold text-lg focus:ring-0 outline-none placeholder-gray-400" 
+              />
+            </div>
+            <p className="text-xs text-brand-600 dark:text-brand-400 font-medium">Type any destination in the world and our AI will plan everything!</p>
+          </div>
+
           {/* Settings */}
           <div className="space-y-4 animate-fade-in-up-delay-1">
             <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-3">Trip Settings</h2>
@@ -157,34 +174,30 @@ export default function ItineraryBuilder() {
             </div>
           </div>
 
-          {/* Selected Places */}
-          <div className="animate-fade-in-up-delay-1">
-            <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between">
-              Must-Visit Places
+          {/* Optional: Selected Specific Places */}
+          <div className="animate-fade-in-up-delay-1 border-t border-gray-200 dark:border-slate-700 pt-6">
+            <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1 flex items-center justify-between">
+              Specific Places (Optional)
               <span className="bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 px-2 py-0.5 rounded-full text-[10px] font-black">{selectedPlaces.length}</span>
             </h2>
-            <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2">
-              {selectedPlaces.length === 0 ? (
-                <div className="text-sm text-gray-400 dark:text-slate-500 italic p-4 text-center border border-dashed border-gray-200 dark:border-slate-700 rounded-xl">No places selected yet. Search below!</div>
-              ) : (
-                selectedPlaces.map(p => (
-                  <div key={p.id} className="flex justify-between items-center glass border border-gray-100 dark:border-slate-700/50 p-2.5 rounded-xl shadow-sm group transition-all hover:border-brand-200">
-                    <span className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate pr-2">{p.name}</span>
-                    <button onClick={() => handleRemovePlace(p.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg p-1.5 transition-colors">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                    </button>
-                  </div>
-                ))
-              )}
+            <p className="text-[10px] text-gray-400 dark:text-slate-500 mb-3">Force the AI to include these specific spots.</p>
+            
+            <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2 mb-3">
+              {selectedPlaces.map(p => (
+                <div key={p.id} className="flex justify-between items-center glass border border-gray-100 dark:border-slate-700/50 p-2.5 rounded-xl shadow-sm group transition-all hover:border-brand-200">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate pr-2">{p.name}</span>
+                  <button onClick={() => handleRemovePlace(p.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg p-1.5 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                  </button>
+                </div>
+              ))}
             </div>
-          </div>
 
-          {/* Search Places */}
-          <div className="animate-fade-in-up-delay-2">
+            {/* Search Places */}
             <div className="relative mb-3">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
               <input 
-                type="text" placeholder="Search destinations..." value={search} onChange={e => setSearch(e.target.value)}
+                type="text" placeholder="Search specific attractions..." value={search} onChange={e => setSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2.5 glass border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 outline-none transition-all dark:text-white"
               />
             </div>
@@ -206,7 +219,7 @@ export default function ItineraryBuilder() {
         <div className="p-6 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md border-t border-gray-100 dark:border-slate-700/50 z-20 relative">
           <button
             onClick={handleGenerate}
-            disabled={generating || selectedPlaces.length === 0}
+            disabled={generating || (!destinationName && selectedPlaces.length === 0)}
             className="w-full bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-500 hover:to-accent-500 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:transform-none transform hover:-translate-y-0.5 flex justify-center items-center gap-2"
           >
             {generating ? (

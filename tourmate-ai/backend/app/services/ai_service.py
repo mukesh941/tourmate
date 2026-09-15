@@ -58,7 +58,7 @@ def get_ai_response(user_message: str, history: List[Dict[str, str]], context: s
 
 import json
 
-def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: str, end_time: str, accommodation: str = None, energy_level: str = "Moderate") -> List[Dict]:
+def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: str, end_time: str, accommodation: str = None, energy_level: str = "Moderate", destination_name: str = "") -> List[Dict]:
     api_key = settings.gemini_api_key
     if not api_key:
         from fastapi import HTTPException
@@ -69,16 +69,22 @@ def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: s
     # Use JSON mode if available, or just prompt for strict JSON
     model = genai.GenerativeModel('gemini-3.6-flash', generation_config={"response_mime_type": "application/json"})
     
+    places_context = ""
+    if places_info:
+        places_context = f"You must include all of the following places in the itinerary, distributing them logically:\n{json.dumps(places_info, indent=2)}"
+    else:
+        places_context = f"No specific places were provided. Please use your world knowledge to suggest the best, most popular landmarks, restaurants, and activities for a trip to {destination_name}."
+
     prompt = f"""
     You are an expert travel planner. Create realistic, detailed day-by-day itineraries for {days} days.
     The daily schedule should run roughly from {start_time} to {end_time}.
+    The destination for this trip is: {destination_name if destination_name else 'Not specified'}
     
     CRITICAL CONSTRAINTS:
     - Accommodation/Starting Point: {accommodation if accommodation else 'Not specified. Assume a central downtown location.'}
     - Energy Level (Fatigue Limit): {energy_level}. If 'Relaxed', schedule fewer places per day and add more rest time. If 'Intense', pack the schedule.
     
-    You must include all of the following places in the itinerary, distributing them logically by proximity to the accommodation or theme:
-    {json.dumps(places_info, indent=2)}
+    {places_context}
     
     Generate 3 DIFFERENT alternative route options (e.g., Option 1 is Optimal, Option 2 is a different sequence, Option 3 is a reversed sequence).
     

@@ -32,7 +32,8 @@ class ItineraryResponse(ItineraryCreate):
     created_at: datetime
 
 class ItineraryGenerateRequest(BaseModel):
-    place_ids: List[str] = Field(..., min_items=1)
+    destination_name: str = Field(default="")
+    place_ids: List[str] = Field(default_factory=list)
     days: int = Field(..., ge=1, le=7)
     start_time: str = Field(default="09:00")
     end_time: str = Field(default="20:00")
