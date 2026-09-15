@@ -16,12 +16,18 @@ async def get_system_stats(admin_user: UserPublic = Depends(require_admin)):
     destinations_count = await db.destinations.count_documents({})
     places_count = await db.tourist_places.count_documents({})
     categories_count = await db.categories.count_documents({})
+    hotels_count = await db.hotels.count_documents({})
+    guides_count = await db.guides.count_documents({})
+    itineraries_count = await db.itineraries.count_documents({})
     
     stats = {
         "users": users_count,
         "destinations": destinations_count,
         "places": places_count,
-        "categories": categories_count
+        "categories": categories_count,
+        "hotels": hotels_count,
+        "guides": guides_count,
+        "itineraries": itineraries_count,
     }
     return Envelope(success=True, data=stats)
 
@@ -51,7 +57,35 @@ async def delete_user(user_id: str, admin_user: UserPublic = Depends(require_adm
     if result.deleted_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
         
-    # Optional: cascade delete user's itineraries, bookings, etc.
-    # await db.itineraries.delete_many({"user_id": obj_id})
-    
     return Envelope(success=True, data={"message": "User deleted successfully."})
+
+@router.put("/users/{user_id}/promote", response_model=Envelope[Dict[str, Any]])
+async def promote_user(user_id: str, admin_user: UserPublic = Depends(require_admin)):
+    """Promote a user to admin role."""
+    db = get_db()
+    try:
+        obj_id = ObjectId(user_id)
+    except:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format.")
+    
+    result = await db.users.update_one({"_id": obj_id}, {"$set": {"role": "admin", "is_admin": True}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    return Envelope(success=True, data={"message": "User promoted to admin successfully."})
+
+@router.put("/users/{user_id}/demote", response_model=Envelope[Dict[str, Any]])
+async def demote_user(user_id: str, admin_user: UserPublic = Depends(require_admin)):
+    """Demote an admin back to regular user."""
+    db = get_db()
+    if str(admin_user.id) == user_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot demote yourself.")
+    try:
+        obj_id = ObjectId(user_id)
+    except:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format.")
+    
+    result = await db.users.update_one({"_id": obj_id}, {"$set": {"role": "user", "is_admin": False}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    return Envelope(success=True, data={"message": "User demoted to regular user."})
+
