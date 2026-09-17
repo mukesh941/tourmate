@@ -4,20 +4,42 @@ from app.schemas.place import TouristPlaceResponse
 
 async def generate_place_clusters(places: list[TouristPlaceResponse], k: int) -> dict:
     if not places:
-        return {"clusters": [], "centroids": []}
+        return {"k": 0, "centroids": [], "clusters": [], "skipped": 0}
         
-    if len(places) < k:
-        k = len(places)
-        
-    # Extract coordinates (assuming GeoJSON Point [lng, lat])
+    valid_places = []
     coords = []
+    skipped = 0
+    
     for place in places:
         if place.location and place.location.coordinates and len(place.location.coordinates) >= 2:
-            # We will cluster by [lat, lng] for intuitive map visualization
-            coords.append([place.location.coordinates[1], place.location.coordinates[0]])
+            lng, lat = place.location.coordinates[0], place.location.coordinates[1]
+            if -90 <= lat <= 90 and -180 <= lng <= 180:
+                valid_places.append(place)
+                coords.append([lat, lng])
+            else:
+                skipped += 1
         else:
-            coords.append([0.0, 0.0]) # fallback
-            
+            skipped += 1
+
+    if not valid_places:
+        return {"k": 0, "centroids": [], "clusters": [], "skipped": skipped}
+
+    if len(valid_places) < k:
+        k = len(valid_places)
+        
+    # If 1 valid place, handle without KMeans
+    if k <= 1:
+        return {
+            "k": 1,
+            "centroids": [coords[0]],
+            "clusters": [{
+                "cluster_id": 0,
+                "centroid": coords[0],
+                "places": valid_places
+            }],
+            "skipped": skipped
+        }
+
     X = np.array(coords)
     
     # Run K-Means
@@ -34,13 +56,14 @@ async def generate_place_clusters(places: list[TouristPlaceResponse], k: int) ->
             "places": []
         })
         
-    for place, label in zip(places, labels):
+    for place, label in zip(valid_places, labels):
         clusters[label]["places"].append(place)
         
     return {
         "k": k,
         "centroids": centroids,
-        "clusters": clusters
+        "clusters": clusters,
+        "skipped": skipped
     }
 
 from sklearn.neighbors import NearestNeighbors

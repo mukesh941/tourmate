@@ -58,7 +58,7 @@ def get_ai_response(user_message: str, history: List[Dict[str, str]], context: s
 
 import json
 
-def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: str, end_time: str, accommodation: str = None, energy_level: str = "Moderate", destination_name: str = "") -> List[Dict]:
+def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: str, end_time: str, accommodation: str = None, energy_level: str = "Moderate", destination_name: str = "", budget: str = "Medium", travel_type: str = "Family", transportation_mode: str = "flight", local_transportation: str = "taxi", interests: List[str] = [], origin: str = "") -> List[Dict]:
     api_key = settings.gemini_api_key
     if not api_key:
         from fastapi import HTTPException
@@ -66,12 +66,12 @@ def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: s
 
     genai.configure(api_key=api_key)
     
-    # Use JSON mode if available, or just prompt for strict JSON
-    model = genai.GenerativeModel('gemini-3.6-flash', generation_config={"response_mime_type": "application/json"})
+    gemini_model_name = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+    model = genai.GenerativeModel(gemini_model_name, generation_config={"response_mime_type": "application/json"})
     
     places_context = ""
     if places_info:
-        places_context = f"You must include all of the following places in the itinerary, distributing them logically:\n{json.dumps(places_info, indent=2)}"
+        places_context = f"You must prioritize including these specific places in the itinerary, distributing them logically:\n{json.dumps(places_info, indent=2)}\nIf database places are available, use their actual IDs."
     else:
         places_context = f"No specific places were provided. Please use your world knowledge to suggest the best, most popular landmarks, restaurants, and activities for a trip to {destination_name}."
 
@@ -81,26 +81,71 @@ def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: s
     The destination for this trip is: {destination_name if destination_name else 'Not specified'}
     
     CRITICAL CONSTRAINTS:
+    - Origin / Starting Location: {origin if origin else 'Not specified'}
+    - Inter-City Transportation Mode: {transportation_mode}
+    - Local Transportation Mode: {local_transportation}
     - Accommodation/Starting Point: {accommodation if accommodation else 'Not specified. Assume a central downtown location.'}
-    - Energy Level (Fatigue Limit): {energy_level}. If 'Relaxed', schedule fewer places per day and add more rest time. If 'Intense', pack the schedule.
+    - Energy Level (Fatigue Limit): {energy_level}.
+    - Budget: {budget}.
+    - Travel Type: {travel_type}.
+    - Interests: {', '.join(interests) if interests else 'General sightseeing'}
     
     {places_context}
     
-    Generate 3 DIFFERENT alternative route options (e.g., Option 1 is Optimal, Option 2 is a different sequence, Option 3 is a reversed sequence).
+    TRANSPORTATION RULES:
+    You must estimate travel time, cost, and logistics for the selected transportation modes. Do not invent real flight numbers or precise live schedules. Explicitly add transportation steps (e.g. "Taxi to Airport", "Flight to Goa") into the daily timeline. 
     
-    Your response MUST be a valid JSON array of objects representing the alternatives. Use this exact schema:
+    Generate exactly 3 DIFFERENT alternative route options:
+    1. "Balanced" (Mix of sightseeing, food, culture, rest)
+    2. "Explorer" (More activities, attractions, adventure)
+    3. "Relaxed" (More free time, fewer locations, longer visits)
+    
+    The options must differ in number of places, activity density, and travel intensity.
+    Include realistic travel times between places using {local_transportation} and do not overlap activities.
+    
+    Your response MUST be a valid JSON array of objects. Use this exact schema:
     [
       {{
-        "route_name": "Option 1: Optimal Flow",
+        "route_name": "Balanced (or Explorer/Relaxed)",
+        "description": "Brief description of this option",
+        "total_estimated_cost": 5000,
+        "transportation": {{
+          "mode": "{transportation_mode}",
+          "origin": "{origin if origin else destination_name}",
+          "destination": "{destination_name}",
+          "estimated_distance_km": 480.5,
+          "estimated_duration_minutes": 120,
+          "estimated_cost_min": 2000,
+          "estimated_cost_max": 5000,
+          "fuel_cost_estimate": 0,
+          "toll_estimate": 0,
+          "recommendation_note": "A short sentence explaining why this mode is suitable."
+        }},
         "schedule": [
           {{
             "day": 1,
+            "aiSummary": "Today's Plan: A mix of heritage and food...",
             "activities": [
               {{
-                "time": "09:00",
-                "place_id": "optional_id",
-                "name": "Activity or Place Name",
-                "description": "Brief description"
+                "start_time": "09:00",
+                "end_time": "11:00",
+                "place_id": "optional_id_if_provided",
+                "name": "Activity, Place, or Transit Name (e.g. Flight to Goa)",
+                "description": "Brief description",
+                "activity_type": "sightseeing or transit",
+                "estimated_cost": 200,
+                "travel_time_minutes": 20,
+                "rating": 4.5,
+                "reviewCount": 120,
+                "location": "City Center",
+                "distance": "2.5 km away",
+                "openingHours": "09:00 AM - 05:00 PM",
+                "entryFee": "₹200",
+                "aiReason": "Highly recommended for first-time visitors due to its historical significance.",
+                "aiTips": ["Book tickets online", "Carry water"],
+                "crowdLevel": "Medium",
+                "weatherSuitability": "Good",
+                "isOptional": false
               }}
             ]
           }}
@@ -111,14 +156,86 @@ def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: s
     
     try:
         response = model.generate_content(prompt)
-        result = json.loads(response.text)
+        text = response.text.strip()
+        import re
+        match = re.search(r'```(?:json)?(.*?)```', text, re.DOTALL)
+        if match:
+            text = match.group(1).strip()
+        result = json.loads(text)
         return result
     except Exception as e:
         print(f"Itinerary AI Error: {e}")
         from fastapi import HTTPException
-        if "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e):
-            raise HTTPException(status_code=429, detail="AI Rate limit exceeded. Please wait 30 seconds and try again.")
-        raise HTTPException(status_code=500, detail=f"Failed to generate itinerary: {str(e)}")
+        if "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e) or "quota" in str(e).lower():
+            print("Falling back to mock itinerary due to rate limits...")
+            return [
+                {
+                    "route_name": "Fallback AI Itinerary (Rate Limited)",
+                    "description": "This is a placeholder itinerary generated because the AI API quota was exceeded.",
+                    "total_estimated_cost": 5000,
+                    "transportation": {
+                        "mode": transportation_mode or "flight",
+                        "origin": origin or destination_name,
+                        "destination": destination_name or "Destination",
+                        "estimated_distance_km": 500,
+                        "estimated_duration_minutes": 120,
+                        "estimated_cost_min": 2000,
+                        "estimated_cost_max": 5000,
+                        "fuel_cost_estimate": 0,
+                        "toll_estimate": 0,
+                        "recommendation_note": "Placeholder transportation due to API limits."
+                    },
+                    "schedule": [
+                        {
+                            "day": d + 1,
+                            "aiSummary": f"Today's Plan: Enjoy a relaxing day exploring {destination_name or 'the area'}.",
+                            "activities": [
+                                {
+                                    "start_time": "09:00",
+                                    "end_time": "12:00",
+                                    "name": f"Explore {destination_name or 'Destination'} (Morning)",
+                                    "description": "Visit local attractions and landmarks.",
+                                    "activity_type": "sightseeing",
+                                    "estimated_cost": 500,
+                                    "travel_time_minutes": 30,
+                                    "rating": 4.0,
+                                    "reviewCount": 50,
+                                    "location": "Central Area",
+                                    "distance": "Nearby",
+                                    "openingHours": "08:00 AM - 06:00 PM",
+                                    "entryFee": "₹100",
+                                    "aiReason": "A great way to start the day.",
+                                    "aiTips": ["Wear comfortable shoes."],
+                                    "crowdLevel": "Low",
+                                    "weatherSuitability": "Good",
+                                    "isOptional": False
+                                },
+                                {
+                                    "start_time": "13:00",
+                                    "end_time": "16:00",
+                                    "name": f"Explore {destination_name or 'Destination'} (Afternoon)",
+                                    "description": "More sightseeing and activities.",
+                                    "activity_type": "sightseeing",
+                                    "estimated_cost": 500,
+                                    "travel_time_minutes": 30,
+                                    "rating": 4.2,
+                                    "reviewCount": 75,
+                                    "location": "Downtown",
+                                    "distance": "3 km away",
+                                    "openingHours": "09:00 AM - 05:00 PM",
+                                    "entryFee": "Free",
+                                    "aiReason": "Highly recommended afternoon activity.",
+                                    "aiTips": ["Carry water."],
+                                    "crowdLevel": "Medium",
+                                    "weatherSuitability": "Fair",
+                                    "isOptional": True
+                                }
+                            ]
+                        } for d in range(days)
+                    ]
+                }
+            ]
+        raise HTTPException(status_code=500, detail="Failed to generate itinerary. Please try again.")
 
 import io
 
@@ -187,3 +304,57 @@ def predict_landmark_from_image(image_bytes: bytes) -> dict:
         "name": "Tourist Attraction",
         "description": "Historical monument or cultural landmark."
     }
+
+def enrich_cluster_with_ai(places: List[Dict], user_interests: List[str] = []) -> dict:
+    api_key = settings.gemini_api_key
+    if not api_key:
+        return {
+            "cluster_name": "Area Cluster",
+            "description": "A group of nearby attractions.",
+            "categories": [],
+            "reasons": []
+        }
+
+    genai.configure(api_key=api_key)
+    gemini_model_name = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+    model = genai.GenerativeModel(gemini_model_name, generation_config={"response_mime_type": "application/json"})
+    
+    place_names = [p.get("name") for p in places if p.get("name")]
+    place_cats = [p.get("category", {}).get("name") if p.get("category") else "" for p in places]
+    
+    prompt = f"""
+    You are an expert local guide mapping out areas of a city. I have a geographic cluster containing the following places:
+    Places: {', '.join(place_names)}
+    Categories: {', '.join(filter(bool, place_cats))}
+    
+    User interests: {', '.join(user_interests) if user_interests else 'General Sightseeing'}
+    
+    Based on the actual places inside this cluster, give it a catchy, descriptive name and a short summary.
+    Do NOT invent information that is not supported by the places provided.
+    
+    Respond STRICTLY with a valid JSON object using this schema:
+    {{
+      "cluster_name": "Name (e.g. Historic City Center, Food District)",
+      "description": "1-2 sentence summary of this specific cluster of places.",
+      "categories": ["list", "of", "relevant", "categories"],
+      "reasons": ["1-2 reasons why this cluster matches the user interests or why it is a good group to visit together"]
+    }}
+    """
+    
+    try:
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        import re
+        match = re.search(r'```(?:json)?(.*?)```', text, re.DOTALL)
+        if match:
+            text = match.group(1).strip()
+        result = json.loads(text)
+        return result
+    except Exception as e:
+        print(f"Cluster Enrichment AI Error: {e}")
+        return {
+            "cluster_name": "Local District",
+            "description": "A geographic cluster of attractions.",
+            "categories": [],
+            "reasons": ["Geographically close to each other"]
+        }

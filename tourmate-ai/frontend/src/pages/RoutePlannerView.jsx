@@ -1,319 +1,454 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import MapComponent from "../components/MapComponent";
-import ShareModal from "../components/ShareModal";
+import { MapPin, Navigation, Map as MapIcon, Compass, Crosshair, Search, Plus, Trash2, ArrowRight, Car, Bike, Footprints, Bus, Info } from "lucide-react";
 
 export default function RoutePlannerView() {
   const { token } = useAuth();
-  const [allPlaces, setAllPlaces] = useState([]);
-  const [search, setSearch] = useState("");
-  const [selectedPlaces, setSelectedPlaces] = useState([]);
-  const [optimizedRoute, setOptimizedRoute] = useState(null);
-  const [routeDetails, setRouteDetails] = useState(null);
-  const [totalDistance, setTotalDistance] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [optimizing, setOptimizing] = useState(false);
   
-  // Share modal state
-  const [shareData, setShareData] = useState({
-    isOpen: false,
-    title: "",
-    text: "",
-    url: ""
-  });
+  // Locations State
+  const [origin, setOrigin] = useState({ query: "", lat: null, lng: null });
+  const [destination, setDestination] = useState({ query: "", lat: null, lng: null });
+  const [stops, setStops] = useState([]);
+  
+  const [transportMode, setTransportMode] = useState("car");
+  
+  // UI State
+  const [loading, setLoading] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  
+  // Routing State
+  const [routeData, setRouteData] = useState(null);
+  const [navigating, setNavigating] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  
+  // AI State
+  const [discovering, setDiscovering] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+
+  const watchIdRef = useRef(null);
 
   useEffect(() => {
-    const fetchPlaces = async () => {
-      setLoading(true);
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/places`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setAllPlaces(res.data.data || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+    return () => {
+      if (watchIdRef.current) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
       }
     };
-    if (token) fetchPlaces();
-  }, [token]);
+  }, []);
 
-  const handleAddPlace = (place) => {
-    if (!selectedPlaces.find(p => p.id === place.id)) {
-      setSelectedPlaces([...selectedPlaces, place]);
-      setOptimizedRoute(null);
-      setRouteDetails(null);
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setErrorMsg("Geolocation is not supported by your browser");
+      return;
+    }
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/locations/reverse?lat=${latitude}&lon=${longitude}`);
+          setOrigin({
+            query: res.data.data.display_name,
+            lat: latitude,
+            lng: longitude
+          });
+        } catch (err) {
+          setOrigin({
+            query: "Current Location",
+            lat: latitude,
+            lng: longitude
+          });
+        } finally {
+          setLoading(false);
+        }
+      },
+      (error) => {
+        setErrorMsg("Unable to retrieve your location. Please check your permissions.");
+        setLoading(false);
+      }
+    );
+  };
+
+  const handleSearch = async (query, index = null) => {
+    if (!query || query.length < 2) return;
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/locations/geocode?query=${query}`);
+      const data = res.data.data;
+      if (data) {
+        if (index === 'origin') setOrigin({ query: data.display_name, lat: data.latitude, lng: data.longitude });
+        else if (index === 'destination') setDestination({ query: data.display_name, lat: data.latitude, lng: data.longitude });
+        else {
+          const newStops = [...stops];
+          newStops[index] = { query: data.display_name, lat: data.latitude, lng: data.longitude };
+          setStops(newStops);
+        }
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleRemovePlace = (id) => {
-    setSelectedPlaces(selectedPlaces.filter(p => p.id !== id));
-    setOptimizedRoute(null);
-    setRouteDetails(null);
+  const handleAddStop = () => {
+    setStops([...stops, { query: "", lat: null, lng: null }]);
   };
 
-  const handleOptimize = async () => {
-    if (selectedPlaces.length < 2) return;
+  const handleRemoveStop = (idx) => {
+    setStops(stops.filter((_, i) => i !== idx));
+  };
+
+  const handleCalculateRoute = async () => {
+    if (!origin.lat || !destination.lat) {
+      setErrorMsg("Please provide valid origin and destination locations.");
+      return;
+    }
     
-    setOptimizing(true);
+    setCalculating(true);
+    setErrorMsg("");
+    setRouteData(null);
+    setAiSuggestions(null);
+    
+    try {
+      const coordinates = [
+        { latitude: origin.lat, longitude: origin.lng },
+        ...stops.filter(s => s.lat).map(s => ({ latitude: s.lat, longitude: s.lng })),
+        { latitude: destination.lat, longitude: destination.lng }
+      ];
+      
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/locations/route`,
+        { coordinates, mode: transportMode }
+      );
+      
+      setRouteData(res.data.data);
+    } catch (err) {
+      setErrorMsg("We couldn't calculate this route. Please check your locations and try again.");
+    } finally {
+      setCalculating(false);
+    }
+  };
+
+  const handleStartNavigation = () => {
+    if (!navigator.geolocation) {
+      setErrorMsg("GPS tracking is unavailable.");
+      return;
+    }
+    setNavigating(true);
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+      },
+      (error) => console.error(error),
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+    );
+  };
+
+  const handleStopNavigation = () => {
+    setNavigating(false);
+    setUserLocation(null);
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+  };
+
+  const handleDiscover = async () => {
+    if (!routeData) return;
+    setDiscovering(true);
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/places/route/optimize`,
-        { 
-          place_ids: selectedPlaces.map(p => p.id),
-          algorithm: "astar"
+        `${import.meta.env.VITE_API_BASE_URL}/ai/discover`,
+        {
+          origin: origin.query,
+          destination: destination.query,
+          mode: transportMode,
+          stops: stops.length,
+          distance: routeData.distance_km
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
-      const data = res.data.data;
-      setOptimizedRoute(data.optimized_places);
-      setTotalDistance(data.total_distance_km);
-      setRouteDetails(data);
+      setAiSuggestions(res.data.data.suggestions);
     } catch (err) {
       console.error(err);
     } finally {
-      setOptimizing(false);
+      setDiscovering(false);
     }
   };
 
-  const handleShareRoute = () => {
-    const stopNames = (optimizedRoute || selectedPlaces).map((p, i) => `${i + 1}. ${p.name}`).join(", ");
-    setShareData({
-      isOpen: true,
-      title: `Optimized Route with ${selectedPlaces.length} Attractions`,
-      text: `🗺️ TourMate A* Route: ${stopNames}. Total distance: ${totalDistance} km (${routeDetails?.estimated_travel_time_formatted || "quick trip"})!`,
-      url: window.location.href
-    });
-  };
+  const mapCenter = userLocation 
+    ? [userLocation.lat, userLocation.lng] 
+    : origin.lat 
+      ? [origin.lat, origin.lng] 
+      : [20.5937, 78.9629];
 
-  const filteredPlaces = allPlaces.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) && 
-    !selectedPlaces.find(sp => sp.id === p.id)
-  );
-
-  const placesToMap = optimizedRoute || selectedPlaces;
+  // Places for map markers
+  const mapPlaces = [];
+  if (origin.lat) mapPlaces.push({ id: "origin", name: "Origin", location: { coordinates: [origin.lng, origin.lat] } });
+  stops.forEach((s, i) => {
+    if (s.lat) mapPlaces.push({ id: `stop-${i}`, name: `Stop ${i+1}`, location: { coordinates: [s.lng, s.lat] } });
+  });
+  if (destination.lat) mapPlaces.push({ id: "dest", name: "Destination", location: { coordinates: [destination.lng, destination.lat] } });
   
-  const center = placesToMap.length > 0 && placesToMap[0].location
-    ? [placesToMap[0].location.coordinates[1], placesToMap[0].location.coordinates[0]]
-    : [20.5937, 78.9629];
+  if (userLocation) mapPlaces.push({ id: "user", name: "Current Position", location: { coordinates: [userLocation.lng, userLocation.lat] } });
 
   return (
-    <div className="relative h-[calc(100vh-100px)] mx-4 mb-4 rounded-3xl overflow-hidden border border-gray-200 dark:border-slate-800 shadow-2xl">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-gray-50 dark:bg-[#0f172a] relative overflow-hidden">
       
-      {/* Floating Sidebar Left */}
-      <div className="absolute top-4 left-4 bottom-4 w-[calc(100%-32px)] md:w-[420px] z-[1000] flex flex-col pointer-events-none">
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-200 dark:border-slate-700 shadow-2xl rounded-2xl flex-1 flex flex-col overflow-hidden pointer-events-auto">
-          {/* Header */}
-          <div className="p-4 border-b dark:border-slate-700 bg-gradient-to-r from-brand-50 to-teal-50 dark:from-slate-800 dark:to-slate-700/80">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100/80 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50">
-                    ML Algorithm
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-                    A* Pathfinding
-                  </span>
-                </div>
-                <h1 className="text-2xl font-display font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand-700 to-teal-600 dark:from-brand-400 dark:to-teal-300 mt-0.5">
-                  Route Navigator
-                </h1>
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                  Heuristic optimization: <span className="font-mono text-[10px] bg-gray-100 dark:bg-slate-800/50 px-1 py-0.5 rounded text-gray-600 dark:text-slate-300">f(n) = g(n) + h(n)</span>
-                </p>
-              </div>
-              {optimizedRoute && (
-                <button
-                  onClick={handleShareRoute}
-                  className="p-2 rounded-xl bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 text-brand-600 dark:text-brand-400 hover:bg-brand-50 transition shadow-sm"
-                  title="Share this route"
-                >
-                  📤
-                </button>
-              )}
-            </div>
-          </div>
+      {/* Route Panel */}
+      <div className={`w-full md:w-[420px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-r border-gray-200 dark:border-slate-800 shadow-2xl flex flex-col z-20 transition-transform duration-300 ${navigating ? 'md:-translate-x-full md:w-0' : 'translate-x-0'}`}>
+        <div className="p-5 border-b border-gray-100 dark:border-slate-800">
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+            <Compass className="text-brand-500" /> Route Planner
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Calculate optimal routes & navigate</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6">
           
-          {/* Selected Itinerary Stops */}
-          <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="font-bold text-sm text-gray-800 dark:text-slate-200 flex items-center gap-2">
-                <span>Your Waypoints</span>
-                <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300">
-                  {selectedPlaces.length} stops
-                </span>
-              </h2>
-              {optimizedRoute && (
-                <span className="text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 px-2.5 py-1 rounded-full flex items-center gap-1">
-                  <span>⚡</span> A* Optimized
-                </span>
-              )}
+          {errorMsg && (
+            <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm font-medium border border-red-200 dark:border-red-800/50">
+              {errorMsg}
             </div>
-            
-            <div className="space-y-2.5 mb-5">
-              {placesToMap.length === 0 ? (
-                <div className="text-xs text-gray-400 italic text-center py-6 bg-gray-50 dark:bg-slate-900/50 rounded-2xl border border-dashed dark:border-slate-700">
-                  Search and add tourist spots below to generate optimal sequence
-                </div>
-              ) : (
-                placesToMap.map((p, idx) => (
-                  <div key={p.id} className="flex items-center gap-3 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl p-3 shadow-sm dark:shadow-none group transition hover:border-brand-300">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${optimizedRoute ? 'bg-emerald-600' : 'bg-brand-600'}`}>
-                      {idx + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-xs text-gray-900 dark:text-slate-100 truncate">{p.name}</p>
-                      <p className="text-[11px] text-gray-500 dark:text-slate-400 truncate">{p.category?.name || "Attraction"}</p>
-                    </div>
-                    {!optimizedRoute && (
-                      <button 
-                        onClick={() => handleRemovePlace(p.id)}
-                        className="text-gray-400 hover:text-red-500 transition p-1"
-                      >
-                        ✕
-                      </button>
-                    )}
+          )}
+
+          {/* Form */}
+          <div className="space-y-4 relative">
+            <div className="absolute left-[15px] top-8 bottom-8 w-[2px] bg-gray-200 dark:bg-slate-700 pointer-events-none z-0"></div>
+
+            {/* Origin */}
+            <div className="relative z-10 flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center shrink-0 border-2 border-white dark:border-slate-900 shadow-sm mt-1">
+                <div className="w-3 h-3 rounded-full bg-brand-600"></div>
+              </div>
+              <div className="flex-1 space-y-2">
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">From</label>
+                <div className="flex flex-col gap-2">
+                  <button onClick={handleGetCurrentLocation} disabled={loading} className="w-full text-left px-4 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-400 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors border border-blue-100 dark:border-blue-800/50">
+                    <Crosshair className="w-4 h-4" /> {loading ? "Locating..." : "Use My Current Location"}
+                  </button>
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Search origin..." 
+                      value={origin.query} 
+                      onChange={e => setOrigin({ ...origin, query: e.target.value })}
+                      onBlur={() => handleSearch(origin.query, 'origin')}
+                      className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none text-gray-900 dark:text-white"
+                    />
                   </div>
-                ))
-              )}
+                </div>
+              </div>
             </div>
 
-            {/* Route Optimization Button & Metrics */}
-            {selectedPlaces.length > 1 && (
-              <div className="mb-5">
-                <button
-                  onClick={handleOptimize}
-                  disabled={optimizing}
-                  className="w-full bg-gradient-to-r from-brand-600 to-teal-600 hover:from-brand-700 hover:to-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition disabled:opacity-70 flex justify-center items-center gap-2 text-sm"
-                >
-                  {optimizing ? (
-                    <>
-                      <span className="animate-spin text-lg">↻</span>
-                      <span>Computing A* Optimal Path...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>⚡</span>
-                      <span>Run A* Route Optimizer</span>
-                    </>
-                  )}
-                </button>
-                
-                {/* Detailed Metrics Card */}
-                {optimizedRoute && routeDetails && (
-                  <div className="mt-3 bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3.5 space-y-2">
-                    <div className="flex justify-between items-center text-xs font-semibold text-emerald-900 dark:text-emerald-300">
-                      <span>Algorithm:</span>
-                      <span className="font-mono bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded">A* Heuristic Search</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div className="bg-white dark:bg-slate-800 p-2 rounded-lg border border-emerald-100 dark:border-emerald-800/60 text-center">
-                        <span className="text-[10px] text-gray-500 dark:text-slate-400 uppercase tracking-wider block font-semibold">Total Distance</span>
-                        <span className="text-sm font-bold text-brand-700 dark:text-brand-300">{totalDistance} km</span>
-                      </div>
-                      <div className="bg-white dark:bg-slate-800 p-2 rounded-lg border border-emerald-100 dark:border-emerald-800/60 text-center">
-                        <span className="text-[10px] text-gray-500 dark:text-slate-400 uppercase tracking-wider block font-semibold">Est. Transit Time</span>
-                        <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{routeDetails.estimated_travel_time_formatted}</span>
-                      </div>
-                    </div>
-
-                    {/* Turn-by-turn navigation segments */}
-                    {routeDetails.segments && routeDetails.segments.length > 0 && (
-                      <div className="pt-2">
-                        <p className="text-[11px] font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider mb-1.5">
-                          Waypoint Directions:
-                        </p>
-                        <div className="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1">
-                          {routeDetails.segments.map((seg, i) => (
-                            <div key={i} className="text-[11px] bg-white dark:bg-slate-800 p-2 rounded-lg border border-emerald-100 dark:border-slate-700 flex justify-between items-center">
-                              <span className="truncate pr-2 font-medium text-gray-700 dark:text-slate-300">
-                                {seg.from_name} → {seg.to_name}
-                              </span>
-                              <span className="font-bold text-brand-600 dark:text-brand-400 shrink-0">
-                                {seg.distance_km} km ({seg.estimated_time_mins}m)
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Share button */}
-                    <button
-                      onClick={handleShareRoute}
-                      className="w-full mt-2 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5"
-                    >
-                      <span>📤</span> Share Optimized Route
+            {/* Stops */}
+            {stops.map((stop, idx) => (
+              <div key={idx} className="relative z-10 flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shrink-0 border-2 border-gray-200 dark:border-slate-700 shadow-sm mt-1">
+                  <div className="w-2.5 h-2.5 rounded-full bg-gray-400"></div>
+                </div>
+                <div className="flex-1 relative">
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="Add stop..." 
+                      value={stop.query} 
+                      onChange={e => {
+                        const newStops = [...stops];
+                        newStops[idx].query = e.target.value;
+                        setStops(newStops);
+                      }}
+                      onBlur={() => handleSearch(stop.query, idx)}
+                      className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none text-gray-900 dark:text-white"
+                    />
+                    <button onClick={() => handleRemoveStop(idx)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Search to Add Places */}
-            <div className="mt-auto border-t dark:border-slate-700 pt-4">
-              <h2 className="font-bold text-xs text-gray-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                Add Attractions
-              </h2>
-              <input 
-                type="text"
-                placeholder="Search attractions (e.g. Taj Mahal, Red Fort)..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 outline-none mb-3"
-              />
-              <div className="max-h-44 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-              {loading ? (
-                <div className="text-center text-xs text-gray-400 py-6">Loading places...</div>
-              ) : filteredPlaces.length === 0 ? (
-                <div className="text-center py-6 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed dark:border-slate-700">
-                  <span className="block text-xl mb-1 opacity-50">🔍</span>
-                  <span className="text-xs text-gray-500 dark:text-slate-400">No matching attractions found</span>
                 </div>
-              ) : (
-                filteredPlaces.map(p => (
-                  <button 
-                    key={p.id}
-                    onClick={() => handleAddPlace(p)}
-                    className="w-full text-left flex justify-between items-center p-2.5 bg-gray-50 dark:bg-slate-800/50 hover:bg-brand-50 dark:hover:bg-slate-700/80 rounded-xl transition border border-transparent hover:border-brand-200 dark:hover:border-brand-500/30 group"
-                  >
-                    <div className="min-w-0 pr-3">
-                      <span className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate block group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">{p.name}</span>
-                      <span className="text-[11px] text-gray-500 dark:text-slate-400">{p.category?.name || "Attraction"}</span>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 flex items-center justify-center text-brand-600 dark:text-brand-400 font-black shadow-sm group-hover:bg-brand-600 group-hover:border-brand-600 group-hover:text-white transition-all shrink-0">
-                      ＋
-                    </div>
-                  </button>
-                ))
-              )}
+              </div>
+            ))}
+            
+            <div className="relative z-10 pl-11">
+              <button onClick={handleAddStop} className="text-xs font-bold text-gray-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 flex items-center gap-1 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm transition-colors">
+                <Plus className="w-3 h-3" /> Add Stop
+              </button>
             </div>
+
+            {/* Destination */}
+            <div className="relative z-10 flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0 border-2 border-white dark:border-slate-900 shadow-sm mt-1">
+                <MapPin className="w-4 h-4 text-red-600" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">To</label>
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search destination..." 
+                    value={destination.query} 
+                    onChange={e => setDestination({ ...destination, query: e.target.value })}
+                    onBlur={() => handleSearch(destination.query, 'destination')}
+                    className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
             </div>
           </div>
+
+          <hr className="border-gray-100 dark:border-slate-800" />
+
+          {/* Transportation */}
+          <div>
+            <label className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-3">Travel By</label>
+            <div className="flex gap-2">
+              {[
+                { id: "car", icon: Car, label: "Car" },
+                { id: "bike", icon: Bike, label: "Bike" },
+                { id: "walk", icon: Footprints, label: "Walk" }
+              ].map(mode => (
+                <button
+                  key={mode.id}
+                  onClick={() => setTransportMode(mode.id)}
+                  className={`flex-1 py-2 rounded-xl border flex flex-col items-center gap-1 transition-all ${transportMode === mode.id ? 'bg-gray-900 border-gray-900 text-white dark:bg-white dark:border-white dark:text-gray-900 shadow-md' : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400'}`}
+                >
+                  <mode.icon className="w-5 h-5" />
+                  <span className="text-[10px] font-bold uppercase">{mode.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={handleCalculateRoute}
+            disabled={calculating || !origin.query || !destination.query}
+            className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:shadow-none flex justify-center items-center gap-2"
+          >
+            {calculating ? (
+              <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Calculating...</>
+            ) : "Calculate Route"}
+          </button>
+          
+          {/* Route Summary */}
+          {routeData && (
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-5 animate-fade-in-up">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-black text-emerald-900 dark:text-emerald-100">Your Route</h3>
+                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 capitalize flex items-center gap-1">
+                    {transportMode === 'car' ? <Car className="w-3 h-3"/> : transportMode === 'bike' ? <Bike className="w-3 h-3"/> : <Footprints className="w-3 h-3"/>}
+                    Via {transportMode}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{routeData.distance_km} <span className="text-sm font-bold">km</span></p>
+                  <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">{routeData.duration_minutes > 60 ? `${Math.floor(routeData.duration_minutes/60)}h ${routeData.duration_minutes%60}m` : `${routeData.duration_minutes} min`}</p>
+                </div>
+              </div>
+              
+              <button onClick={handleStartNavigation} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all flex justify-center items-center gap-2 mb-3">
+                <Navigation className="w-4 h-4" /> Start Navigation
+              </button>
+
+              <button onClick={handleDiscover} disabled={discovering} className="w-full bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 font-bold py-2.5 px-4 rounded-xl shadow-sm border border-emerald-100 dark:border-emerald-800 transition-all flex justify-center items-center gap-2 text-sm">
+                {discovering ? <span className="animate-pulse">Asking AI...</span> : <><span>✦</span> Discover Along Your Route</>}
+              </button>
+            </div>
+          )}
+
+          {/* AI Suggestions */}
+          {aiSuggestions && (
+            <div className="bg-gradient-to-r from-brand-50 to-indigo-50 dark:from-brand-900/20 dark:to-indigo-900/20 border border-brand-200 dark:border-brand-800/50 rounded-2xl p-5">
+              <h3 className="font-bold text-brand-900 dark:text-brand-100 flex items-center gap-2 mb-3 text-sm">
+                <span>✦</span> AI Recommendations
+              </h3>
+              <p className="text-sm text-gray-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{aiSuggestions}</p>
+            </div>
+          )}
+
+          {/* Turn by turn */}
+          {routeData && routeData.steps && (
+            <div className="border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
+              <div className="bg-gray-50 dark:bg-slate-800/80 p-3 border-b border-gray-200 dark:border-slate-700">
+                <h3 className="font-bold text-sm text-gray-700 dark:text-slate-300">Route Details</h3>
+              </div>
+              <div className="max-h-64 overflow-y-auto custom-scrollbar p-1">
+                {routeData.steps.map((step, idx) => (
+                  <div key={idx} className="flex gap-3 p-3 border-b border-gray-100 dark:border-slate-800 last:border-0 hover:bg-gray-50 dark:hover:bg-slate-800/50">
+                    <div className="mt-0.5 text-gray-400">
+                      {step.instruction.toLowerCase().includes("turn left") ? "←" : 
+                       step.instruction.toLowerCase().includes("turn right") ? "→" : 
+                       step.instruction.toLowerCase().includes("arrive") ? "📍" : "↑"}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{step.instruction}</p>
+                      {step.distance_m > 0 && (
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                          {step.distance_m > 1000 ? `${(step.distance_m/1000).toFixed(1)} km` : `${Math.round(step.distance_m)} m`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
       
-      {/* Map filling Entire Screen Behind Sidebar */}
-      <div className="absolute inset-0 z-0">
+      {/* Map Area */}
+      <div className="flex-1 relative z-0">
         <MapComponent 
-          places={placesToMap} 
-          routePath={optimizedRoute ? optimizedRoute : null} 
-          center={center}
-          zoom={optimizedRoute ? 6 : 5}
+          places={mapPlaces} 
+          routePath={routeData ? routeData.geometry : null} 
+          center={mapCenter}
+          zoom={routeData ? 10 : 13}
         />
+        
+        {/* Navigation Overlay */}
+        {navigating && (
+          <div className="absolute top-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-96 bg-gray-900/90 backdrop-blur-md rounded-2xl p-5 shadow-2xl z-50 text-white animate-fade-in-up border border-gray-700">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm uppercase tracking-wider">
+                <Navigation className="w-4 h-4 animate-pulse" /> Navigation Active
+              </div>
+              <button onClick={handleStopNavigation} className="text-gray-400 hover:text-white bg-gray-800 rounded-full p-1.5 transition">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-4xl font-black">{routeData?.distance_km} <span className="text-lg">km</span></p>
+                <p className="text-gray-400 font-semibold mt-1">Remaining Distance</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold">{routeData?.duration_minutes > 60 ? `${Math.floor(routeData.duration_minutes/60)}h ${routeData.duration_minutes%60}m` : `${routeData.duration_minutes} min`}</p>
+                <p className="text-gray-400 font-semibold mt-1">ETA</p>
+              </div>
+            </div>
+            
+            {userLocation ? (
+              <div className="mt-4 pt-4 border-t border-gray-700 text-sm flex gap-2 text-blue-300">
+                <Info className="w-4 h-4 shrink-0" />
+                <p>Tracking your position. Follow the highlighted route on the map.</p>
+              </div>
+            ) : (
+              <div className="mt-4 pt-4 border-t border-gray-700 text-sm flex gap-2 text-amber-300">
+                <div className="w-4 h-4 border-2 border-amber-300 border-t-transparent rounded-full animate-spin shrink-0"></div>
+                <p>Acquiring GPS signal...</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* Social Share Modal */}
-      <ShareModal
-        isOpen={shareData.isOpen}
-        onClose={() => setShareData({ ...shareData, isOpen: false })}
-        title={shareData.title}
-        text={shareData.text}
-        url={shareData.url}
-      />
+      
     </div>
   );
 }

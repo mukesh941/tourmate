@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:5173,https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:3000"
     gemini_api_key: str | None = None
+    google_maps_api_key: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

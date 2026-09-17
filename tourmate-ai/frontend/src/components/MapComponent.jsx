@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -67,10 +67,18 @@ const MapComponent = ({ places = [], routePath = null, center = [20.5937, 78.962
             </Marker>
           );
         })}
-        {routePath && routePath.length > 1 && (
+        {/* Legacy support for old route points */}
+        {routePath && Array.isArray(routePath) && routePath.length > 1 && (
           <Polyline 
             positions={routePath.map(p => [p.location.coordinates[1], p.location.coordinates[0]])} 
             pathOptions={{ color: '#ec4899', weight: 4, opacity: 0.8, dashArray: '10, 10', lineCap: 'round' }} 
+          />
+        )}
+        {/* Support for OSRM GeoJSON geometry */}
+        {routePath && !Array.isArray(routePath) && routePath.type === "LineString" && (
+          <GeoJSON 
+            data={routePath} 
+            style={{ color: '#3b82f6', weight: 5, opacity: 0.8 }} 
           />
         )}
       </MapContainer>

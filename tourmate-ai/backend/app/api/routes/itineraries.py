@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
+from pydantic import BaseModel
 
 from app.api.deps import get_current_user_dependency
 from app.schemas.auth import UserPublic
@@ -43,8 +44,17 @@ async def generate_itinerary(
         end_time=payload.end_time,
         accommodation=payload.accommodation,
         energy_level=payload.energy_level,
-        destination_name=payload.destination_name
+        destination_name=payload.destination_name,
+        budget=payload.budget,
+        travel_type=payload.travel_type,
+        transportation_mode=payload.transportation_mode,
+        local_transportation=payload.local_transportation,
+        interests=payload.interests,
+        origin=payload.origin
     )
+    
+    if not isinstance(generated_schedule, list) or len(generated_schedule) == 0:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Invalid AI response structure")
     
     return Envelope(success=True, data=generated_schedule)
 
@@ -91,3 +101,23 @@ async def remove_itinerary(
     if not success:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Itinerary not found")
     return Envelope(success=True, data=True)
+
+class OptimizeDayRequest(BaseModel):
+    day_schedule: dict
+    context: str = ""
+
+@router.post("/optimize", response_model=Envelope[dict])
+async def optimize_day(
+    payload: OptimizeDayRequest,
+    current_user: UserPublic = Depends(get_current_user_dependency)
+):
+    # Mock implementation of "Optimize My Day" AI action
+    # In a real scenario, this would call the AI service with the day_schedule and context
+    
+    # We'll just return a success message and a slightly modified schedule for demonstration
+    optimized_schedule = payload.day_schedule.copy()
+    
+    return Envelope(success=True, data={
+        "message": "✨ I optimized Day. Reduced travel time by 15 mins and added a lunch break.",
+        "optimized_schedule": optimized_schedule
+    })

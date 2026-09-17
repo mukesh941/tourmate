@@ -18,6 +18,13 @@ class ChatRequest(BaseModel):
     place_id: Optional[str] = None
     language: Optional[str] = 'en'
 
+class DiscoverRequest(BaseModel):
+    origin: str
+    destination: str
+    mode: str
+    stops: int
+    distance: float
+
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 @router.post("/chat", response_model=Envelope[dict])
@@ -52,3 +59,12 @@ async def recognize_landmark(
     except Exception as e:
         print(f"Error predicting landmark: {e}")
         return Envelope(success=False, error="Failed to recognize landmark. Please try again.")
+
+@router.post("/discover", response_model=Envelope[dict])
+@limiter.limit("10/minute")
+async def discover_route(request: Request, payload: DiscoverRequest, current_user: UserPublic = Depends(get_current_user_dependency)):
+    prompt = f"I am taking a {payload.mode} trip from {payload.origin} to {payload.destination} ({payload.distance} km) with {payload.stops} stops. Suggest 3 interesting places to discover along the route, categorized by Food, Nature, and Attraction. Keep the response very concise."
+    
+    ai_text = get_ai_response(prompt, [], None, "en")
+    
+    return Envelope(success=True, data={"suggestions": ai_text})

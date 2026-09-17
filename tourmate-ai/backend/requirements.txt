@@ -14,3 +14,4 @@ google-generativeai==0.8.3
 # tensorflow-cpu==2.20.0  # Optional: Gemini Vision is used by default for landmark recognition without heavy memory footprint
 Pillow==10.4.0
 slowapi==0.1.9
+httpx==0.27.2

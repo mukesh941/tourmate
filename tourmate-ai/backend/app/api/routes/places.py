@@ -10,7 +10,13 @@ from app.services.place_service import (
 )
 from app.services.ml_service import generate_place_clusters
 from app.services.route_service import optimize_route, astar_route_optimization
+from app.services.ai_service import enrich_cluster_with_ai
 from pydantic import BaseModel
+from typing import Dict, Any
+
+class ClusterEnrichRequest(BaseModel):
+    places: List[Dict[str, Any]]
+    interests: Optional[List[str]] = []
 
 class RouteOptimizeRequest(BaseModel):
     place_ids: List[str]
@@ -32,10 +38,23 @@ async def read_places(
     return Envelope(success=True, data=places)
 
 @router.get("/clusters", response_model=Envelope[dict])
-async def get_clusters(k: int = Query(3, description="Number of clusters")):
-    places = await get_all_places()
+async def get_clusters(
+    k: int = Query(3, description="Number of clusters"),
+    destination_id: Optional[str] = None,
+    category_id: Optional[str] = None,
+    category: Optional[str] = None,
+    lat: Optional[float] = Query(None, description="Latitude for geo-search"),
+    lng: Optional[float] = Query(None, description="Longitude for geo-search"),
+    radius_km: Optional[float] = Query(10.0, description="Radius in kilometers for geo-search")
+):
+    places = await get_all_places(destination_id, category_id, category, None, lat, lng, radius_km)
     clusters_data = await generate_place_clusters(places, k)
     return Envelope(success=True, data=clusters_data)
+
+@router.post("/clusters/enrich", response_model=Envelope[dict])
+async def enrich_cluster_endpoint(payload: ClusterEnrichRequest):
+    result = enrich_cluster_with_ai(payload.places, payload.interests)
+    return Envelope(success=True, data=result)
 
 @router.get("/recommendations", response_model=Envelope[List[TouristPlaceResponse]])
 async def get_recommendations(current_user: UserPublic = Depends(get_current_user_dependency)):

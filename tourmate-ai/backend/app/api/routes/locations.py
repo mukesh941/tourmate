@@ -1,10 +1,16 @@
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Body
+from pydantic import BaseModel
 
 from app.schemas.common import Envelope
 from app.core.database import get_db
+from app.services import osrm_service
 
 router = APIRouter(prefix="/locations", tags=["locations"])
+
+class RouteRequest(BaseModel):
+    coordinates: List[Dict[str, float]]
+    mode: str = "driving"
 
 @router.get("/search", response_model=Envelope[List[Dict[str, Any]]])
 async def search_locations(
@@ -74,3 +80,26 @@ async def search_locations(
             unique_results.append(r)
             
     return Envelope(success=True, data=unique_results)
+
+@router.get("/geocode", response_model=Envelope[Dict[str, Any]])
+async def geocode_location(query: str = Query(..., min_length=2)):
+    result = await osrm_service.geocode(query)
+    if not result:
+        raise HTTPException(status_code=404, detail="Location not found")
+    return Envelope(success=True, data=result)
+
+@router.get("/reverse", response_model=Envelope[Dict[str, str]])
+async def reverse_geocode(lat: float, lon: float):
+    name = await osrm_service.reverse_geocode(lat, lon)
+    if not name:
+        name = "Unknown Location"
+    return Envelope(success=True, data={"display_name": name})
+
+@router.post("/route", response_model=Envelope[Dict[str, Any]])
+async def calculate_route(req: RouteRequest = Body(...)):
+    if len(req.coordinates) < 2:
+        raise HTTPException(status_code=400, detail="At least 2 coordinates required")
+    result = await osrm_service.calculate_route(req.coordinates, req.mode)
+    if not result:
+        raise HTTPException(status_code=400, detail="Could not calculate route")
+    return Envelope(success=True, data=result)

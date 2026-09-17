@@ -1,0 +1,642 @@
+import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate, Link } from "react-router-dom";
+import { Hotel, MapPin, Star, Wifi, Coffee, Waves, ArrowRight } from "lucide-react";
+
+function HotelSuggestionCard({ hotel }) {
+  const amenityIcons = {
+    "WiFi": <Wifi className="w-3 h-3" />,
+    "Free WiFi": <Wifi className="w-3 h-3" />,
+    "Pool": <Waves className="w-3 h-3" />,
+    "Restaurant": <Coffee className="w-3 h-3" />,
+    "Breakfast": <Coffee className="w-3 h-3" />,
+  };
+  return (
+    <div className="flex gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-3 hover:shadow-md transition-all group">
+      <div className="w-14 h-14 rounded-lg bg-amber-200 dark:bg-amber-900/40 flex items-center justify-center shrink-0 overflow-hidden">
+        {hotel.images && hotel.images.length > 0 ? (
+          <img src={hotel.images[0]} alt={hotel.name} className="w-full h-full object-cover rounded-lg" />
+        ) : (
+          <Hotel className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{hotel.name}</p>
+          <Link
+            to={`/hotels/${hotel.id}`}
+            className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded-full shrink-0 hover:bg-amber-200 transition flex items-center gap-0.5"
+          >
+            View <ArrowRight className="w-2.5 h-2.5" />
+          </Link>
+        </div>
+        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+          <MapPin className="w-3 h-3" />
+          <span className="truncate">{hotel.city || hotel.address || "Nearby"}</span>
+        </div>
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          <div className="flex items-center gap-0.5 text-amber-500">
+            <Star className="w-3 h-3 fill-amber-500" />
+            <span className="text-xs font-bold">{hotel.rating ? hotel.rating.toFixed(1) : "4.0"}</span>
+          </div>
+          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+            &#8377;{(hotel.price_per_night || 3000).toLocaleString("en-IN")}/night
+          </span>
+          {(hotel.amenities || []).slice(0, 3).map(a => (
+            <span key={a} className="flex items-center gap-0.5 text-[10px] text-gray-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded-full border dark:border-slate-700">
+              {amenityIcons[a] || null} {a}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NearbyHotelsSuggestion({ places, destinationName }) {
+  const [hotels, setHotels] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchNearbyHotels = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (places && places.length > 0 && places[0].location && places[0].location.coordinates) {
+        const [lng, lat] = places[0].location.coordinates;
+        params.lat = lat;
+        params.lng = lng;
+        params.radius_km = 50;
+      } else if (destinationName) {
+        params.city = destinationName.split(",")[0].trim();
+      }
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels`, { params });
+      setHotels((res.data.data || []).slice(0, 3));
+    } catch (err) {
+      console.error("Hotel suggestions error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [places, destinationName]);
+
+  useEffect(() => {
+    fetchNearbyHotels();
+  }, [fetchNearbyHotels]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 animate-pulse py-3">
+        <Hotel className="w-4 h-4" />
+        Finding nearby hotels...
+      </div>
+    );
+  }
+  if (!hotels.length) return null;
+
+  return (
+    <div className="bg-amber-50/50 dark:bg-amber-950/10 border border-amber-200 dark:border-amber-900/30 rounded-2xl p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+          <Hotel className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+        </div>
+        <h4 className="text-sm font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
+          Suggested Stays Nearby
+        </h4>
+      </div>
+      <p className="text-[11px] text-gray-500 dark:text-slate-400 mb-4 ml-9">
+        Top-rated hotels close to your itinerary stops
+      </p>
+      <div className="space-y-3">
+        {hotels.map(h => <HotelSuggestionCard key={h.id} hotel={h} />)}
+      </div>
+      <Link
+        to="/hotels"
+        className="mt-4 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline"
+      >
+        Browse all hotels <ArrowRight className="w-3.5 h-3.5" />
+      </Link>
+    </div>
+  );
+}
+
+export default function ItineraryBuilder() {
+  const { token } = useAuth();
+  const navigate = useNavigate();
+  const [allPlaces, setAllPlaces] = useState([]);
+  const [search, setSearch] = useState("");
+  const [selectedPlaces, setSelectedPlaces] = useState([]);
+  const [days, setDays] = useState(3);
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("20:00");
+  const [accommodation, setAccommodation] = useState("");
+  const [energyLevel, setEnergyLevel] = useState("Moderate");
+  const [budget, setBudget] = useState("Medium");
+  const [travelType, setTravelType] = useState("Family");
+  const [transportationMode, setTransportationMode] = useState("flight");
+  const [localTransportation, setLocalTransportation] = useState("taxi");
+  const [interests, setInterests] = useState([]);
+  
+  const availableInterests = ["Historical places", "Nature", "Food", "Shopping", "Adventure", "Culture", "Photography", "Entertainment"];
+
+  const toggleInterest = (interest) => {
+    if (interests.includes(interest)) {
+      setInterests(interests.filter(i => i !== interest));
+    } else {
+      setInterests([...interests, interest]);
+    }
+  };
+
+  const [title, setTitle] = useState("My Awesome Trip");
+  const [generatedItinerary, setGeneratedItinerary] = useState(null);
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
+  const [loadingPlaces, setLoadingPlaces] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [destinationName, setDestinationName] = useState("");
+  const [originName, setOriginName] = useState("");
+  const [loadingText, setLoadingText] = useState("Creating your itinerary...");
+
+  useEffect(() => {
+    let interval;
+    if (generating) {
+      const texts = [
+        "Analyzing your preferences...",
+        "Finding suitable places...",
+        "Planning routes...",
+        "Optimizing travel time...",
+        "Building your daily schedule..."
+      ];
+      let i = 0;
+      interval = setInterval(() => {
+        i = (i + 1) % texts.length;
+        setLoadingText(texts[i]);
+      }, 2000);
+    } else {
+      setLoadingText("Creating your itinerary...");
+    }
+    return () => clearInterval(interval);
+  }, [generating]);
+
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      setLoadingPlaces(true);
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/places`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setAllPlaces(res.data.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingPlaces(false);
+      }
+    };
+    if (token) fetchPlaces();
+  }, [token]);
+
+  const handleAddPlace = (place) => {
+    if (!selectedPlaces.find(p => p.id === place.id)) {
+      setSelectedPlaces([...selectedPlaces, place]);
+      setGeneratedItinerary(null);
+    }
+  };
+
+  const handleRemovePlace = (id) => {
+    setSelectedPlaces(selectedPlaces.filter(p => p.id !== id));
+    setGeneratedItinerary(null);
+  };
+
+  const handleGenerate = async () => {
+    if (selectedPlaces.length === 0 && !destinationName) return;
+    setGenerating(true);
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/itineraries/generate`,
+        {
+          origin: originName || undefined,
+          destination_name: destinationName,
+          place_ids: selectedPlaces.map(p => p.id),
+          days: parseInt(days),
+          start_time: startTime,
+          end_time: endTime,
+          accommodation: accommodation || undefined,
+          energy_level: energyLevel,
+          budget: budget,
+          travel_type: travelType,
+          transportation_mode: transportationMode,
+          local_transportation: localTransportation,
+          interests: interests
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setGeneratedItinerary(res.data.data);
+      setSelectedOptionIndex(0);
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.detail || "Failed to generate itinerary. Please try again.";
+      alert(msg);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDeleteActivity = (dayIndex, actIndex) => {
+    const updated = [...generatedItinerary];
+    const currentOption = updated[selectedOptionIndex];
+    currentOption.schedule[dayIndex].activities.splice(actIndex, 1);
+    setGeneratedItinerary(updated);
+  };
+
+  const handleMoveActivity = (dayIndex, actIndex, direction) => {
+    const updated = [...generatedItinerary];
+    const activities = updated[selectedOptionIndex].schedule[dayIndex].activities;
+    if (direction === "up" && actIndex > 0) {
+      [activities[actIndex - 1], activities[actIndex]] = [activities[actIndex], activities[actIndex - 1]];
+    } else if (direction === "down" && actIndex < activities.length - 1) {
+      [activities[actIndex + 1], activities[actIndex]] = [activities[actIndex], activities[actIndex + 1]];
+    }
+    setGeneratedItinerary(updated);
+  };
+
+  const handleSave = async () => {
+    if (!generatedItinerary) return;
+    setSaving(true);
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/itineraries`,
+        {
+          title: title,
+          days: parseInt(days),
+          schedule: generatedItinerary[selectedOptionIndex].schedule
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("Itinerary saved successfully!");
+      navigate("/my-itineraries");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save itinerary.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filteredPlaces = allPlaces.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) &&
+    !selectedPlaces.find(sp => sp.id === p.id)
+  );
+
+  return (
+    <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-gray-50 dark:bg-[#0f172a] overflow-hidden relative">
+      <div className="absolute top-20 right-20 w-96 h-96 bg-accent-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob pointer-events-none"></div>
+      <div className="absolute bottom-20 left-1/3 w-96 h-96 bg-brand-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000 pointer-events-none"></div>
+
+      {/* Sidebar */}
+      <div className="w-full md:w-[420px] glass border-r border-white/20 dark:border-slate-700/50 flex flex-col z-10 shrink-0">
+        <div className="p-6 bg-gradient-to-r from-brand-800 to-brand-600 border-b border-brand-700 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-xl"></div>
+          <h1 className="text-2xl font-display font-extrabold text-white tracking-tight relative z-10">AI Trip Builder &#x2728;</h1>
+          <p className="text-sm text-brand-100 mt-1 relative z-10 font-light">Let Gemini plan your perfect itinerary</p>
+        </div>
+
+        <div className="p-6 flex-1 overflow-y-auto space-y-8 custom-scrollbar">
+          <div className="space-y-4 animate-fade-in-up">
+            <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-3">Where to?</h2>
+            
+            <div className="glass rounded-xl p-3 border border-brand-200 dark:border-brand-800 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all bg-white/50 dark:bg-slate-800/80 mb-3">
+              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Origin / Starting Location</label>
+              <input type="text" placeholder="E.g. Bengaluru, Mumbai, Home..." value={originName} onChange={e => setOriginName(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-900 dark:text-white font-bold text-base focus:ring-0 outline-none placeholder-gray-400" />
+            </div>
+
+            <div className="glass rounded-xl p-3 border border-brand-200 dark:border-brand-800 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all bg-white/50 dark:bg-slate-800/80">
+              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Destination</label>
+              <input type="text" placeholder="E.g. Kerala, Goa, Paris, Japan..." value={destinationName} onChange={e => setDestinationName(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-900 dark:text-white font-bold text-base focus:ring-0 outline-none placeholder-gray-400" />
+            </div>
+            <p className="text-xs text-brand-600 dark:text-brand-400 font-medium">Type any destination in the world and our AI will plan everything!</p>
+          </div>
+
+          <div className="space-y-4 animate-fade-in-up-delay-1 border-t border-gray-200 dark:border-slate-700 pt-6">
+            <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-3">Transportation</h2>
+            
+            <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-2">How are you traveling there?</label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { id: 'flight', label: 'Flight', icon: '✈️' },
+                  { id: 'train', label: 'Train', icon: '🚆' },
+                  { id: 'car', label: 'Car', icon: '🚗' },
+                  { id: 'bike', label: 'Bike', icon: '🏍️' }
+                ].map(mode => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setTransportationMode(mode.id)}
+                    className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all ${transportationMode === mode.id ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-900/30 dark:border-brand-400 dark:text-brand-300' : 'bg-transparent border-gray-200 dark:border-slate-700 text-gray-500 hover:border-brand-300'}`}
+                  >
+                    <span className="text-xl mb-1">{mode.icon}</span>
+                    <span className="text-[10px] font-bold uppercase">{mode.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-2">How will you travel locally?</label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {[
+                  { id: 'walking', label: 'Walk', icon: '🚶' },
+                  { id: 'public_transport', label: 'Bus/Metro', icon: '🚌' },
+                  { id: 'taxi', label: 'Taxi', icon: '🚕' },
+                  { id: 'car', label: 'Rental Car', icon: '🚗' },
+                  { id: 'bike', label: 'Rental Bike', icon: '🏍️' }
+                ].map(mode => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setLocalTransportation(mode.id)}
+                    className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all ${localTransportation === mode.id ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-900/30 dark:border-brand-400 dark:text-brand-300' : 'bg-transparent border-gray-200 dark:border-slate-700 text-gray-500 hover:border-brand-300'}`}
+                  >
+                    <span className="text-xl mb-1">{mode.icon}</span>
+                    <span className="text-[10px] font-bold uppercase text-center leading-tight">{mode.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 animate-fade-in-up-delay-1 border-t border-gray-200 dark:border-slate-700 pt-6">
+            <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-3">Trip Settings</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+                <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Days</label>
+                <input type="number" min="1" max="14" value={days} onChange={e => setDays(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+                <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Start Time</label>
+                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none" />
+              </div>
+              <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+                <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">End Time</label>
+                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none" />
+              </div>
+            </div>
+            <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Accommodation / Starting Point</label>
+              <input type="text" placeholder="e.g. Taj Hotel, Mumbai" value={accommodation} onChange={e => setAccommodation(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none text-sm placeholder-gray-400" />
+            </div>
+            <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Pace &amp; Energy Level</label>
+              <select value={energyLevel} onChange={e => setEnergyLevel(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none text-sm cursor-pointer">
+                <option value="Relaxed">Relaxed (Less walking, more rest)</option>
+                <option value="Moderate">Moderate (Standard pace)</option>
+                <option value="Intense">Intense (Pack as much as possible!)</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+                <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Budget</label>
+                <select value={budget} onChange={e => setBudget(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none text-sm cursor-pointer">
+                  <option value="Low">Low / Budget</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High / Luxury</option>
+                </select>
+              </div>
+              <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+                <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-1">Travel Type</label>
+                <select value={travelType} onChange={e => setTravelType(e.target.value)} className="w-full bg-transparent border-none p-0 text-gray-800 dark:text-slate-100 font-semibold focus:ring-0 outline-none text-sm cursor-pointer">
+                  <option value="Solo">Solo</option>
+                  <option value="Couple">Couple</option>
+                  <option value="Family">Family</option>
+                  <option value="Friends">Friends</option>
+                </select>
+              </div>
+            </div>
+            <div className="glass rounded-xl p-3 border border-gray-100 dark:border-slate-700/50 shadow-sm focus-within:ring-2 focus-within:ring-brand-400 transition-all">
+              <label className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider block mb-2">Interests</label>
+              <div className="flex flex-wrap gap-2">
+                {availableInterests.map(interest => (
+                  <button
+                    key={interest}
+                    onClick={() => toggleInterest(interest)}
+                    className={`px-2 py-1 rounded-full text-[10px] font-bold border transition-colors ${interests.includes(interest) ? 'bg-brand-500 text-white border-brand-500' : 'bg-transparent text-gray-600 dark:text-slate-300 border-gray-300 dark:border-slate-600 hover:border-brand-400'}`}
+                  >
+                    {interest}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="animate-fade-in-up-delay-1 border-t border-gray-200 dark:border-slate-700 pt-6">
+            <h2 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1 flex items-center justify-between">
+              Specific Places (Optional)
+              <span className="bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 px-2 py-0.5 rounded-full text-[10px] font-black">{selectedPlaces.length}</span>
+            </h2>
+            <p className="text-[10px] text-gray-400 dark:text-slate-500 mb-3">Force the AI to include these specific spots.</p>
+            <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2 mb-3">
+              {selectedPlaces.map(p => (
+                <div key={p.id} className="flex justify-between items-center glass border border-gray-100 dark:border-slate-700/50 p-2.5 rounded-xl shadow-sm group transition-all hover:border-brand-200">
+                  <span className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate pr-2">{p.name}</span>
+                  <button onClick={() => handleRemovePlace(p.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg p-1.5 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="relative mb-3">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">&#x1F50D;</span>
+              <input type="text" placeholder="Search specific attractions..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2.5 glass border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-400 outline-none transition-all dark:text-white" />
+            </div>
+            <div className="max-h-48 overflow-y-auto space-y-1.5 custom-scrollbar pr-2">
+              {loadingPlaces ? (
+                <div className="text-center text-sm text-gray-400 py-4 animate-pulse">Loading places...</div>
+              ) : filteredPlaces.length === 0 ? (
+                <div className="text-center text-sm text-gray-400 py-4">No matching places found.</div>
+              ) : filteredPlaces.map(p => (
+                <button key={p.id} onClick={() => handleAddPlace(p)} className="w-full text-left flex justify-between items-center p-3 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-xl text-sm border border-transparent hover:border-brand-100 dark:hover:border-brand-800 transition-all group">
+                  <span className="truncate pr-2 font-medium text-gray-700 dark:text-slate-300 group-hover:text-brand-700 dark:group-hover:text-brand-300">{p.name}</span>
+                  <span className="text-brand-400 group-hover:text-brand-600 bg-white dark:bg-slate-800 rounded-full p-1 shadow-sm font-bold">&#xFF0B;</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md border-t border-gray-100 dark:border-slate-700/50 z-20 relative">
+          <button
+            onClick={handleGenerate}
+            disabled={generating || (!destinationName && selectedPlaces.length === 0)}
+            className="w-full bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-500 hover:to-accent-500 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:transform-none transform hover:-translate-y-0.5 flex justify-center items-center gap-2"
+          >
+            {generating ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                {loadingText}
+              </span>
+            ) : "&#x2728; Generate AI Itinerary"}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Right */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 relative z-10 custom-scrollbar">
+        {!generatedItinerary ? (
+          <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-6 animate-fade-in-up">
+            <div className="w-32 h-32 bg-brand-50 dark:bg-slate-800 rounded-full flex items-center justify-center shadow-inner border border-brand-100 dark:border-slate-700">
+              <span className="text-6xl animate-bounce">&#x1F5FA;&#xFE0F;</span>
+            </div>
+            <div className="text-center">
+              <h2 className="text-2xl font-display font-bold text-gray-700 dark:text-slate-300 mb-2">Your blank canvas awaits</h2>
+              <p className="text-gray-500 max-w-md mx-auto">Select your favorite places on the left, adjust your times, and let our AI craft the perfect minute-by-minute adventure for you.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-4xl mx-auto glass rounded-3xl shadow-xl border border-white/20 dark:border-slate-700 overflow-hidden animate-fade-in-up">
+            <div className="bg-gradient-to-r from-accent-600 to-brand-600 p-8 sm:p-10 relative overflow-hidden text-white">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl pointer-events-none"></div>
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
+                <div className="flex-1">
+                  <span className="text-brand-100 font-bold tracking-widest text-xs uppercase mb-2 block">Your AI-Generated Plan</span>
+                  <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="text-3xl sm:text-4xl font-display font-extrabold bg-transparent border-b-2 border-transparent hover:border-white/30 focus:border-white focus:bg-white/10 rounded-t px-1 py-2 outline-none w-full transition-all text-white placeholder-brand-200" placeholder="Name your amazing trip..." />
+                </div>
+                <div className="flex gap-3 shrink-0">
+                  <button onClick={() => window.print()} className="bg-white/20 text-white hover:bg-white/30 px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:-translate-y-1 backdrop-blur-sm">&#x1F4C4; Save PDF</button>
+                  <button onClick={handleSave} disabled={saving} className="bg-white text-brand-700 hover:bg-gray-50 px-8 py-3 rounded-xl font-bold shadow-lg transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-70 disabled:transform-none">{saving ? "Saving..." : "&#x1F4BE; Save to Profile"}</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 sm:p-10 space-y-8 bg-white/50 dark:bg-slate-900/50 print:bg-white print:text-black">
+              <div className="flex flex-wrap gap-2 pb-4 border-b border-gray-200 dark:border-slate-700 print:hidden">
+                {generatedItinerary.map((option, idx) => (
+                  <button key={idx} onClick={() => setSelectedOptionIndex(idx)}
+                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all duration-300 ${selectedOptionIndex === idx ? "bg-brand-600 text-white shadow-md" : "bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700"}`}>
+                    {option.route_name || `Option ${idx + 1}`}
+                  </button>
+                ))}
+              </div>
+              
+              {generatedItinerary[selectedOptionIndex]?.description && (
+                <p className="text-gray-600 dark:text-slate-300 text-sm italic">
+                  {generatedItinerary[selectedOptionIndex].description}
+                </p>
+              )}
+              {generatedItinerary[selectedOptionIndex]?.total_estimated_cost > 0 && (
+                <p className="text-brand-700 dark:text-brand-400 font-bold text-sm">
+                  Estimated Total Cost: &#8377;{generatedItinerary[selectedOptionIndex].total_estimated_cost.toLocaleString("en-IN")}
+                </p>
+              )}
+
+              {/* Transportation Overview */}
+              {generatedItinerary[selectedOptionIndex]?.transportation && (
+                <div className="glass bg-brand-50/50 dark:bg-brand-900/10 rounded-2xl p-6 border border-brand-100 dark:border-brand-800 print:border-gray-300">
+                  <h3 className="text-lg font-display font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <span className="text-2xl">
+                      {generatedItinerary[selectedOptionIndex].transportation.mode === 'flight' ? '✈️' : 
+                       generatedItinerary[selectedOptionIndex].transportation.mode === 'train' ? '🚆' : 
+                       generatedItinerary[selectedOptionIndex].transportation.mode === 'car' ? '🚗' : '🏍️'}
+                    </span>
+                    Trip Transportation
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Route</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">
+                        {generatedItinerary[selectedOptionIndex].transportation.origin} &rarr; {generatedItinerary[selectedOptionIndex].transportation.destination}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Est. Duration</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">
+                        {Math.floor(generatedItinerary[selectedOptionIndex].transportation.estimated_duration_minutes / 60)}h {generatedItinerary[selectedOptionIndex].transportation.estimated_duration_minutes % 60}m
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Est. Distance</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">
+                        {generatedItinerary[selectedOptionIndex].transportation.estimated_distance_km ? `${generatedItinerary[selectedOptionIndex].transportation.estimated_distance_km} km` : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Est. Cost</p>
+                      <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                        &#8377;{generatedItinerary[selectedOptionIndex].transportation.estimated_cost_min} - &#8377;{generatedItinerary[selectedOptionIndex].transportation.estimated_cost_max}
+                      </p>
+                    </div>
+                  </div>
+                  {generatedItinerary[selectedOptionIndex].transportation.recommendation_note && (
+                    <div className="text-xs text-brand-700 dark:text-brand-300 bg-brand-100/50 dark:bg-brand-900/30 p-3 rounded-xl border border-brand-200 dark:border-brand-800">
+                      <strong>AI Note:</strong> {generatedItinerary[selectedOptionIndex].transportation.recommendation_note}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Hotel Suggestions */}
+              <NearbyHotelsSuggestion places={selectedPlaces} destinationName={destinationName} />
+
+              {/* Day-by-day schedule */}
+              {generatedItinerary[selectedOptionIndex]?.schedule?.map((dayPlan, idx) => (
+                <div key={idx} className="relative print:break-inside-avoid">
+                  <h3 className="text-2xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-accent-600 mb-6 flex items-center gap-3 print:text-brand-700">
+                    <span className="bg-gradient-to-r from-brand-600 to-accent-600 text-white w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-md print:bg-brand-600">{dayPlan.day}</span>
+                    Day {dayPlan.day}
+                  </h3>
+                  <div className="space-y-6 pl-5 sm:pl-10 relative">
+                    <div className="absolute top-4 bottom-4 left-[27px] sm:left-[47px] w-0.5 bg-gradient-to-b from-brand-300 via-accent-300 to-transparent print:bg-gray-300"></div>
+                    {dayPlan.activities?.map((act, i) => (
+                      <div key={i} className="relative z-10 group print:break-inside-avoid">
+                        <div className="absolute w-4 h-4 bg-white dark:bg-slate-800 rounded-full -left-[19px] top-4 border-4 border-brand-500 shadow-sm dark:shadow-none group-hover:scale-125 transition-transform duration-300 group-hover:border-accent-500 print:border-gray-500"></div>
+                        <div className="glass bg-white dark:bg-slate-800 rounded-2xl p-5 border border-gray-100 dark:border-slate-700 hover:shadow-xl dark:hover:shadow-brand-900/20 hover:-translate-y-1 transition-all duration-300 ml-4 print:border-gray-300 print:shadow-none">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
+                            <div>
+                              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(act.name)}`} target="_blank" rel="noopener noreferrer" className="font-bold font-display text-gray-900 dark:text-white text-xl hover:text-brand-600 dark:hover:text-brand-400 transition-colors underline decoration-brand-200 underline-offset-4 decoration-2 print:text-black print:no-underline flex items-center gap-2">
+                                {act.name} &#x2197;
+                              </a>
+                              {act.activity_type && (
+                                <span className="text-[10px] uppercase font-bold text-gray-500 dark:text-slate-400 tracking-wider mt-1 block">
+                                  {act.activity_type}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-brand-700 dark:text-brand-300 font-bold bg-brand-50 dark:bg-brand-900/40 px-3 py-1 rounded-lg text-sm shrink-0 border border-brand-100 dark:border-brand-800 shadow-sm print:border-gray-300 print:bg-white print:text-black">
+                                {act.start_time} - {act.end_time}
+                              </span>
+                              {act.estimated_cost > 0 && (
+                                <span className="text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                                  &#8377;{act.estimated_cost}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed mt-2 print:text-gray-800">{act.description}</p>
+                          <div className="flex justify-end gap-2 mt-3 print:hidden">
+                            <button onClick={() => handleMoveActivity(idx, i, "up")} disabled={i === 0} className="text-gray-400 hover:text-brand-500 disabled:opacity-30 disabled:hover:text-gray-400 p-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                            </button>
+                            <button onClick={() => handleMoveActivity(idx, i, "down")} disabled={i === dayPlan.activities.length - 1} className="text-gray-400 hover:text-brand-500 disabled:opacity-30 disabled:hover:text-gray-400 p-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                            </button>
+                            <button onClick={() => handleDeleteActivity(idx, i)} className="text-gray-400 hover:text-red-500 p-1 ml-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                          {act.travel_time_minutes > 0 && i < dayPlan.activities.length - 1 && (
+                            <div className="mt-2 pt-3 border-t border-dashed border-gray-200 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 flex items-center gap-1">
+                              <span>&#x23F1;&#xFE0F;</span> Travel to next spot: ~{act.travel_time_minutes} mins
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
