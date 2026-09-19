@@ -34,7 +34,9 @@ def get_db():
 
 
 async def ensure_indexes():
-    """Create indexes idempotently. Called once on startup."""
+    """Create indexes idempotently. Called once on startup if MongoDB is configured."""
+    if not settings.mongo_uri:
+        return
     try:
         db = get_db()
         await db.users.create_index("email", unique=True)

@@ -1,21 +1,25 @@
 version: "3.9"
 
 services:
-  mongo:
-    image: mongo:6
-    container_name: tourmate-mongo
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: tourmate-postgres
     ports:
-      - "27017:27017"
+      - "${POSTGRES_PORT:-5435}:5432"
     environment:
-      MONGO_INITDB_DATABASE: tourmate
+      POSTGRES_DB: ${POSTGRES_DB:-tourmate}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
-      - mongo_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-tourmate}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - tourmate
 
   backend:
     build:
@@ -25,15 +29,15 @@ services:
     ports:
       - "8000:8000"
     environment:
-      MONGO_URI: mongodb://mongo:27017
-      MONGO_DB_NAME: tourmate
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-tourmate}}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-super-secret}
-      JWT_ALGORITHM: HS256
-      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 60
-      JWT_REFRESH_TOKEN_EXPIRE_DAYS: 7
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS:-7}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     depends_on:
-      mongo:
+      postgres:
         condition: service_healthy
     restart: unless-stopped
     networks:
@@ -55,7 +59,7 @@ services:
       - tourmate
 
 volumes:
-  mongo_data:
+  postgres_data:
     driver: local
 
 networks:

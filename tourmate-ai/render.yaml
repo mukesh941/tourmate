@@ -1,16 +1,17 @@
 services:
+  # Backend API Service
   - type: web
-    name: tourmate-backend
+    name: tourmate-api
     env: python
-    region: oregon
-    plan: free
-    rootDir: tourmate-ai/backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /health
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt && alembic upgrade head"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/health
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tourmate-postgres
+          property: connectionString
       - key: MONGO_URI
         sync: false
       - key: MONGO_DB_NAME
@@ -24,6 +25,16 @@ services:
       - key: JWT_REFRESH_TOKEN_EXPIRE_DAYS
         value: 7
       - key: CORS_ORIGINS
-        value: https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:5173
+        value: "https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:5173"
       - key: GEMINI_API_KEY
         sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.9
+
+databases:
+  # Managed PostgreSQL with pgvector support
+  - name: tourmate-postgres
+    databaseName: tourmate
+    user: tourmate_user
+    plan: standard
+    postgresMajorVersion: 16
