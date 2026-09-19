@@ -6,10 +6,14 @@ from app.services.auth_service import create_access_token
 from app.schemas.auth import UserPublic
 
 
+from app.core.db import async_engine
+
+
 @pytest.fixture(autouse=True)
 async def cleanup_db_client():
     yield
     close_client()
+    await async_engine.dispose()
 
 
 @pytest.fixture

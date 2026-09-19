@@ -39,100 +39,92 @@ def _cache_set(key: str, data: Any):
 
 
 # ─── Category Mapping ──────────────────────────────────────────────────────────
-# Maps Google Places types → TourMate categories
+# Maps Google Places types → 7 Canonical TourMate categories:
+# History, Nature, Culture, Adventure, Food, Shopping, Architecture
 GOOGLE_TYPE_TO_CATEGORY: Dict[str, str] = {
-    # Heritage / History
-    "tourist_attraction": "heritage",
-    "historical_landmark": "heritage",
-    "monument": "heritage",
-    "museum": "heritage",
-    "art_museum": "heritage",
-    "history_museum": "heritage",
-    "national_monument": "heritage",
-    "archaeological_site": "heritage",
-    "castle": "heritage",
-    "fort": "heritage",
-    "ruins": "heritage",
+    # History
+    "tourist_attraction": "History",
+    "historical_landmark": "History",
+    "monument": "History",
+    "national_monument": "History",
+    "archaeological_site": "History",
+    "history_museum": "History",
+    "castle": "History",
+    "fort": "History",
+    "ruins": "History",
     # Nature
-    "park": "nature",
-    "national_park": "nature",
-    "state_park": "nature",
-    "nature_reserve": "nature",
-    "botanical_garden": "nature",
-    "beach": "nature",
-    "waterfall": "nature",
-    "wildlife_refuge": "nature",
-    "zoo": "nature",
-    "aquarium": "nature",
-    "campground": "nature",
-    "hiking_area": "nature",
-    "garden": "nature",
+    "park": "Nature",
+    "national_park": "Nature",
+    "state_park": "Nature",
+    "nature_reserve": "Nature",
+    "botanical_garden": "Nature",
+    "beach": "Nature",
+    "waterfall": "Nature",
+    "wildlife_refuge": "Nature",
+    "zoo": "Nature",
+    "aquarium": "Nature",
+    "campground": "Nature",
+    "hiking_area": "Nature",
+    "garden": "Nature",
     # Food
-    "restaurant": "food",
-    "food": "food",
-    "cafe": "food",
-    "bakery": "food",
-    "bar": "food",
-    "meal_takeaway": "food",
-    "meal_delivery": "food",
-    "street_food": "food",
-    "fast_food_restaurant": "food",
-    "indian_restaurant": "food",
+    "restaurant": "Food",
+    "food": "Food",
+    "cafe": "Food",
+    "bakery": "Food",
+    "bar": "Food",
+    "meal_takeaway": "Food",
+    "meal_delivery": "Food",
+    "street_food": "Food",
+    "fast_food_restaurant": "Food",
+    "indian_restaurant": "Food",
     # Shopping
-    "shopping_mall": "shopping",
-    "market": "shopping",
-    "store": "shopping",
-    "clothing_store": "shopping",
-    "jewelry_store": "shopping",
-    "gift_shop": "shopping",
-    "bazaar": "shopping",
-    # Culture / Art
-    "art_gallery": "culture",
-    "cultural_center": "culture",
-    "performing_arts_theater": "culture",
-    "theater": "culture",
-    "library": "culture",
-    "stadium": "culture",
-    # Religious
-    "hindu_temple": "religious",
-    "place_of_worship": "religious",
-    "mosque": "religious",
-    "church": "religious",
-    "synagogue": "religious",
-    "temple": "religious",
-    "shrine": "religious",
-    "monastery": "religious",
-    "gurdwara": "religious",
+    "shopping_mall": "Shopping",
+    "market": "Shopping",
+    "store": "Shopping",
+    "clothing_store": "Shopping",
+    "jewelry_store": "Shopping",
+    "gift_shop": "Shopping",
+    "bazaar": "Shopping",
+    # Culture / Art / Religious
+    "art_gallery": "Culture",
+    "cultural_center": "Culture",
+    "performing_arts_theater": "Culture",
+    "theater": "Culture",
+    "library": "Culture",
+    "museum": "Culture",
+    "art_museum": "Culture",
+    "hindu_temple": "Culture",
+    "place_of_worship": "Culture",
+    "mosque": "Culture",
+    "church": "Culture",
+    "synagogue": "Culture",
+    "temple": "Culture",
+    "shrine": "Culture",
+    "monastery": "Culture",
+    "gurdwara": "Culture",
     # Adventure
-    "amusement_park": "adventure",
-    "adventure_sports_center": "adventure",
-    "water_park": "adventure",
-    "sports_club": "adventure",
-    "ski_resort": "adventure",
+    "amusement_park": "Adventure",
+    "adventure_sports_center": "Adventure",
+    "water_park": "Adventure",
+    "sports_club": "Adventure",
+    "ski_resort": "Adventure",
     # Architecture
-    "architecture": "architecture",
-    "government_building": "architecture",
-    "palace": "architecture",
-    "stadium": "architecture",
-    # Entertainment
-    "movie_theater": "entertainment",
-    "night_club": "entertainment",
-    "casino": "entertainment",
-    "bowling_alley": "entertainment",
-    "amusement_center": "entertainment",
+    "architecture": "Architecture",
+    "government_building": "Architecture",
+    "palace": "Architecture",
+    "stadium": "Architecture",
 }
 
 # TourMate categories → Google Places includedTypes for Nearby Search
 CATEGORY_TO_GOOGLE_TYPES: Dict[str, List[str]] = {
-    "heritage": ["tourist_attraction", "historical_landmark", "museum", "monument", "national_monument", "archaeological_site"],
+    "history": ["tourist_attraction", "historical_landmark", "monument", "national_monument", "archaeological_site"],
+    "heritage": ["tourist_attraction", "historical_landmark", "monument", "national_monument", "archaeological_site"],
     "nature": ["park", "national_park", "beach", "botanical_garden", "nature_reserve", "wildlife_refuge", "waterfall"],
     "food": ["restaurant", "cafe", "bakery", "bar", "food"],
-    "culture": ["art_gallery", "cultural_center", "performing_arts_theater", "museum"],
+    "culture": ["art_gallery", "cultural_center", "performing_arts_theater", "museum", "hindu_temple", "place_of_worship"],
     "shopping": ["shopping_mall", "market", "store"],
     "adventure": ["amusement_park", "adventure_sports_center", "water_park"],
-    "religious": ["hindu_temple", "place_of_worship", "mosque", "church", "monastery", "shrine"],
     "architecture": ["tourist_attraction", "historical_landmark"],
-    "entertainment": ["movie_theater", "night_club", "amusement_center"],
     "all": ["tourist_attraction", "historical_landmark", "museum", "park", "beach", "restaurant", "hindu_temple", "place_of_worship", "art_gallery", "shopping_mall"],
 }
 
@@ -150,11 +142,11 @@ DEFAULT_PLACE_TYPES = [
 
 
 def _map_category(google_types: List[str]) -> str:
-    """Map list of Google types to the best TourMate category."""
+    """Map list of Google types to the best canonical TourMate category."""
     for t in google_types:
         if t in GOOGLE_TYPE_TO_CATEGORY:
             return GOOGLE_TYPE_TO_CATEGORY[t]
-    return "heritage"
+    return "History"
 
 
 def _normalize_place(gplace: Dict[str, Any]) -> Dict[str, Any]:

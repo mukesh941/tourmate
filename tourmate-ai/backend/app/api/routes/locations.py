@@ -1,10 +1,12 @@
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, status, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.common import Envelope
 from app.core.database import get_db
-from app.services import osrm_service
+from app.core.db import get_async_db
+from app.services import osrm_service, location_service
 
 router = APIRouter(prefix="/locations", tags=["locations"])
 
@@ -14,61 +16,70 @@ class RouteRequest(BaseModel):
 
 @router.get("/search", response_model=Envelope[List[Dict[str, Any]]])
 async def search_locations(
-    query: str = Query(..., min_length=2, description="Search query for a destination or location")
+    query: str = Query(..., min_length=2, description="Search query for a destination or location"),
+    sql_db: AsyncSession = Depends(get_async_db),
 ):
-    db = get_db()
-    
-    # Text search in Destinations and Places to find a matching area
-    # In a real app we might use MapBox/Google Maps geocoding API.
-    # For now, we return matching Destinations or TouristPlaces that have a location.
-    
     results = []
-    
-    # 1. Search Destinations
-    dest_cursor = db.destinations.find({
-        "$or": [
-            {"name": {"$regex": query, "$options": "i"}},
-            {"state": {"$regex": query, "$options": "i"}},
-            {"country": {"$regex": query, "$options": "i"}}
-        ]
-    }).limit(3)
-    
-    async for dest in dest_cursor:
-        # Destinations might have lat/lng directly on the document now.
-        lat = dest.get("lat")
-        lng = dest.get("lng")
-        if lat is None or lng is None:
-            if "location" in dest and dest["location"] and "coordinates" in dest["location"]:
-                lng, lat = dest["location"]["coordinates"]
-        
+
+    # 1. Search canonical PostgreSQL locations first
+    pg_locs = await location_service.search_postgres_locations(query, sql_db)
+    for loc in pg_locs:
         results.append({
-            "id": str(dest["_id"]),
-            "name": dest.get("name"),
-            "type": "destination",
-            "lat": lat,
-            "lng": lng,
-            "image": dest.get("cover_image", "")
+            "id": loc["id"],
+            "name": f"{loc['name']}, {loc['city']}",
+            "type": "location",
+            "lat": loc["lat"],
+            "lng": loc["lng"],
+            "image": "",
         })
 
-    # 2. Search Places
-    place_cursor = db.tourist_places.find({
-        "name": {"$regex": query, "$options": "i"},
-        "location": {"$exists": True}
-    }).limit(5)
-    
-    async for place in place_cursor:
-        lat, lng = None, None
-        if "location" in place and place["location"] and "coordinates" in place["location"]:
-            lng, lat = place["location"]["coordinates"]
+    # 2. Search legacy Destinations and Places if MongoDB is accessible
+    try:
+        db = get_db()
+        dest_cursor = db.destinations.find({
+            "$or": [
+                {"name": {"$regex": query, "$options": "i"}},
+                {"state": {"$regex": query, "$options": "i"}},
+                {"country": {"$regex": query, "$options": "i"}}
+            ]
+        }).limit(3)
         
-        results.append({
-            "id": str(place["_id"]),
-            "name": place.get("name"),
-            "type": "place",
-            "lat": lat,
-            "lng": lng,
-            "image": place.get("images", [""])[0] if place.get("images") else ""
-        })
+        async for dest in dest_cursor:
+            lat = dest.get("lat")
+            lng = dest.get("lng")
+            if lat is None or lng is None:
+                if "location" in dest and dest["location"] and "coordinates" in dest["location"]:
+                    lng, lat = dest["location"]["coordinates"]
+
+            results.append({
+                "id": str(dest["_id"]),
+                "name": dest.get("name"),
+                "type": "destination",
+                "lat": lat,
+                "lng": lng,
+                "image": dest.get("cover_image", "")
+            })
+
+        place_cursor = db.tourist_places.find({
+            "name": {"$regex": query, "$options": "i"},
+            "location": {"$exists": True}
+        }).limit(5)
+
+        async for place in place_cursor:
+            lat, lng = None, None
+            if "location" in place and place["location"] and "coordinates" in place["location"]:
+                lng, lat = place["location"]["coordinates"]
+
+            results.append({
+                "id": str(place["_id"]),
+                "name": place.get("name"),
+                "type": "place",
+                "lat": lat,
+                "lng": lng,
+                "image": place.get("images", [""])[0] if place.get("images") else ""
+            })
+    except Exception:
+        pass
 
     # Deduplicate results if they have lat/lng
     unique_results = []
