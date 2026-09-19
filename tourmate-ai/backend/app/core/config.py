@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     jwt_refresh_token_expire_days: int = 7
 
     # Networking & CORS
-    cors_origins: str = "http://localhost:5173,https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:3000"
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:3000"
     gemini_api_key: str | None = None
     google_maps_api_key: str | None = None
 
@@ -29,7 +29,9 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
-        return origins if origins else ["http://localhost:5173"]
+        if "http://localhost:5173" in origins and "http://127.0.0.1:5173" not in origins:
+            origins.append("http://127.0.0.1:5173")
+        return origins if origins else ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     @property
     def sync_database_url(self) -> str:
