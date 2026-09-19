@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_dependency
+from app.core.db import get_async_db
 from app.schemas.auth import UserPublic
 from app.schemas.common import Envelope
 from app.schemas.user import ChangePasswordRequest, UserPreferencesResponse, UserPreferencesUpdate, UserProfileUpdate
@@ -39,9 +41,12 @@ async def change_user_password(
 
 
 @router.get("/preferences", response_model=Envelope[UserPreferencesResponse | None])
-async def get_preferences(current_user: UserPublic = Depends(get_current_user_dependency)):
+async def get_preferences(
+    current_user: UserPublic = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_async_db),
+):
     try:
-        prefs = await get_user_preferences(current_user.id)
+        prefs = await get_user_preferences(current_user.id, db=db)
         return Envelope(success=True, data=prefs)
     except Exception as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
@@ -50,10 +55,11 @@ async def get_preferences(current_user: UserPublic = Depends(get_current_user_de
 @router.put("/preferences", response_model=Envelope[UserPreferencesResponse])
 async def update_preferences(
     payload: UserPreferencesUpdate,
-    current_user: UserPublic = Depends(get_current_user_dependency)
+    current_user: UserPublic = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_async_db),
 ):
     try:
-        prefs = await update_user_preferences(current_user.id, payload)
+        prefs = await update_user_preferences(current_user.id, payload, db=db)
         return Envelope(success=True, data=prefs)
     except Exception as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
