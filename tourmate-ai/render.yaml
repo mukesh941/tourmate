@@ -4,7 +4,8 @@ services:
     name: tourmate-api
     env: python
     rootDir: backend
-    buildCommand: "pip install -r requirements.txt && alembic upgrade head"
+    buildCommand: "pip install -r requirements.txt"
+    preDeployCommand: "alembic upgrade head && python -m app.db.seeds.seed_knowledge"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /api/health
     envVars:
@@ -28,6 +29,8 @@ services:
         value: "https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:5173"
       - key: GEMINI_API_KEY
         sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
       - key: PYTHON_VERSION
         value: 3.11.9
 

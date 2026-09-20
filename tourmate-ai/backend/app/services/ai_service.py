@@ -1,7 +1,109 @@
 import os
 import google.generativeai as genai
-from typing import List, Dict
+from typing import Any, Dict, List, Optional
 from app.core.config import settings
+from app.services.rag_service import (
+    is_route_or_distance_query,
+    build_grounded_system_prompt,
+    format_context_block,
+)
+
+
+def get_grounded_chat_response(
+    user_message: str,
+    history: List[Dict[str, str]],
+    retrieved_chunks: List[Dict[str, Any]],
+    language: str = "en",
+) -> Dict[str, Any]:
+    """
+    Produces a grounded chat response with strict authority guardrails and source attribution.
+    Uses Gemini in online mode if GEMINI_API_KEY is available; otherwise uses deterministic extractive synthesis.
+    """
+    # 1. Authority Guardrail: Prohibit road distance and route calculations
+    if is_route_or_distance_query(user_message):
+        return {
+            "response": (
+                "For accurate road distances, directions, and travel times, please use "
+                "TourMate AI's Route Optimization feature on the Itinerary page, which "
+                "computes verified OpenStreetMap road routes."
+            ),
+            "sources": [],
+            "is_grounded": True,
+        }
+
+    # 2. Insufficient Evidence Refusal
+    if not retrieved_chunks:
+        return {
+            "response": (
+                "I do not have verified knowledge about that in my database. "
+                "Please ask about our supported destinations (Agra, New Delhi, Jaipur, Mumbai) "
+                "or specific landmarks such as Taj Mahal, Agra Fort, Qutub Minar, etc."
+            ),
+            "sources": [],
+            "is_grounded": False,
+        }
+
+    # Prepare sources metadata
+    sources = [
+        {
+            "id": c["id"],
+            "title": c["title"],
+            "source": c["source"],
+            "poi_name": c.get("poi_name"),
+            "similarity": c.get("similarity"),
+        }
+        for c in retrieved_chunks
+    ]
+
+    # 3. Online Grounded Mode via Gemini (if GEMINI_API_KEY is configured)
+    api_key = settings.gemini_api_key
+    if api_key:
+        try:
+            genai.configure(api_key=api_key)
+            model_name = settings.gemini_model
+            model = genai.GenerativeModel(model_name)
+
+            system_instruction = build_grounded_system_prompt(language)
+            context_block = format_context_block(retrieved_chunks)
+
+            contents = [
+                {"role": "user", "parts": [f"{system_instruction}\n\n{context_block}"]},
+                {"role": "model", "parts": ["Understood. I will formulate my answers strictly using the verified context provided."]},
+            ]
+
+            # Append past turns
+            for msg in history[-6:]:  # Limit conversation window to last 6 turns
+                role = "user" if msg.get("role") == "user" else "model"
+                contents.append({"role": role, "parts": [msg.get("content", "")]})
+
+            # Append current question
+            contents.append({"role": "user", "parts": [user_message]})
+
+            res = model.generate_content(contents)
+            answer_text = res.text.strip()
+            if answer_text:
+                return {
+                    "response": answer_text,
+                    "sources": sources,
+                    "is_grounded": True,
+                }
+        except Exception as e:
+            print(f"Gemini Grounded RAG Error, falling back to local synthesis: {e}")
+
+    # 4. Deterministic Local Fallback (when GEMINI_API_KEY is absent or API fails)
+    # Conservatively extracts facts from top retrieved chunks without hallucination
+    primary_chunk = retrieved_chunks[0]
+    extractive_lines = [primary_chunk["content"]]
+
+    if len(retrieved_chunks) > 1 and retrieved_chunks[1]["similarity"] >= 0.50:
+        extractive_lines.append(f"\nAdditionally ({retrieved_chunks[1]['title']}): {retrieved_chunks[1]['content']}")
+
+    return {
+        "response": "\n".join(extractive_lines),
+        "sources": sources,
+        "is_grounded": True,
+    }
+
 
 def get_ai_response(user_message: str, history: List[Dict[str, str]], context: str = None, language: str = 'en') -> str:
     api_key = settings.gemini_api_key
@@ -11,7 +113,7 @@ def get_ai_response(user_message: str, history: List[Dict[str, str]], context: s
     genai.configure(api_key=api_key)
     
     # Initialize the model
-    model = genai.GenerativeModel('gemini-3.6-flash')
+    model = genai.GenerativeModel(settings.gemini_model)
     
     # Construct the system prompt
     system_prompt = (
@@ -28,11 +130,7 @@ def get_ai_response(user_message: str, history: List[Dict[str, str]], context: s
     if context:
         system_prompt += f"\n\nThe user is currently looking at the following place, use this context if relevant:\n{context}"
         
-    # Construct conversation history for Gemini
-    # Gemini expects: [{"role": "user", "parts": [...]}, {"role": "model", "parts": [...]}]
     contents = []
-    
-    # We add the system prompt as the first user message, and a dummy model acknowledgment
     contents.append({"role": "user", "parts": [system_prompt]})
     contents.append({"role": "model", "parts": ["Understood! I am TourMate AI. How can I help you?"]})
     
@@ -43,7 +141,6 @@ def get_ai_response(user_message: str, history: List[Dict[str, str]], context: s
             "parts": [msg.get("content", "")]
         })
         
-    # Append the new user message
     contents.append({
         "role": "user",
         "parts": [user_message]

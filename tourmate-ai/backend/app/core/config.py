@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     routing_v_max_kmh: float = 100.0
     max_daily_candidate_pois: int = 8
 
+    # Phase 5 RAG & AI Assistant Configuration
+    gemini_model: str = "gemini-3.6-flash"
+    rag_top_k: int = 4
+    rag_min_similarity: float = 0.40
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property
@@ -38,9 +43,21 @@ class Settings(BaseSettings):
         return origins if origins else ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     @property
+    def async_database_url(self) -> str:
+        """Returns asynchronous connection URL normalized for asyncpg."""
+        url = self.database_url
+        if url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql+asyncpg://", 1)
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+
+    @property
     def sync_database_url(self) -> str:
         """Returns standard psycopg2 synchronous connection URL for migrations & tools."""
         url = self.database_url
+        if url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql+psycopg2://", 1)
         if url.startswith("postgresql+asyncpg://"):
             return url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
         if url.startswith("postgresql://"):
