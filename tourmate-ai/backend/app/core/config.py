@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     google_maps_api_key: str | None = None
 
+    # Phase 4 Routing & Optimization Configuration
+    routing_v_max_kmh: float = 100.0
+    max_daily_candidate_pois: int = 8
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property

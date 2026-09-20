@@ -1,16 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_dependency
+from app.core.db import get_async_db
 from app.schemas.auth import UserPublic
 from app.schemas.common import Envelope
 from app.schemas.itinerary import (
     ItineraryCreate, ItineraryUpdate, ItineraryResponse, ItineraryGenerateRequest
 )
+from app.schemas.route_optimization import (
+    ItineraryOptimizePlanRequest,
+    ItineraryOptimizePlanResponse,
+)
 from app.services.itinerary_service import (
     get_user_itineraries, get_itinerary, create_itinerary, update_itinerary, delete_itinerary
 )
+from app.services.itinerary_optimization_service import optimize_and_persist_itinerary
 from app.services.place_service import get_place
 from app.services.ai_service import generate_itinerary_via_llm
 
@@ -121,3 +128,20 @@ async def optimize_day(
         "message": "✨ I optimized Day. Reduced travel time by 15 mins and added a lunch break.",
         "optimized_schedule": optimized_schedule
     })
+
+
+@router.post("/optimize-plan", response_model=Envelope[ItineraryOptimizePlanResponse])
+async def optimize_itinerary_plan(
+    payload: ItineraryOptimizePlanRequest,
+    current_user: UserPublic = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """
+    Authoritative Phase 4 Itinerary Optimization endpoint.
+    Pipeline: Accommodation Anchor + Day POIs -> OSRM directed matrix ->
+    Internal Directed Graph -> Anchored Cheapest Insertion -> Anchored 2-opt ->
+    Opening-hour validation -> Second-best alternative tour -> A*/Dijkstra benchmark ->
+    PostgreSQL persistence.
+    """
+    result = await optimize_and_persist_itinerary(payload, db=db)
+    return Envelope(success=True, data=result)
