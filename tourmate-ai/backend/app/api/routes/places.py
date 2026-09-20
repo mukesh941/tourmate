@@ -7,7 +7,8 @@ from app.core.db import get_async_db
 from app.schemas.auth import UserPublic
 from app.schemas.common import Envelope
 from app.schemas.place import TouristPlaceCreate, TouristPlaceUpdate, TouristPlaceResponse
-from app.services import poi_service
+from app.schemas.recommendation import RecommendationPlanRequest, RecommendationPlanResponse
+from app.services import poi_service, recommendation_service
 from app.services.place_service import (
     get_all_places, get_place, create_place, update_place, delete_place, get_recommended_places
 )
@@ -78,9 +79,42 @@ async def enrich_cluster_endpoint(payload: ClusterEnrichRequest):
     return Envelope(success=True, data=result)
 
 @router.get("/recommendations", response_model=Envelope[List[TouristPlaceResponse]])
-async def get_recommendations(current_user: UserPublic = Depends(get_current_user_dependency)):
-    places = await get_recommended_places(current_user.id)
-    return Envelope(success=True, data=places)
+async def get_recommendations(
+    destination: Optional[str] = Query(None, description="Optional destination city filter"),
+    limit: int = Query(10, ge=1, le=50, description="Max recommendations to return"),
+    current_user: UserPublic = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_async_db),
+):
+    # Primary: PostgreSQL pgvector recommendation engine
+    places = await recommendation_service.get_personalized_recommendations(
+        user_id=str(current_user.id) if current_user else None,
+        destination=destination,
+        limit=limit,
+        db=db,
+    )
+    if places:
+        return Envelope(success=True, data=places)
+
+    # Fallback to legacy MongoDB places recommendations if PostgreSQL yields none
+    try:
+        legacy_places = await get_recommended_places(current_user.id)
+        return Envelope(success=True, data=legacy_places)
+    except Exception:
+        return Envelope(success=True, data=[])
+
+
+@router.post("/recommendations/plan", response_model=Envelope[RecommendationPlanResponse])
+async def plan_recommendations_endpoint(
+    payload: RecommendationPlanRequest,
+    current_user: UserPublic = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_async_db),
+):
+    plan = await recommendation_service.plan_trip_recommendations(
+        payload=payload,
+        user_id=str(current_user.id) if current_user else None,
+        db=db,
+    )
+    return Envelope(success=True, data=plan)
 
 @router.post("/route/optimize", response_model=Envelope[dict])
 async def optimize_route_endpoint(payload: RouteOptimizeRequest):

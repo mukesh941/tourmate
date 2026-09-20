@@ -18,6 +18,10 @@ venv/
 .venv/
 **/.venv/
 
+# ML Models
+*.onnx
+**/app/core/models/
+
 # Environment files
 .env
 **/.env
