@@ -7,7 +7,7 @@ Implements:
 4. Second-best alternative tour extraction without fabricated claims.
 """
 from datetime import datetime, time as dt_time, timedelta
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from app.services.graph_service import InternalRouteGraph
 
