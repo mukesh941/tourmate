@@ -41,6 +41,7 @@ async def read_places(
 ):
     # Query canonical PostgreSQL POIs first
     pg_places = await poi_service.get_all_pois(
+        destination_id=destination_id,
         category_id=category_id,
         q=q,
         min_rating=min_rating,

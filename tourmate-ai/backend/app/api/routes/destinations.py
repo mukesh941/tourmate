@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 
 from app.api.deps import require_admin
+from app.core.db import get_async_db
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.common import Envelope
 from app.schemas.destination import DestinationCreate, DestinationUpdate, DestinationResponse
 from app.services.destination_service import (
@@ -11,13 +13,13 @@ from app.services.destination_service import (
 router = APIRouter(prefix="/destinations", tags=["destinations"])
 
 @router.get("", response_model=Envelope[List[DestinationResponse]])
-async def read_destinations():
-    destinations = await get_all_destinations()
+async def read_destinations(db: AsyncSession = Depends(get_async_db)):
+    destinations = await get_all_destinations(db=db)
     return Envelope(success=True, data=destinations)
 
 @router.get("/{destination_id}", response_model=Envelope[DestinationResponse])
-async def read_destination(destination_id: str):
-    dest = await get_destination(destination_id)
+async def read_destination(destination_id: str, db: AsyncSession = Depends(get_async_db)):
+    dest = await get_destination(destination_id, db=db)
     if not dest:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Destination not found")
     return Envelope(success=True, data=dest)

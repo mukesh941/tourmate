@@ -52,11 +52,12 @@ export default function RecommendationCard({
       {/* 4:3 Aspect Ratio Image Container */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
         <img 
-          src={item.cover_image || (item.images && item.images[0]) || "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80"} 
+          src={item.cover_image || (item.images && item.images[0]) || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80"} 
           alt={item.name} 
+          referrerPolicy="no-referrer"
           className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
           onError={(e) => {
-            e.target.src = "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80";
+            e.target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80";
           }}
         />
         

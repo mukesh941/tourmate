@@ -1,7 +1,9 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_dependency
+from app.core.db import get_async_db
 from app.schemas.auth import UserPublic
 from app.schemas.common import Envelope
 from app.schemas.hotel import HotelResponse, HotelBookingCreate, HotelBookingResponse
@@ -25,7 +27,8 @@ async def list_hotels(
     amenity: Optional[str] = Query(None, description="Required amenity"),
     lat: Optional[float] = Query(None, description="Latitude for geo-search"),
     lng: Optional[float] = Query(None, description="Longitude for geo-search"),
-    radius_km: Optional[float] = Query(10.0, description="Radius in kilometers for geo-search")
+    radius_km: Optional[float] = Query(10.0, description="Radius in kilometers for geo-search"),
+    db: AsyncSession = Depends(get_async_db),
 ):
     hotels = await get_all_hotels(
         city=city,
@@ -36,13 +39,14 @@ async def list_hotels(
         amenity=amenity,
         lat=lat,
         lng=lng,
-        radius_km=radius_km
+        radius_km=radius_km,
+        db=db,
     )
     return Envelope(success=True, data=hotels)
 
 @router.get("/{hotel_id}", response_model=Envelope[HotelResponse])
-async def get_hotel(hotel_id: str):
-    hotel = await get_hotel_by_id(hotel_id)
+async def get_hotel(hotel_id: str, db: AsyncSession = Depends(get_async_db)):
+    hotel = await get_hotel_by_id(hotel_id, db=db)
     if not hotel:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hotel not found")
     return Envelope(success=True, data=hotel)

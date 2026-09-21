@@ -32,17 +32,13 @@ const MapComponent = ({ places = [], routePath = null, center = [20.5937, 78.962
     return () => observer.disconnect();
   }, []);
 
-  const tileUrl = isDark 
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-
   return (
     <div className="w-full h-full min-h-[400px] rounded-lg overflow-hidden shadow-md dark:shadow-none bg-gray-100 dark:bg-slate-800">
       <MapContainer center={center} zoom={zoom} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
         <ChangeView center={center} zoom={zoom} />
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url={tileUrl}
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {places.map((place) => {
           if (!place.location || !place.location.coordinates) return null;

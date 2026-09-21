@@ -27,20 +27,23 @@ export default function PlaceDetail() {
       try {
         const placeRes = await api.get(`/places/${id}`);
         setPlace(placeRes.data.data);
+        setLoading(false);
         
-        const reviewsData = await getReviews(id);
-        setReviews(reviewsData);
+        // Fetch auxiliary data in parallel without blocking main place rendering
+        const [reviewsRes, summaryRes, favsRes] = await Promise.allSettled([
+          getReviews(id),
+          getSentimentSummary(id),
+          user ? getFavorites() : Promise.resolve([])
+        ]);
 
-        try {
-          const summary = await getSentimentSummary(id);
-          setSentimentSummary(summary);
-        } catch (e) {
-          // Fallback if summary endpoint has minor hitch
+        if (reviewsRes.status === 'fulfilled' && reviewsRes.value) {
+          setReviews(reviewsRes.value);
         }
-
-        if (user) {
-          const favs = await getFavorites();
-          setIsFavorite(favs.some(f => f.id === id));
+        if (summaryRes.status === 'fulfilled' && summaryRes.value) {
+          setSentimentSummary(summaryRes.value);
+        }
+        if (favsRes.status === 'fulfilled' && favsRes.value) {
+          setIsFavorite(favsRes.value.some(f => f.id === id));
         }
       } catch (err) {
         console.error("Error fetching place details:", err);
@@ -123,6 +126,7 @@ export default function PlaceDetail() {
           <img 
             src={place.images[0]} 
             alt={place.name} 
+            referrerPolicy="no-referrer"
             className="w-full h-80 object-cover"
           />
         )}

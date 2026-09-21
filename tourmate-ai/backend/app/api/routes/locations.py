@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.common import Envelope
-from app.core.database import get_db
 from app.core.db import get_async_db
 from app.services import osrm_service, location_service
 
@@ -33,53 +32,32 @@ async def search_locations(
             "image": "",
         })
 
-    # 2. Search legacy Destinations and Places if MongoDB is accessible
-    try:
-        db = get_db()
-        dest_cursor = db.destinations.find({
-            "$or": [
-                {"name": {"$regex": query, "$options": "i"}},
-                {"state": {"$regex": query, "$options": "i"}},
-                {"country": {"$regex": query, "$options": "i"}}
-            ]
-        }).limit(3)
-        
-        async for dest in dest_cursor:
-            lat = dest.get("lat")
-            lng = dest.get("lng")
-            if lat is None or lng is None:
-                if "location" in dest and dest["location"] and "coordinates" in dest["location"]:
-                    lng, lat = dest["location"]["coordinates"]
-
+    # 2. Search canonical PostgreSQL POIs
+    from app.services import poi_service
+    pois = await poi_service.get_all_pois(q=query, db=sql_db)
+    for p in pois:
+        if p.location and p.location.coordinates:
             results.append({
-                "id": str(dest["_id"]),
-                "name": dest.get("name"),
-                "type": "destination",
-                "lat": lat,
-                "lng": lng,
-                "image": dest.get("cover_image", "")
-            })
-
-        place_cursor = db.tourist_places.find({
-            "name": {"$regex": query, "$options": "i"},
-            "location": {"$exists": True}
-        }).limit(5)
-
-        async for place in place_cursor:
-            lat, lng = None, None
-            if "location" in place and place["location"] and "coordinates" in place["location"]:
-                lng, lat = place["location"]["coordinates"]
-
-            results.append({
-                "id": str(place["_id"]),
-                "name": place.get("name"),
+                "id": str(p.id),
+                "name": p.name,
                 "type": "place",
-                "lat": lat,
-                "lng": lng,
-                "image": place.get("images", [""])[0] if place.get("images") else ""
+                "lat": p.location.coordinates[1],
+                "lng": p.location.coordinates[0],
+                "image": p.images[0] if p.images else "",
             })
-    except Exception:
-        pass
+
+    # 3. If no local results, geocode via OpenStreetMap Nominatim
+    if not results:
+        geo = await osrm_service.geocode(query)
+        if geo:
+            results.append({
+                "id": "geo-" + query.lower().replace(" ", "-"),
+                "name": geo.get("display_name", query),
+                "type": "location",
+                "lat": geo.get("latitude"),
+                "lng": geo.get("longitude"),
+                "image": "",
+            })
 
     # Deduplicate results if they have lat/lng
     unique_results = []

@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 
 from app.api.deps import require_admin
+from app.core.db import get_async_db
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.common import Envelope
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryResponse
 from app.services.category_service import (
@@ -11,13 +13,13 @@ from app.services.category_service import (
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 @router.get("", response_model=Envelope[List[CategoryResponse]])
-async def read_categories():
-    categories = await get_all_categories()
+async def read_categories(db: AsyncSession = Depends(get_async_db)):
+    categories = await get_all_categories(db=db)
     return Envelope(success=True, data=categories)
 
 @router.post("", response_model=Envelope[CategoryResponse], dependencies=[Depends(require_admin)])
-async def add_category(payload: CategoryCreate):
-    cat = await create_category(payload)
+async def add_category(payload: CategoryCreate, db: AsyncSession = Depends(get_async_db)):
+    cat = await create_category(payload, db=db)
     return Envelope(success=True, data=cat)
 
 @router.put("/{category_id}", response_model=Envelope[CategoryResponse], dependencies=[Depends(require_admin)])

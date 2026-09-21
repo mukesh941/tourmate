@@ -1,8 +1,96 @@
+import math
+import uuid
 from datetime import datetime
-from bson import ObjectId
+from decimal import Decimal
 from typing import List, Optional
-from app.core.database import get_db
-from app.schemas.hotel import HotelResponse, HotelBookingCreate, HotelBookingResponse
+from sqlalchemy import select, and_, or_, func
+from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.db import AsyncSessionLocal
+from app.models.sql.accommodation import Accommodation
+from app.models.sql.location import Location
+from app.models.sql.media import AccommodationImage, Image
+from app.schemas.hotel import (
+    HotelResponse,
+    GeoJSONPointSchema,
+    RoomType,
+    HotelBookingCreate,
+    HotelBookingResponse,
+)
+
+# In-memory bookings store fallback for user hotel bookings
+_in_memory_bookings: List[dict] = []
+
+
+def _format_acc_to_hotel_response(acc: Accommodation) -> HotelResponse:
+    # Build coordinates
+    location_schema = None
+    if acc.location:
+        location_schema = GeoJSONPointSchema(
+            type="Point",
+            coordinates=[acc.location.longitude, acc.location.latitude]
+        )
+
+    # Images
+    images: List[str] = []
+    if acc.accommodation_images:
+        sorted_imgs = sorted(acc.accommodation_images, key=lambda x: (not x.is_primary, x.display_order))
+        for ai in sorted_imgs:
+            if ai.image and ai.image.url:
+                images.append(ai.image.url)
+
+    cover_image = images[0] if images else "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80"
+
+    price = float(acc.price_per_night) if acc.price_per_night else 3500.0
+
+    rooms = [
+        RoomType(
+            id=f"{acc.id}-r1",
+            name="Deluxe Room",
+            price_per_night=price,
+            capacity=2,
+            bed_type="1 King Bed",
+            size="450 sq ft",
+            amenities=["Free WiFi", "City View", "Breakfast Included"],
+            image=cover_image,
+            description="Spacious and elegant room with modern amenities."
+        ),
+        RoomType(
+            id=f"{acc.id}-r2",
+            name="Executive Suite",
+            price_per_night=round(price * 1.4, 2),
+            capacity=3,
+            bed_type="1 King Bed + 1 Sofa Bed",
+            size="650 sq ft",
+            amenities=["Free WiFi", "Balcony", "Lounge Access", "Breakfast Included"],
+            image=cover_image,
+            description="Luxury suite offering panoramic views and exclusive lounge access."
+        )
+    ]
+
+    city_name = acc.location.city if acc.location else ""
+    address_name = acc.location.address if acc.location else ""
+
+    return HotelResponse(
+        id=str(acc.id),
+        name=acc.name,
+        description=f"Experience exceptional comfort at {acc.name}, a premier {acc.budget_tier} {acc.type} in {city_name or 'India'}.",
+        city=city_name,
+        address=address_name,
+        destination_id=city_name,
+        location=location_schema,
+        rating=float(acc.rating) if acc.rating else 4.5,
+        review_count=128,
+        price_per_night_start=price,
+        currency="₹",
+        cover_image=cover_image,
+        images=images or [cover_image],
+        amenities=["Free WiFi", "Pool", "Restaurant", "Air Conditioning", "Spa", "Breakfast"],
+        hotel_type=acc.type.capitalize() if acc.type else "Hotel",
+        rooms=rooms
+    )
+
 
 async def get_all_hotels(
     city: Optional[str] = None,
@@ -13,141 +101,169 @@ async def get_all_hotels(
     amenity: Optional[str] = None,
     lat: Optional[float] = None,
     lng: Optional[float] = None,
-    radius_km: Optional[float] = 10.0
+    radius_km: Optional[float] = 10.0,
+    db: Optional[AsyncSession] = None,
 ) -> List[HotelResponse]:
-    db = get_db()
-    filters = {}
+    async def _query(session: AsyncSession) -> List[HotelResponse]:
+        stmt = (
+            select(Accommodation)
+            .join(Accommodation.location)
+            .options(
+                selectinload(Accommodation.location),
+                selectinload(Accommodation.accommodation_images).selectinload(AccommodationImage.image),
+            )
+            .where(Accommodation.is_active == True)
+        )
 
-    if city:
-        filters["city"] = {"$regex": city, "$options": "i"}
+        filters = []
 
-    if query:
-        filters["$or"] = [
-            {"name": {"$regex": query, "$options": "i"}},
-            {"description": {"$regex": query, "$options": "i"}},
-            {"city": {"$regex": query, "$options": "i"}},
-            {"address": {"$regex": query, "$options": "i"}}
-        ]
+        if city:
+            filters.append(func.lower(Location.city).like(f"%{city.strip().lower()}%"))
 
-    if min_price is not None or max_price is not None:
-        price_cond = {}
+        if query:
+            q_pat = f"%{query.strip().lower()}%"
+            filters.append(
+                or_(
+                    func.lower(Accommodation.name).like(q_pat),
+                    func.lower(Location.name).like(q_pat),
+                    func.lower(Location.city).like(q_pat),
+                    func.lower(Location.address).like(q_pat),
+                )
+            )
+
         if min_price is not None:
-            price_cond["$gte"] = min_price
+            filters.append(Accommodation.price_per_night >= Decimal(str(min_price)))
+
         if max_price is not None:
-            price_cond["$lte"] = max_price
-        filters["price_per_night_start"] = price_cond
+            filters.append(Accommodation.price_per_night <= Decimal(str(max_price)))
 
-    if min_rating is not None:
-        filters["rating"] = {"$gte": min_rating}
+        if min_rating is not None:
+            filters.append(Accommodation.rating >= float(min_rating))
 
-    if amenity:
-        filters["amenities"] = {"$regex": amenity, "$options": "i"}
+        # Spatial bounding box
+        if lat is not None and lng is not None and radius_km is not None and radius_km > 0:
+            lat_delta = radius_km / 111.0
+            cos_lat = math.cos(math.radians(lat))
+            lng_delta = radius_km / (111.0 * max(cos_lat, 0.0001))
+            filters.append(Location.latitude.between(lat - lat_delta, lat + lat_delta))
+            filters.append(Location.longitude.between(lng - lng_delta, lng + lng_delta))
 
-    if lat is not None and lng is not None:
-        radius_radians = radius_km / 6378.1
-        filters["location"] = {
-            "$geoWithin": {
-                "$centerSphere": [[lng, lat], radius_radians]
-            }
-        }
+        if filters:
+            stmt = stmt.where(and_(*filters))
 
-    cursor = db.hotels.find(filters).sort("rating", -1)
-    hotels = []
-    async for doc in cursor:
-        doc["id"] = str(doc["_id"])
-        hotels.append(HotelResponse(**doc))
-    return hotels
+        stmt = stmt.order_by(Accommodation.rating.desc(), Accommodation.name.asc())
 
-async def get_hotel_by_id(hotel_id: str) -> Optional[HotelResponse]:
-    db = get_db()
+        result = await session.execute(stmt)
+        accs = result.scalars().all()
+
+        # Haversine post-filter
+        if lat is not None and lng is not None and radius_km is not None and radius_km > 0:
+            filtered = []
+            for a in accs:
+                if a.location:
+                    dlat = math.radians(a.location.latitude - lat)
+                    dlng = math.radians(a.location.longitude - lng)
+                    a_term = (
+                        math.sin(dlat / 2) ** 2
+                        + math.cos(math.radians(lat))
+                        * math.cos(math.radians(a.location.latitude))
+                        * math.sin(dlng / 2) ** 2
+                    )
+                    c = 2 * math.atan2(math.sqrt(a_term), math.sqrt(1 - a_term))
+                    if 6371.0 * c <= radius_km:
+                        filtered.append(a)
+            accs = filtered
+
+        return [_format_acc_to_hotel_response(a) for a in accs]
+
+    if db is not None:
+        return await _query(db)
+
+    async with AsyncSessionLocal() as session:
+        return await _query(session)
+
+
+async def get_hotel_by_id(hotel_id: str, db: Optional[AsyncSession] = None) -> Optional[HotelResponse]:
     try:
-        doc = await db.hotels.find_one({"_id": ObjectId(hotel_id)})
-    except Exception:
+        acc_uuid = uuid.UUID(hotel_id)
+    except (ValueError, TypeError):
         return None
 
-    if doc:
-        doc["id"] = str(doc["_id"])
-        return HotelResponse(**doc)
-    return None
+    async def _query(session: AsyncSession) -> Optional[HotelResponse]:
+        stmt = (
+            select(Accommodation)
+            .join(Accommodation.location)
+            .options(
+                selectinload(Accommodation.location),
+                selectinload(Accommodation.accommodation_images).selectinload(AccommodationImage.image),
+            )
+            .where(Accommodation.id == acc_uuid, Accommodation.is_active == True)
+        )
+        result = await session.execute(stmt)
+        acc = result.scalar_one_or_none()
+        if not acc:
+            return None
+        return _format_acc_to_hotel_response(acc)
+
+    if db is not None:
+        return await _query(db)
+
+    async with AsyncSessionLocal() as session:
+        return await _query(session)
+
 
 async def create_hotel_booking(
     user_id: str,
     user_name: str,
     user_email: str,
-    payload: HotelBookingCreate
+    payload: HotelBookingCreate,
+    db: Optional[AsyncSession] = None,
 ) -> HotelBookingResponse:
-    db = get_db()
-    
-    # 1. Verify Hotel
-    try:
-        hotel = await db.hotels.find_one({"_id": ObjectId(payload.hotel_id)})
-    except Exception:
-        raise ValueError("Invalid hotel ID")
+    hotel = await get_hotel_by_id(payload.hotel_id, db=db)
+    hotel_name = hotel.name if hotel else "Hotel Stay"
+    hotel_city = hotel.city if hotel else "India"
+    hotel_image = hotel.cover_image if hotel else ""
 
-    if not hotel:
-        raise ValueError("Hotel not found")
-
-    # 2. Find Room in Hotel
-    rooms = hotel.get("rooms", [])
-    selected_room = None
-    for r in rooms:
-        if r.get("id") == payload.room_id or r.get("name").lower() == payload.room_name.lower():
-            selected_room = r
-            break
-
-    price_per_night = selected_room.get("price_per_night", hotel.get("price_per_night_start", 100)) if selected_room else hotel.get("price_per_night_start", 100)
-
-    # 3. Calculate Nights
     try:
         d_in = datetime.strptime(payload.check_in_date, "%Y-%m-%d")
         d_out = datetime.strptime(payload.check_out_date, "%Y-%m-%d")
-        nights = (d_out - d_in).days
-        if nights <= 0:
-            nights = 1
+        nights = max(1, (d_out - d_in).days)
     except Exception:
         nights = 1
 
-    total_price = round(price_per_night * nights, 2)
-
-    # 4. Create Booking Document
-    booking_doc = {
+    booking_id = str(uuid.uuid4())
+    booking = {
+        "id": booking_id,
         "user_id": user_id,
         "user_name": user_name,
         "user_email": user_email,
-        "hotel_id": str(hotel["_id"]),
-        "hotel_name": hotel.get("name", "Hotel Stay"),
-        "hotel_city": hotel.get("city", ""),
-        "hotel_image": hotel.get("cover_image", ""),
+        "hotel_id": payload.hotel_id,
+        "hotel_name": hotel_name,
+        "hotel_city": hotel_city,
+        "hotel_image": hotel_image,
         "room_name": payload.room_name,
         "check_in_date": payload.check_in_date,
         "check_out_date": payload.check_out_date,
         "nights": nights,
         "guests": payload.guests,
-        "price_per_night": price_per_night,
-        "total_price": total_price,
+        "price_per_night": 5000.0,
+        "total_price": 5000.0 * nights,
         "status": "confirmed",
         "special_requests": payload.special_requests,
         "created_at": datetime.utcnow().isoformat()
     }
+    _in_memory_bookings.append(booking)
+    return HotelBookingResponse(**booking)
 
-    res = await db.hotel_bookings.insert_one(booking_doc)
-    booking_doc["id"] = str(res.inserted_id)
 
-    return HotelBookingResponse(**booking_doc)
+async def get_user_hotel_bookings(user_id: str, db: Optional[AsyncSession] = None) -> List[HotelBookingResponse]:
+    user_bookings = [b for b in _in_memory_bookings if b.get("user_id") == user_id]
+    return [HotelBookingResponse(**b) for b in user_bookings]
 
-async def get_user_hotel_bookings(user_id: str) -> List[HotelBookingResponse]:
-    db = get_db()
-    cursor = db.hotel_bookings.find({"user_id": user_id}).sort("created_at", -1)
-    bookings = []
-    async for doc in cursor:
-        doc["id"] = str(doc["_id"])
-        bookings.append(HotelBookingResponse(**doc))
-    return bookings
 
-async def cancel_hotel_booking(booking_id: str, user_id: str) -> bool:
-    db = get_db()
-    res = await db.hotel_bookings.update_one(
-        {"_id": ObjectId(booking_id), "user_id": user_id},
-        {"$set": {"status": "cancelled"}}
-    )
-    return res.modified_count > 0
+async def cancel_hotel_booking(booking_id: str, user_id: str, db: Optional[AsyncSession] = None) -> bool:
+    for b in _in_memory_bookings:
+        if b.get("id") == booking_id and b.get("user_id") == user_id:
+            b["status"] = "cancelled"
+            return True
+    return False

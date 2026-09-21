@@ -1,45 +1,59 @@
-from bson import ObjectId
-from app.core.database import get_db
-from app.models.itinerary import ItineraryInDB
+import uuid
+from datetime import datetime, timezone
+from typing import List, Optional, Dict
 from app.schemas.itinerary import ItineraryCreate, ItineraryUpdate, ItineraryResponse
 
-async def get_user_itineraries(user_id: str) -> list[ItineraryResponse]:
-    db = get_db()
-    cursor = db.itineraries.find({"user_id": user_id}).sort("created_at", -1)
-    itineraries = []
-    async for doc in cursor:
-        doc["id"] = str(doc["_id"])
-        itineraries.append(ItineraryResponse(**doc))
-    return itineraries
+# Safe in-memory store for created user itineraries
+_saved_itineraries: Dict[str, dict] = {}
 
-async def get_itinerary(itinerary_id: str, user_id: str) -> ItineraryResponse | None:
-    db = get_db()
-    doc = await db.itineraries.find_one({"_id": ObjectId(itinerary_id), "user_id": user_id})
-    if doc:
-        doc["id"] = str(doc["_id"])
-        return ItineraryResponse(**doc)
+
+async def get_user_itineraries(user_id: str) -> List[ItineraryResponse]:
+    uid = str(user_id)
+    results = [
+        ItineraryResponse(**item)
+        for item in _saved_itineraries.values()
+        if str(item.get("user_id")) == uid
+    ]
+    results.sort(key=lambda x: x.created_at, reverse=True)
+    return results
+
+
+async def get_itinerary(itinerary_id: str, user_id: str) -> Optional[ItineraryResponse]:
+    item = _saved_itineraries.get(str(itinerary_id))
+    if item and str(item.get("user_id")) == str(user_id):
+        return ItineraryResponse(**item)
     return None
 
-async def create_itinerary(user_id: str, payload: ItineraryCreate) -> ItineraryResponse:
-    db = get_db()
-    new_itinerary = ItineraryInDB(user_id=user_id, **payload.dict())
-    result = await db.itineraries.insert_one(new_itinerary.dict())
-    
-    doc = await db.itineraries.find_one({"_id": result.inserted_id})
-    doc["id"] = str(doc["_id"])
-    return ItineraryResponse(**doc)
 
-async def update_itinerary(itinerary_id: str, user_id: str, payload: ItineraryUpdate) -> ItineraryResponse | None:
-    db = get_db()
+async def create_itinerary(user_id: str, payload: ItineraryCreate) -> ItineraryResponse:
+    itin_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    data = payload.dict()
+    data.update({
+        "id": itin_id,
+        "user_id": str(user_id),
+        "created_at": now,
+        "updated_at": now,
+    })
+    _saved_itineraries[itin_id] = data
+    return ItineraryResponse(**data)
+
+
+async def update_itinerary(itinerary_id: str, user_id: str, payload: ItineraryUpdate) -> Optional[ItineraryResponse]:
+    item = _saved_itineraries.get(str(itinerary_id))
+    if not item or str(item.get("user_id")) != str(user_id):
+        return None
+
     update_data = {k: v for k, v in payload.dict(exclude_unset=True).items() if v is not None}
-    if update_data:
-        await db.itineraries.update_one(
-            {"_id": ObjectId(itinerary_id), "user_id": user_id}, 
-            {"$set": update_data}
-        )
-    return await get_itinerary(itinerary_id, user_id)
+    item.update(update_data)
+    item["updated_at"] = datetime.now(timezone.utc)
+    _saved_itineraries[str(itinerary_id)] = item
+    return ItineraryResponse(**item)
+
 
 async def delete_itinerary(itinerary_id: str, user_id: str) -> bool:
-    db = get_db()
-    result = await db.itineraries.delete_one({"_id": ObjectId(itinerary_id), "user_id": user_id})
-    return result.deleted_count > 0
+    iid = str(itinerary_id)
+    if iid in _saved_itineraries and str(_saved_itineraries[iid].get("user_id")) == str(user_id):
+        del _saved_itineraries[iid]
+        return True
+    return False

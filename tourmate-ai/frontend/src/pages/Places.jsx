@@ -136,11 +136,12 @@ export default function Places() {
               {/* Image Header */}
               <div className="relative h-48 bg-gray-200 dark:bg-slate-700 overflow-hidden">
                 <img 
-                  src={p.images?.[0] || "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80"} 
+                  src={p.images?.[0] || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80"} 
                   alt={p.name} 
+                  referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
                   onError={(e) => {
-                    e.target.src = "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80";
+                    e.target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80";
                   }}
                 />
                 <div className="absolute top-3 right-3 glass px-2 py-1 rounded-lg text-xs font-bold text-gray-900 shadow-sm flex items-center gap-1">
@@ -152,7 +153,7 @@ export default function Places() {
               <div className="p-5 flex flex-col flex-1">
                 <h3 className="text-xl font-display font-bold text-gray-800 dark:text-slate-100 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-brand-600 group-hover:to-accent-500 transition-all duration-300 mb-1 line-clamp-1">{p.name}</h3>
                 <p className="text-xs text-brand-600 font-bold uppercase tracking-wider mb-3">
-                  📍 {destinations.find(d => d.id === p.destination_id)?.name || 'Unknown Location'}
+                  📍 {destinations.find(d => d.id === p.destination_id || d.name?.toLowerCase() === p.destination_id?.toLowerCase())?.name || p.destination_id || 'India'}
                 </p>
                 <p className="text-gray-600 dark:text-slate-300 text-sm line-clamp-2 mb-4 flex-1 font-light leading-relaxed">{p.description}</p>
                 

@@ -69,11 +69,12 @@ export default function DestinationDetail() {
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow overflow-hidden h-full transition-transform transform group-hover:-translate-y-1 group-hover:shadow-lg flex flex-col">
                   <div className="h-44 overflow-hidden bg-gray-100 dark:bg-slate-700">
                     <img 
-                      src={p.images?.[0] || "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80"} 
+                      src={p.images?.[0] || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80"} 
                       alt={p.name} 
+                      referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                       onError={(e) => {
-                        e.target.src = "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80";
+                        e.target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80";
                       }}
                     />
                   </div>

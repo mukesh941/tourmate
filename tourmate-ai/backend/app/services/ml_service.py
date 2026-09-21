@@ -4,7 +4,7 @@ from app.schemas.place import TouristPlaceResponse
 
 async def generate_place_clusters(places: list[TouristPlaceResponse], k: int) -> dict:
     if not places:
-        return {"k": 0, "centroids": [], "clusters": [], "skipped": 0}
+        return {"clusters": [], "centroids": []}
         
     valid_places = []
     coords = []

@@ -67,6 +67,7 @@ def _format_poi_to_response(poi: POI) -> TouristPlaceResponse:
 
 
 async def get_all_pois(
+    destination_id: Optional[str] = None,
     category_id: Optional[str] = None,
     q: Optional[str] = None,
     min_rating: Optional[float] = None,
@@ -89,6 +90,13 @@ async def get_all_pois(
     )
 
     filters = []
+
+    if destination_id:
+        try:
+            dest_uuid = uuid.UUID(destination_id)
+            filters.append(or_(POI.location_id == dest_uuid, Location.id == dest_uuid))
+        except (ValueError, TypeError):
+            filters.append(func.lower(Location.city) == destination_id.strip().lower())
 
     if category_id:
         try:
