@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getPlaces, getCategories, getDestinations } from "../api/places";
 import MapComponent from "../components/MapComponent";
 import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
+import SafeImage from "../components/SafeImage";
 
 export default function Places() {
   const [places, setPlaces] = useState([]);
@@ -146,12 +147,10 @@ export default function Places() {
             <Link to={`/places/${p.id}`} key={p.id} className="group flex flex-col glass rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-brand-500/20 hover:-translate-y-1 transition-all duration-300 border border-gray-100 dark:border-slate-700 h-full">
               {/* Image Header */}
               <div className="relative h-48 bg-gray-200 dark:bg-slate-700 overflow-hidden">
-                <img 
-                  src={p.images?.[0] || NEUTRAL_PLACEHOLDER_IMAGE} 
+                <SafeImage 
+                  src={p.images?.[0] || p.cover_image} 
                   alt={p.name} 
-                  referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
-                  onError={handleImageError}
                 />
                 <div className="absolute top-3 right-3 glass px-2 py-1 rounded-lg text-xs font-bold text-gray-900 shadow-sm flex items-center gap-1">
                   ⭐ {p.rating.toFixed(1)}

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getDestinations } from "../api/places";
 import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
+import SafeImage from "../components/SafeImage";
 
 export default function Destinations() {
   const [destinations, setDestinations] = useState([]);
@@ -27,11 +28,10 @@ export default function Destinations() {
           {destinations.map(d => (
             <Link key={d.id} to={`/destinations/${d.id}`} className="group block bg-white dark:bg-slate-800 rounded-xl shadow-md dark:shadow-none overflow-hidden hover:shadow-xl dark:shadow-none transition transform hover:-translate-y-1">
               <div className="h-48 bg-gray-200 dark:bg-slate-700 overflow-hidden relative">
-                <img 
-                  src={d.cover_image || d.images?.[0] || NEUTRAL_PLACEHOLDER_IMAGE} 
+                <SafeImage 
+                  src={d.cover_image || d.images?.[0]} 
                   alt={d.name} 
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-300" 
-                  onError={handleImageError}
                 />
               </div>
               <div className="p-5">

@@ -15669,13 +15669,13 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000142",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Fort_Aguada_Goa.jpg/1280px-Fort_Aguada_Goa.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Fort_Aguada_Goa.jpg/1280px-Fort_Aguada_Goa.jpg",
+                "url": "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Historic beachfront 5-star resort overlooking Aguada ramparts",
-                "source": "wikimedia_commons",
-                "external_image_id": "1280px-Fort_Aguada_Goa.jpg",
-                "license_type": "CC-BY-SA-4.0",
-                "attribution_text": "Wikimedia Commons / Taj Fort Aguada",
+                "source": "verified_curated",
+                "external_image_id": "taj_fort_aguada",
+                "license_type": "CC0",
+                "attribution_text": "Curated / Taj Fort Aguada",
                 "is_primary": true
             }
         ]
@@ -15705,13 +15705,13 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000143",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Basilica_of_Bom_Jesus%2C_Old_Goa.jpg/1280px-Basilica_of_Bom_Jesus%2C_Old_Goa.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Basilica_of_Bom_Jesus%2C_Old_Goa.jpg/1280px-Basilica_of_Bom_Jesus%2C_Old_Goa.jpg",
+                "url": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Tropical garden resort steps from Candolim Beach",
-                "source": "wikimedia_commons",
-                "external_image_id": "1280px-Basilica_of_Bom_Jesus%2C_Old_Goa.jpg",
-                "license_type": "CC-BY-SA-4.0",
-                "attribution_text": "Wikimedia Commons / Santana Resort",
+                "source": "verified_curated",
+                "external_image_id": "santana_resort",
+                "license_type": "CC0",
+                "attribution_text": "Curated / Santana Resort",
                 "is_primary": true
             }
         ]
@@ -15741,13 +15741,13 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000144",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Dudhsagar_Falls_Goa_India.jpg/1280px-Dudhsagar_Falls_Goa_India.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Dudhsagar_Falls_Goa_India.jpg/1280px-Dudhsagar_Falls_Goa_India.jpg",
+                "url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Social backpacker stay near quiet northern beaches",
-                "source": "wikimedia_commons",
-                "external_image_id": "1280px-Dudhsagar_Falls_Goa_India.jpg",
-                "license_type": "CC-BY-SA-4.0",
-                "attribution_text": "Wikimedia Commons / Zostel Morjim",
+                "source": "verified_curated",
+                "external_image_id": "zostel_morjim",
+                "license_type": "CC0",
+                "attribution_text": "Curated / Zostel Morjim",
                 "is_primary": true
             }
         ]

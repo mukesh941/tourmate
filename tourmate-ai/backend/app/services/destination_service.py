@@ -14,77 +14,77 @@ from app.schemas.destination import DestinationCreate, DestinationUpdate, Destin
 CANONICAL_DESTINATION_METADATA = {
     "agra": {
         "description": "Home of the world-renowned Taj Mahal, Agra Fort, and Mughal architectural marvels on the banks of the Yamuna River.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Taj_Mahal_%28Edited%29.jpeg/1280px-Taj_Mahal_%28Edited%29.jpeg",
+        "cover_image": "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80",
         "state": "Uttar Pradesh"
     },
     "new delhi": {
         "description": "India's vibrant capital, blending centuries of Mughal and colonial heritage with bustling modern boulevards.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Qutub_Minar_in_the_evening.jpg/1280px-Qutub_Minar_in_the_evening.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=1200&q=80",
         "state": "Delhi"
     },
     "jaipur": {
         "description": "The Pink City of Rajasthan, famed for majestic hill forts, the astronomical Jantar Mantar observatory, and vibrant bazaars.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/East_facade_Hawa_Mahal_Jaipur_edit1.jpg/1280px-East_facade_Hawa_Mahal_Jaipur_edit1.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=1200&q=80",
         "state": "Rajasthan"
     },
     "mumbai": {
         "description": "India's bustling financial and cinematic capital on the Arabian Sea, featuring Victorian Gothic landmarks and coastal promenades.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Gateway_of_India%2C_Mumbai.jpg/1280px-Gateway_of_India%2C_Mumbai.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1200&q=80",
         "state": "Maharashtra"
     },
     "bengaluru": {
         "description": "India's Silicon Valley and Garden City, celebrated for Bangalore Palace, Lalbagh botanical gardens, and vibrant tech culture.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Bangalore_Palace_-_front_view.jpg/1280px-Bangalore_Palace_-_front_view.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=1200&q=80",
         "state": "Karnataka"
     },
     "goa": {
         "description": "Coastal paradise known for UNESCO World Heritage Portuguese architecture, sun-drenched beaches, spice plantations, and vibrant culture.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Basilica_of_Bom_Jesus%2C_Old_Goa.jpg/1280px-Basilica_of_Bom_Jesus%2C_Old_Goa.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80",
         "state": "Goa"
     },
     "varanasi": {
         "description": "One of the world's oldest living cities and spiritual heart of India along the sacred Ganges, famous for ancient ghats and evening aartis.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Dashashwamedh_Ghat_Varanasi.jpg/1280px-Dashashwamedh_Ghat_Varanasi.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=1200&q=80",
         "state": "Uttar Pradesh"
     },
     "kochi": {
         "description": "The Queen of the Arabian Sea, renowned for historic Fort Kochi, 14th-century Chinese fishing nets, spice trade heritage, and backwaters.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Chinese_fishing_nets_Kochi.jpg/1280px-Chinese_fishing_nets_Kochi.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80",
         "state": "Kerala"
     },
     "udaipur": {
         "description": "The City of Lakes and Venice of the East, surrounded by the Aravali Hills with marble palaces reflected on Lake Pichola.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Udaipur_City_Palace.jpg/1280px-Udaipur_City_Palace.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
         "state": "Rajasthan"
     },
     "amritsar": {
         "description": "Spiritual center of the Sikh religion, home to the magnificent gilded Harmandir Sahib (Golden Temple) and deep cultural heritage.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Golden_Temple_Amritsar_India.jpg/1280px-Golden_Temple_Amritsar_India.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1514222134-b57cbb8ce073?auto=format&fit=crop&w=1200&q=80",
         "state": "Punjab"
     },
     "hyderabad": {
         "description": "The City of Pearls, where Nizami grandeur at the Charminar and Golconda Fort converges with modern technology hubs and royal culinary traditions.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Charminar_Hyderabad_1.jpg/1280px-Charminar_Hyderabad_1.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1604999333679-b86d54738315?auto=format&fit=crop&w=1200&q=80",
         "state": "Telangana"
     },
     "chennai": {
         "description": "Cultural capital of South India, celebrated for Dravidian Kapaleeshwarar temple architecture, classical Carnatic music, and Marina Beach.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Kapaleeshwarar_Temple_Gopuram.jpg/1280px-Kapaleeshwarar_Temple_Gopuram.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80",
         "state": "Tamil Nadu"
     },
     "mysuru": {
         "description": "The Heritage City of Karnataka, famed for the glittering Mysore Palace, Chamundi Hills, silk weaving, and royal Dasara festivities.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Mysore_Palace_Front.jpg/1280px-Mysore_Palace_Front.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1580837119756-563d608dd119?auto=format&fit=crop&w=1200&q=80",
         "state": "Karnataka"
     },
     "manali": {
         "description": "Himalayan resort town nestled in the Beas River valley, gateway to Solang Valley adventures, Rohtang Pass, and deodar forests.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Solang_Valley_Manali.jpg/1280px-Solang_Valley_Manali.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=80",
         "state": "Himachal Pradesh"
     },
     "srinagar": {
         "description": "Paradise on Earth in the Kashmir Valley, famous for serene Dal Lake houseboats, Mughal gardens, and snow-capped Himalayan peaks.",
-        "cover_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Dal_Lake_Srinagar_Kashmir.jpg/1280px-Dal_Lake_Srinagar_Kashmir.jpg",
+        "cover_image": "https://images.unsplash.com/photo-1598091383021-15ddea10925d?auto=format&fit=crop&w=1200&q=80",
         "state": "Jammu and Kashmir"
     },
 }

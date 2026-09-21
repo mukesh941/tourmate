@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Star, ArrowRight, Navigation, MapPin } from 'lucide-react';
 
 import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from '../config/imageConfig';
+import SafeImage from './SafeImage';
 
 export default function RecommendationCard({ 
   item, 
@@ -52,12 +53,10 @@ export default function RecommendationCard({
     >
       {/* 4:3 Aspect Ratio Image Container */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
-        <img 
-          src={item.cover_image || (item.images && item.images[0]) || NEUTRAL_PLACEHOLDER_IMAGE} 
+        <SafeImage 
+          src={item.cover_image || (item.images && item.images[0])} 
           alt={item.name} 
-          referrerPolicy="no-referrer"
           className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
-          onError={handleImageError}
         />
         
         {/* Rating Badge */}

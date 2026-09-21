@@ -115,23 +115,31 @@ export default function Guides() {
               <Compass className="w-8 h-8" />
             </div>
             <h3 className="text-2xl font-display font-extrabold text-gray-900 dark:text-white mb-3">
-              Local Expert Marketplace — Launching Soon
+              Local Expert Network — Coming Soon
             </h3>
             <p className="text-gray-600 dark:text-slate-300 leading-relaxed mb-6">
-              We are currently onboarding verified, licensed local guides across <strong>Agra, New Delhi, Jaipur, and Mumbai</strong>. In this release, our AI Tour Guide is available 24/7 with grounded facts, historical insights, and personalized recommendations.
+              Direct booking of licensed, certified local human guides is part of our planned partner network expansion. To guarantee safety and authentic expertise, TourMate only lists officially accredited tour professionals once vetted.
             </p>
+            <div className="bg-brand-50 dark:bg-brand-900/20 rounded-2xl p-4 mb-8 text-left border border-brand-100 dark:border-brand-800/40">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-brand-900 dark:text-brand-200">
+                  <strong>Available Now:</strong> You can explore verified canonical attractions, build optimized multi-day itineraries, and chat with our 24/7 Grounded AI Tour Guide for instant historical context and visiting guidelines.
+                </p>
+              </div>
+            </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link 
                 to="/places"
                 className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-sm"
               >
-                <Compass className="w-4 h-4" /> Explore Places
+                <Compass className="w-4 h-4" /> Explore Verified Places
               </Link>
               <Link 
                 to="/itinerary-builder"
                 className="inline-flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-3 px-6 rounded-xl transition"
               >
-                <Sparkles className="w-4 h-4 text-brand-500" /> Plan with AI
+                <Sparkles className="w-4 h-4 text-brand-500" /> Plan Itinerary
               </Link>
             </div>
           </div>

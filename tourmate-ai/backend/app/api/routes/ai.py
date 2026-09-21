@@ -125,11 +125,12 @@ from app.services.ai_service import predict_landmark_from_image
 async def recognize_landmark(
     request: Request,
     file: UploadFile = File(...),
-    current_user: UserPublic = Depends(get_current_user_dependency)
+    current_user: UserPublic = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_async_db),
 ):
     try:
         image_bytes = await file.read()
-        result = predict_landmark_from_image(image_bytes)
+        result = await predict_landmark_from_image(image_bytes, db=db)
         return Envelope(success=True, data=result)
     except Exception as e:
         print(f"Error predicting landmark: {e}")

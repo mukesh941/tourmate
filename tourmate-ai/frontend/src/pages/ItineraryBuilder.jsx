@@ -11,6 +11,7 @@ import ActivityCard from "../components/itinerary/ActivityCard";
 import TravelConnector from "../components/itinerary/TravelConnector";
 import BudgetBreakdown from "../components/itinerary/BudgetBreakdown";
 import OptimizeDayModal from "../components/itinerary/OptimizeDayModal";
+import SafeImage from "../components/SafeImage";
 
 function HotelSuggestionCard({ hotel }) {
   const amenityIcons = {
@@ -23,11 +24,11 @@ function HotelSuggestionCard({ hotel }) {
   return (
     <div className="flex gap-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl p-3 hover:shadow-md transition-all group">
       <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
-        {hotel.images && hotel.images.length > 0 ? (
-          <img src={hotel.images[0]} alt={hotel.name} className="w-full h-full object-cover rounded-lg" />
-        ) : (
-          <BedDouble className="w-6 h-6 text-gray-400 dark:text-slate-500" />
-        )}
+        <SafeImage 
+          src={hotel.images?.[0]} 
+          alt={hotel.name} 
+          className="w-full h-full object-cover rounded-lg" 
+        />
       </div>
       <div className="flex-1 min-w-0 flex flex-col justify-center">
         <div className="flex items-start justify-between gap-2">

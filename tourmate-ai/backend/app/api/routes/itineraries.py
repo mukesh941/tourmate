@@ -20,50 +20,21 @@ from app.services.itinerary_service import (
 from app.services.itinerary_optimization_service import optimize_and_persist_itinerary
 from app.services.place_service import get_place
 from app.services.ai_service import generate_itinerary_via_llm
+from app.services.authoritative_itinerary_service import generate_authoritative_itinerary
 
 router = APIRouter(prefix="/itineraries", tags=["itineraries"])
 
 @router.post("/generate", response_model=Envelope[List[dict]])
 async def generate_itinerary(
     payload: ItineraryGenerateRequest,
+    db: AsyncSession = Depends(get_async_db),
     current_user: UserPublic | None = Depends(get_optional_current_user)
 ):
     if not payload.destination_name and not payload.place_ids:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Must provide either destination_name or specific places")
 
-    places_info = []
-    if payload.place_ids:
-        for pid in payload.place_ids:
-            place = await get_place(pid)
-            if place:
-                places_info.append({
-                    "id": place.id,
-                    "name": place.name,
-                    "description": place.description,
-                    "category_id": place.category_id,
-                    "visit_duration_minutes": place.visit_duration_minutes
-                })
-        
-    generated_schedule = generate_itinerary_via_llm(
-        places_info=places_info,
-        days=payload.days,
-        start_time=payload.start_time,
-        end_time=payload.end_time,
-        accommodation=payload.accommodation,
-        energy_level=payload.energy_level,
-        destination_name=payload.destination_name,
-        budget=payload.budget,
-        travel_type=payload.travel_type,
-        transportation_mode=payload.transportation_mode,
-        local_transportation=payload.local_transportation,
-        interests=payload.interests,
-        origin=payload.origin
-    )
-    
-    if not isinstance(generated_schedule, list) or len(generated_schedule) == 0:
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Invalid AI response structure")
-    
-    return Envelope(success=True, data=generated_schedule)
+    itinerary_options = await generate_authoritative_itinerary(payload, db)
+    return Envelope(success=True, data=itinerary_options)
 
 @router.get("", response_model=Envelope[List[ItineraryResponse]])
 async def read_itineraries(current_user: UserPublic = Depends(get_current_user_dependency)):

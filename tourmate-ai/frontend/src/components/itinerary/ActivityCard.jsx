@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin, Star, Clock, IndianRupee, Navigation, Info, Users, CloudRain, ExternalLink, ChevronDown, ChevronUp, Image as ImageIcon, Heart } from 'lucide-react';
+import SafeImage from '../SafeImage';
+import { openGoogleMapsNavigation } from '../../utils/navigation';
 
 export default function ActivityCard({ activity, onMoveUp, onMoveDown, isFirst, isLast }) {
   const [expandedInfo, setExpandedInfo] = useState(false);
@@ -26,13 +28,11 @@ export default function ActivityCard({ activity, onMoveUp, onMoveDown, isFirst, 
         {/* Image Section */}
         {!isTransit && (
           <div className="w-full md:w-48 h-40 shrink-0 rounded-2xl bg-gray-100 dark:bg-slate-700 overflow-hidden relative">
-            {activity.image ? (
-              <img src={activity.image} alt={activity.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-slate-600">
-                <ImageIcon className="w-10 h-10" />
-              </div>
-            )}
+            <SafeImage 
+              src={activity.image} 
+              alt={activity.name} 
+              className="w-full h-full object-cover" 
+            />
             {/* Action Overlay */}
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button className="p-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-full text-gray-700 dark:text-slate-300 hover:text-rose-500 transition-colors">
@@ -95,7 +95,10 @@ export default function ActivityCard({ activity, onMoveUp, onMoveDown, isFirst, 
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-3 mt-auto">
-            <button className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl text-xs flex items-center gap-2 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+            <button 
+              onClick={() => openGoogleMapsNavigation(activity)}
+              className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl text-xs flex items-center gap-2 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+            >
               <Navigation className="w-3.5 h-3.5" /> Get Directions
             </button>
             {activity.bookingUrl && (

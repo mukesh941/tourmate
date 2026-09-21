@@ -17,6 +17,7 @@ import {
   Check
 } from "lucide-react";
 import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
+import SafeImage from "../components/SafeImage";
 
 export default function Hotels() {
   const [hotels, setHotels] = useState([]);
@@ -211,11 +212,10 @@ export default function Hotels() {
                 <div>
                   {/* Photo Container */}
                   <div className="relative h-60 w-full overflow-hidden bg-gray-100 dark:bg-slate-700">
-                    <img
-                      src={hotel.cover_image || NEUTRAL_PLACEHOLDER_IMAGE}
+                    <SafeImage
+                      src={hotel.cover_image || hotel.images?.[0]?.url || hotel.images?.[0]}
                       alt={hotel.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
-                      onError={handleImageError}
                     />
                     <span className="absolute top-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-xs font-semibold text-white">
                       {hotel.hotel_type}

@@ -8,6 +8,7 @@ import { Compass, MapPin, Navigation, Calendar, Settings, SlidersHorizontal, Loa
 import RecommendationCard from '../components/RecommendationCard';
 import { useAuth } from '../context/AuthContext';
 import { MAP_TILE_URL, MAP_ATTRIBUTION } from '../config/mapConfig';
+import { openGoogleMapsNavigation } from '../utils/navigation';
 
 // Fix Leaflet default marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -202,46 +203,90 @@ export default function ExploreDestination() {
                   </Marker>
                   
                   {/* Places Markers */}
-                  {places.map(p => p.location && p.location.coordinates && (
-                    <Marker key={`p_${p.id}`} position={[p.location.coordinates[1], p.location.coordinates[0]]} icon={icons.place}>
-                      <Popup>
-                        <strong className="text-emerald-700">{p.name}</strong><br/>
-                        {p.rating && `⭐ ${p.rating.toFixed(1)}`}<br/>
-                        <Link to={`/map/route`} className="inline-block mt-2 text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded">Get Directions</Link>
-                      </Popup>
-                    </Marker>
-                  ))}
+                  {places.map(p => {
+                    const pos = p.location?.coordinates 
+                      ? [p.location.coordinates[1], p.location.coordinates[0]]
+                      : (p.location?.latitude && p.location?.longitude ? [p.location.latitude, p.location.longitude] : null);
+                    if (!pos) return null;
+                    return (
+                      <Marker key={`p_${p.id}`} position={pos} icon={icons.place}>
+                        <Popup>
+                          <strong className="text-emerald-700">{p.name}</strong><br/>
+                          {p.rating && `⭐ ${p.rating.toFixed(1)}`}<br/>
+                          <button 
+                            onClick={() => openGoogleMapsNavigation(p)} 
+                            className="inline-block mt-2 text-xs font-bold bg-emerald-100 text-emerald-800 px-2 py-1 rounded hover:bg-emerald-200 transition cursor-pointer"
+                          >
+                            Get Directions ↗
+                          </button>
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
                   
                   {/* Hotel Markers */}
-                  {hotels.map(h => h.location && h.location.coordinates && (
-                    <Marker key={`h_${h.id}`} position={[h.location.coordinates[1], h.location.coordinates[0]]} icon={icons.hotel}>
-                      <Popup>
-                        <strong className="text-blue-700">{h.name}</strong><br/>
-                        {h.price_per_night_start && `₹${h.price_per_night_start}/night`}<br/>
-                        <Link to={`/map/route`} className="inline-block mt-2 text-xs font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded">Get Directions</Link>
-                      </Popup>
-                    </Marker>
-                  ))}
+                  {hotels.map(h => {
+                    const pos = h.location?.coordinates 
+                      ? [h.location.coordinates[1], h.location.coordinates[0]]
+                      : (h.location?.latitude && h.location?.longitude ? [h.location.latitude, h.location.longitude] : null);
+                    if (!pos) return null;
+                    return (
+                      <Marker key={`h_${h.id}`} position={pos} icon={icons.hotel}>
+                        <Popup>
+                          <strong className="text-blue-700">{h.name}</strong><br/>
+                          {h.price_per_night_start && `₹${h.price_per_night_start}/night`}<br/>
+                          <button 
+                            onClick={() => openGoogleMapsNavigation(h)} 
+                            className="inline-block mt-2 text-xs font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200 transition cursor-pointer"
+                          >
+                            Get Directions ↗
+                          </button>
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
                   
                   {/* Restaurant Markers */}
-                  {restaurants.map(r => r.location && r.location.coordinates && (
-                    <Marker key={`r_${r.id}`} position={[r.location.coordinates[1], r.location.coordinates[0]]} icon={icons.restaurant}>
-                      <Popup>
-                        <strong className="text-orange-700">{r.name}</strong><br/>
-                        <Link to={`/map/route`} className="inline-block mt-2 text-xs font-bold bg-orange-100 text-orange-800 px-2 py-1 rounded">Get Directions</Link>
-                      </Popup>
-                    </Marker>
-                  ))}
+                  {restaurants.map(r => {
+                    const pos = r.location?.coordinates 
+                      ? [r.location.coordinates[1], r.location.coordinates[0]]
+                      : (r.location?.latitude && r.location?.longitude ? [r.location.latitude, r.location.longitude] : null);
+                    if (!pos) return null;
+                    return (
+                      <Marker key={`r_${r.id}`} position={pos} icon={icons.restaurant}>
+                        <Popup>
+                          <strong className="text-orange-700">{r.name}</strong><br/>
+                          <button 
+                            onClick={() => openGoogleMapsNavigation(r)} 
+                            className="inline-block mt-2 text-xs font-bold bg-orange-100 text-orange-800 px-2 py-1 rounded hover:bg-orange-200 transition cursor-pointer"
+                          >
+                            Get Directions ↗
+                          </button>
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
                   
                   {/* Activity Markers */}
-                  {activities.map(a => a.location && a.location.coordinates && (
-                    <Marker key={`a_${a.id}`} position={[a.location.coordinates[1], a.location.coordinates[0]]} icon={icons.activity}>
-                      <Popup>
-                        <strong className="text-purple-700">{a.name}</strong><br/>
-                        <Link to={`/map/route`} className="inline-block mt-2 text-xs font-bold bg-purple-100 text-purple-800 px-2 py-1 rounded">Get Directions</Link>
-                      </Popup>
-                    </Marker>
-                  ))}
+                  {activities.map(a => {
+                    const pos = a.location?.coordinates 
+                      ? [a.location.coordinates[1], a.location.coordinates[0]]
+                      : (a.location?.latitude && a.location?.longitude ? [a.location.latitude, a.location.longitude] : null);
+                    if (!pos) return null;
+                    return (
+                      <Marker key={`a_${a.id}`} position={pos} icon={icons.activity}>
+                        <Popup>
+                          <strong className="text-purple-700">{a.name}</strong><br/>
+                          <button 
+                            onClick={() => openGoogleMapsNavigation(a)} 
+                            className="inline-block mt-2 text-xs font-bold bg-purple-100 text-purple-800 px-2 py-1 rounded hover:bg-purple-200 transition cursor-pointer"
+                          >
+                            Get Directions ↗
+                          </button>
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
                   
                 </MapContainer>
               ) : (

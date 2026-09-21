@@ -1,5 +1,8 @@
 import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
+import { Navigation } from "lucide-react";
 import api from "../api/axios";
+import { openGoogleMapsNavigation } from "../utils/navigation";
 
 export default function LandmarkRecognition() {
   const [file, setFile] = useState(null);
@@ -133,15 +136,64 @@ export default function LandmarkRecognition() {
                 <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-64"></div>
               </div>
             ) : result ? (
-              <div className="w-full animate-slide-up">
-                <div className="inline-block bg-green-100 text-green-700 font-bold px-4 py-1.5 rounded-full text-sm mb-4">
-                  Match Found!
+              result.is_landmark === false || result.confidence === "None" ? (
+                <div className="w-full animate-slide-up text-center">
+                  <div className="inline-block bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-bold px-4 py-1.5 rounded-full text-xs mb-4">
+                    No Recognizable Landmark
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">{result.name || "Unrecognized Landmark"}</h3>
+                  <p className="text-gray-600 dark:text-slate-300 leading-relaxed bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700 text-sm">
+                    {result.description}
+                  </p>
                 </div>
-                <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-4">{result.name}</h3>
-                <p className="text-gray-600 dark:text-slate-300 leading-relaxed bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700 text-left text-sm">
-                  {result.description}
-                </p>
-              </div>
+              ) : (
+                <div className="w-full animate-slide-up">
+                  <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+                    <span className={`font-bold px-3 py-1 rounded-full text-xs ${
+                      result.confidence === "High"
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                        : "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                    }`}>
+                      {result.confidence === "High" ? "✓ Verified Landmark (High Confidence)" : "⚠ Probable Match (Moderate Confidence)"}
+                    </span>
+                    {result.is_grounded && (
+                      <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-bold px-3 py-1 rounded-full text-xs">
+                        TourMate Canonical POI
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white mb-2 text-center">{result.name}</h3>
+                  {result.location && (
+                    <p className="text-sm font-semibold text-brand-600 dark:text-brand-400 text-center mb-1">
+                      📍 {result.location}
+                    </p>
+                  )}
+                  {result.category && (
+                    <p className="text-xs text-gray-500 dark:text-slate-400 text-center mb-4">
+                      🏷️ {result.category}
+                    </p>
+                  )}
+                  <p className="text-gray-600 dark:text-slate-300 leading-relaxed bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-700 text-left text-sm mb-4">
+                    {result.description}
+                  </p>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    <button
+                      onClick={() => openGoogleMapsNavigation(result)}
+                      className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl text-xs flex items-center gap-2 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
+                      <Navigation className="w-3.5 h-3.5" /> Get Directions
+                    </button>
+                    {result.poi_id && (
+                      <Link
+                        to={`/places/${result.poi_id}`}
+                        className="px-4 py-2 bg-brand-600 text-white font-bold rounded-xl text-xs flex items-center gap-2 hover:bg-brand-700 transition-colors"
+                      >
+                        Explore Attraction ↗
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )
             ) : error ? (
               <div className="text-red-500">
                 <div className="text-4xl mb-2">⚠️</div>

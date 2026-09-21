@@ -6,6 +6,8 @@ import { toggleFavorite, getFavorites, addReview, getReviews, getSentimentSummar
 import { useTranslation } from "react-i18next";
 import ShareModal from "../components/ShareModal";
 import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
+import SafeImage from "../components/SafeImage";
+import { openGoogleMapsNavigation } from "../utils/navigation";
 
 export default function PlaceDetail() {
   const { id } = useParams();
@@ -124,12 +126,10 @@ export default function PlaceDetail() {
       {/* Place Details Card */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow overflow-hidden">
         <div className="w-full h-80 overflow-hidden bg-gray-100 dark:bg-slate-700">
-          <img 
-            src={(place.images && place.images.length > 0) ? place.images[0] : NEUTRAL_PLACEHOLDER_IMAGE} 
+          <SafeImage 
+            src={place.images?.[0] || place.cover_image} 
             alt={place.name} 
-            referrerPolicy="no-referrer"
             className="w-full h-80 object-cover"
-            onError={handleImageError}
           />
         </div>
         <div className="p-8">
@@ -184,33 +184,15 @@ export default function PlaceDetail() {
 
           {/* Action Buttons Row */}
           <div className="flex flex-wrap gap-3 mb-6">
-            {place.location?.coordinates && (
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${place.location.coordinates[1]},${place.location.coordinates[0]}&travelmode=driving`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-md hover:shadow-lg hover:-translate-y-0.5"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                </svg>
-                Get Directions
-              </a>
-            )}
-            {place.location?.coordinates && (
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-md hover:shadow-lg hover:-translate-y-0.5"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M9 9a2 2 0 114 0 2 2 0 01-4 0z" />
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a4 4 0 00-3.446 6.032l-2.261 2.26a1 1 0 101.414 1.415l2.261-2.261A4 4 0 1011 5z" clipRule="evenodd" />
-                </svg>
-                View on Maps
-              </a>
-            )}
+            <button
+              onClick={() => openGoogleMapsNavigation(place)}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
+              Get Directions
+            </button>
             <button
               onClick={() => setShareOpen(true)}
               className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-md hover:shadow-lg hover:-translate-y-0.5"
