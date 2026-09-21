@@ -1,6 +1,7 @@
 {
-  "buildCommand": "cd tourmate-ai/frontend && npm install && npm run build",
-  "outputDirectory": "tourmate-ai/frontend/dist",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",
