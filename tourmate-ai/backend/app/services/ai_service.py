@@ -14,6 +14,7 @@ def get_grounded_chat_response(
     history: List[Dict[str, str]],
     retrieved_chunks: List[Dict[str, Any]],
     language: str = "en",
+    canonical_extra: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Produces a grounded chat response with strict authority guardrails and source attribution.
@@ -21,24 +22,28 @@ def get_grounded_chat_response(
     """
     # 1. Authority Guardrail: Prohibit road distance and route calculations
     if is_route_or_distance_query(user_message):
+        route_msg = (
+            "For accurate road distances, directions, and travel times, please use "
+            "TourMate AI's Route Optimization feature on the Itinerary page, which "
+            "computes verified OpenStreetMap road routes."
+        )
         return {
-            "response": (
-                "For accurate road distances, directions, and travel times, please use "
-                "TourMate AI's Route Optimization feature on the Itinerary page, which "
-                "computes verified OpenStreetMap road routes."
-            ),
+            "response": route_msg,
+            "answer": route_msg,
             "sources": [],
             "is_grounded": True,
         }
 
     # 2. Insufficient Evidence Refusal
-    if not retrieved_chunks:
+    if not retrieved_chunks and not canonical_extra:
+        refusal_msg = (
+            "I do not have verified knowledge about that in my database. "
+            "Please ask about our supported destinations (Agra, New Delhi, Jaipur, Mumbai) "
+            "or specific landmarks such as Taj Mahal, Agra Fort, Qutub Minar, etc."
+        )
         return {
-            "response": (
-                "I do not have verified knowledge about that in my database. "
-                "Please ask about our supported destinations (Agra, New Delhi, Jaipur, Mumbai) "
-                "or specific landmarks such as Taj Mahal, Agra Fort, Qutub Minar, etc."
-            ),
+            "response": refusal_msg,
+            "answer": refusal_msg,
             "sources": [],
             "is_grounded": False,
         }
@@ -55,6 +60,15 @@ def get_grounded_chat_response(
         for c in retrieved_chunks
     ]
 
+    if canonical_extra:
+        sources.insert(0, {
+            "id": "canonical-db",
+            "title": f"{canonical_extra.get('name', 'Attraction')} Database Record",
+            "source": "PostgreSQL canonical database (opening_hours / price)",
+            "poi_name": canonical_extra.get("name"),
+            "similarity": 1.0,
+        })
+
     # 3. Online Grounded Mode via Gemini (if GEMINI_API_KEY is configured)
     api_key = settings.gemini_api_key
     if api_key:
@@ -64,7 +78,7 @@ def get_grounded_chat_response(
             model = genai.GenerativeModel(model_name)
 
             system_instruction = build_grounded_system_prompt(language)
-            context_block = format_context_block(retrieved_chunks)
+            context_block = format_context_block(retrieved_chunks, canonical_extra=canonical_extra)
 
             contents = [
                 {"role": "user", "parts": [f"{system_instruction}\n\n{context_block}"]},
@@ -84,6 +98,7 @@ def get_grounded_chat_response(
             if answer_text:
                 return {
                     "response": answer_text,
+                    "answer": answer_text,
                     "sources": sources,
                     "is_grounded": True,
                 }
@@ -91,15 +106,26 @@ def get_grounded_chat_response(
             print(f"Gemini Grounded RAG Error, falling back to local synthesis: {e}")
 
     # 4. Deterministic Local Fallback (when GEMINI_API_KEY is absent or API fails)
-    # Conservatively extracts facts from top retrieved chunks without hallucination
-    primary_chunk = retrieved_chunks[0]
-    extractive_lines = [primary_chunk["content"]]
+    # Conservatively extracts facts from canonical database and top retrieved chunks without hallucination
+    extractive_lines = []
 
-    if len(retrieved_chunks) > 1 and retrieved_chunks[1]["similarity"] >= 0.50:
-        extractive_lines.append(f"\nAdditionally ({retrieved_chunks[1]['title']}): {retrieved_chunks[1]['content']}")
+    if canonical_extra and canonical_extra.get("hours_schedule"):
+        extractive_lines.append(
+            f"{canonical_extra.get('name', 'Attraction')} Opening Hours (Verified Database Record):\n"
+            f"{canonical_extra['hours_schedule']}\n"
+        )
 
+    if retrieved_chunks:
+        primary_chunk = retrieved_chunks[0]
+        extractive_lines.append(primary_chunk["content"])
+
+        if len(retrieved_chunks) > 1 and retrieved_chunks[1]["similarity"] >= 0.50:
+            extractive_lines.append(f"\nAdditionally ({retrieved_chunks[1]['title']}): {retrieved_chunks[1]['content']}")
+
+    fallback_response = "\n".join(extractive_lines)
     return {
-        "response": "\n".join(extractive_lines),
+        "response": fallback_response,
+        "answer": fallback_response,
         "sources": sources,
         "is_grounded": True,
     }

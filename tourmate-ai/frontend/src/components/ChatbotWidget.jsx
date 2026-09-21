@@ -58,12 +58,29 @@ export default function ChatbotWidget() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setMessages([...newMessages, { role: "model", content: res.data.data.response }]);
-    } catch (err) {
-      console.error(err);
+      const data = res.data?.data || {};
+      const answerContent = data.answer || data.response || "I do not have verified knowledge about that in my database.";
+      const sources = Array.isArray(data.sources) ? data.sources : [];
+
       setMessages([
         ...newMessages, 
-        { role: "model", content: "Sorry, I'm having trouble connecting right now. Ensure your API keys are configured correctly!" }
+        { 
+          role: "model", 
+          content: answerContent,
+          sources: sources,
+          isGrounded: data.is_grounded !== false,
+        }
+      ]);
+    } catch (err) {
+      console.error("TourMate AI Chat error:", err);
+      const errMsg = err.response?.data?.error || "Sorry, I'm having trouble connecting to TourMate assistant right now. Please try again.";
+      setMessages([
+        ...newMessages, 
+        { 
+          role: "model", 
+          content: errMsg,
+          isError: true,
+        }
       ]);
     } finally {
       setIsLoading(false);
@@ -88,7 +105,7 @@ export default function ChatbotWidget() {
               </div>
               <div>
                 <h3 className="font-bold text-sm tracking-wide">TourMate Guide</h3>
-                <p className="text-[10px] text-brand-50 uppercase tracking-wider font-semibold">AI Assistant</p>
+                <p className="text-[10px] text-brand-50 uppercase tracking-wider font-semibold">Grounded AI Assistant</p>
               </div>
             </div>
             <button 
@@ -104,18 +121,38 @@ export default function ChatbotWidget() {
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div 
-                  className={`max-w-[80%] rounded-2xl p-3 text-sm shadow-sm dark:shadow-none ${
+                  className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-sm dark:shadow-none ${
                     msg.role === 'user' 
                       ? 'bg-brand-600 text-white rounded-br-sm' 
-                      : 'bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-slate-100 rounded-bl-sm'
+                      : msg.isError
+                        ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 rounded-bl-sm'
+                        : 'bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-slate-100 rounded-bl-sm'
                   }`}
                 >
-                  {/* Extremely basic markdown rendering for bold text */}
+                  {/* Basic markdown rendering for paragraphs */}
                   {msg.content.split('\n').map((line, i) => (
                     <p key={i} className={i > 0 ? "mt-1.5" : ""}>
                       {line.replace(/\*\*(.*?)\*\*/g, '$1')} 
                     </p>
                   ))}
+
+                  {/* Grounded Source Attribution Metadata */}
+                  {msg.sources && msg.sources.length > 0 && (
+                    <div className="mt-2.5 pt-2 border-t border-gray-200/70 dark:border-slate-700 text-[11px]">
+                      <p className="font-semibold text-brand-600 dark:text-brand-400 mb-1 flex items-center gap-1">
+                        <span>📚</span>
+                        <span>Verified Sources ({msg.sources.length})</span>
+                      </p>
+                      <ul className="space-y-0.5 text-gray-500 dark:text-slate-400">
+                        {msg.sources.slice(0, 3).map((src, sIdx) => (
+                          <li key={sIdx} className="truncate" title={src.title}>
+                            • <span className="font-medium text-gray-700 dark:text-slate-300">{src.title}</span>
+                            {src.poi_name && ` (${src.poi_name})`}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

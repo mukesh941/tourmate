@@ -20,9 +20,12 @@ def seed_knowledge_corpus(conn) -> int:
     seeded_count = 0
 
     for chunk in CANONICAL_KNOWLEDGE_CHUNKS:
-        # Standardized text convention for knowledge embedding
-        text_to_embed = f"{chunk['title']}\n{chunk['content']}"
-        embedding_vec = get_embedding(text_to_embed)
+        # Use precomputed 384-d normalized embedding if present, or compute via ONNX
+        if "embedding" in chunk and chunk["embedding"]:
+            embedding_vec = chunk["embedding"]
+        else:
+            text_to_embed = f"{chunk['title']}\n{chunk['content']}"
+            embedding_vec = get_embedding(text_to_embed)
 
         # Ensure embedding is valid 384-d vector
         if len(embedding_vec) != 384:
@@ -66,8 +69,12 @@ async def seed_knowledge_corpus_async(db) -> int:
     """
     seeded_count = 0
     for chunk in CANONICAL_KNOWLEDGE_CHUNKS:
-        text_to_embed = f"{chunk['title']}\n{chunk['content']}"
-        embedding_vec = get_embedding(text_to_embed)
+        if "embedding" in chunk and chunk["embedding"]:
+            embedding_vec = chunk["embedding"]
+        else:
+            text_to_embed = f"{chunk['title']}\n{chunk['content']}"
+            embedding_vec = get_embedding(text_to_embed)
+
         if len(embedding_vec) != 384:
             raise ValueError(
                 f"Invalid embedding dimension {len(embedding_vec)} for chunk '{chunk['title']}'"
