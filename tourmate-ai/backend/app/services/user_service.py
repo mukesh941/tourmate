@@ -1,50 +1,64 @@
 import uuid
 from datetime import datetime, timezone
-from bson import ObjectId
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
 from app.core.db import AsyncSessionLocal
 from app.core.security import hash_password, verify_password
 from app.models.sql.category import Category
-from app.models.sql.user import Preference, UserInterest
+from app.models.sql.user import Preference, UserInterest, User
 from app.schemas.auth import UserPublic
 from app.schemas.user import ChangePasswordRequest, UserPreferencesUpdate, UserProfileUpdate
 
 
 async def update_user_profile(user_id: str, payload: UserProfileUpdate) -> UserPublic:
-    update_data = {k: v for k, v in payload.dict(exclude_unset=True).items() if v is not None}
-    
-    db = get_db()
-    if update_data:
-        await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
-    
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
-    if not user:
-        raise ValueError("User not found")
-        
-    return UserPublic(
-        id=str(user["_id"]),
-        name=user["name"],
-        email=user["email"],
-        role=user.get("role", "user"),
-        preferred_language=user.get("preferred_language", "en")
-    )
+    try:
+        uid = uuid.UUID(str(user_id))
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"Invalid user id: {user_id}") from exc
+
+    async with AsyncSessionLocal() as db:
+        stmt = select(User).where(User.id == uid)
+        res = await db.execute(stmt)
+        user = res.scalar_one_or_none()
+        if not user:
+            raise ValueError("User not found")
+
+        if payload.name is not None:
+            user.name = payload.name
+        if payload.preferred_language is not None:
+            user.preferred_language = payload.preferred_language
+
+        await db.commit()
+        await db.refresh(user)
+
+        return UserPublic(
+            id=str(user.id),
+            name=user.name,
+            email=user.email,
+            role=user.role,
+            preferred_language=user.preferred_language
+        )
 
 
 async def change_password(user_id: str, payload: ChangePasswordRequest) -> None:
-    db = get_db()
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
-    if not user:
-        raise ValueError("User not found")
-    if not verify_password(payload.current_password, user.get("password_hash", "")):
-        raise ValueError("Current password is incorrect")
-    new_hash = hash_password(payload.new_password)
-    await db.users.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": {"password_hash": new_hash}}
-    )
+    try:
+        uid = uuid.UUID(str(user_id))
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"Invalid user id: {user_id}") from exc
+
+    async with AsyncSessionLocal() as db:
+        stmt = select(User).where(User.id == uid)
+        res = await db.execute(stmt)
+        user = res.scalar_one_or_none()
+        if not user:
+            raise ValueError("User not found")
+
+        if not verify_password(payload.current_password, user.password_hash or ""):
+            raise ValueError("Current password is incorrect")
+
+        user.password_hash = hash_password(payload.new_password)
+        await db.commit()
 
 
 async def _execute_update_user_preferences(

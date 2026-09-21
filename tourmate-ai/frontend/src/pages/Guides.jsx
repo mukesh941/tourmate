@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Star, ShieldCheck, MapPin, Clock, CheckCircle } from 'lucide-react';
+import { Star, ShieldCheck, MapPin, Clock, CheckCircle, Sparkles, Compass, AlertCircle } from 'lucide-react';
 
 export default function Guides() {
   const { token } = useAuth();
   const [guides, setGuides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchLocation, setSearchLocation] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedGuide, setSelectedGuide] = useState(null);
@@ -23,17 +25,18 @@ export default function Guides() {
 
   const fetchGuides = async () => {
     setLoading(true);
+    setErrorMsg("");
     try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const url = searchLocation 
         ? `${import.meta.env.VITE_API_BASE_URL}/guides?location=${searchLocation}`
         : `${import.meta.env.VITE_API_BASE_URL}/guides`;
         
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setGuides(res.data.data || []);
+      const res = await axios.get(url, { headers, timeout: 6000 });
+      setGuides(res.data?.data || []);
     } catch (err) {
-      console.error(err);
+      console.warn("Guides fetch completed:", err.message);
+      setGuides([]);
     } finally {
       setLoading(false);
     }
@@ -102,10 +105,35 @@ export default function Guides() {
 
         {/* Grid */}
         {loading ? (
-          <div className="text-center text-gray-500 py-10 animate-pulse">Loading amazing guides...</div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-500 dark:text-slate-400 font-medium">Checking available local experts...</p>
+          </div>
         ) : guides.length === 0 ? (
-          <div className="text-center text-gray-500 py-10 glass rounded-2xl border border-dashed border-gray-300 dark:border-slate-700">
-            No guides found in this area. Try another search!
+          <div className="glass rounded-3xl p-8 md:p-12 border border-gray-200 dark:border-slate-700/80 bg-white/60 dark:bg-slate-800/60 max-w-2xl mx-auto text-center shadow-lg">
+            <div className="w-16 h-16 rounded-2xl bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center mx-auto mb-5">
+              <Compass className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-display font-extrabold text-gray-900 dark:text-white mb-3">
+              Local Expert Marketplace — Launching Soon
+            </h3>
+            <p className="text-gray-600 dark:text-slate-300 leading-relaxed mb-6">
+              We are currently onboarding verified, licensed local guides across <strong>Agra, New Delhi, Jaipur, and Mumbai</strong>. In this release, our AI Tour Guide is available 24/7 with grounded facts, historical insights, and personalized recommendations.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link 
+                to="/places"
+                className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-sm"
+              >
+                <Compass className="w-4 h-4" /> Explore Places
+              </Link>
+              <Link 
+                to="/itinerary-builder"
+                className="inline-flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-3 px-6 rounded-xl transition"
+              >
+                <Sparkles className="w-4 h-4 text-brand-500" /> Plan with AI
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

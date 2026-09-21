@@ -122,14 +122,17 @@ export default function PlaceDetail() {
     <div className="max-w-4xl mx-auto p-4 space-y-8">
       {/* Place Details Card */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow overflow-hidden">
-        {place.images && place.images.length > 0 && (
+        <div className="w-full h-80 overflow-hidden bg-gray-100 dark:bg-slate-700">
           <img 
-            src={place.images[0]} 
+            src={(place.images && place.images.length > 0) ? place.images[0] : "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80"} 
             alt={place.name} 
             referrerPolicy="no-referrer"
             className="w-full h-80 object-cover"
+            onError={(e) => {
+              e.target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80";
+            }}
           />
-        )}
+        </div>
         <div className="p-8">
           <div className="flex justify-between items-start mb-4">
             <div>

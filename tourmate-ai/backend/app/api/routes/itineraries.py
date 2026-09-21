@@ -3,7 +3,7 @@ from typing import List
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user_dependency
+from app.api.deps import get_current_user_dependency, get_optional_current_user
 from app.core.db import get_async_db
 from app.schemas.auth import UserPublic
 from app.schemas.common import Envelope
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/itineraries", tags=["itineraries"])
 @router.post("/generate", response_model=Envelope[List[dict]])
 async def generate_itinerary(
     payload: ItineraryGenerateRequest,
-    current_user: UserPublic = Depends(get_current_user_dependency)
+    current_user: UserPublic | None = Depends(get_optional_current_user)
 ):
     if not payload.destination_name and not payload.place_ids:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Must provide either destination_name or specific places")

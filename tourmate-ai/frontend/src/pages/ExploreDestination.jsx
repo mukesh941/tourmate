@@ -7,6 +7,7 @@ import L from 'leaflet';
 import { Compass, MapPin, Navigation, Calendar, Settings, SlidersHorizontal, Loader } from 'lucide-react';
 import RecommendationCard from '../components/RecommendationCard';
 import { useAuth } from '../context/AuthContext';
+import { MAP_TILE_URL, MAP_ATTRIBUTION } from '../config/mapConfig';
 
 // Fix Leaflet default marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -71,17 +72,17 @@ export default function ExploreDestination() {
     const qs = `?lat=${latitude}&lng=${longitude}&radius_km=${rad}`;
     
     try {
-      const [placesRes, hotelsRes, restsRes, actsRes] = await Promise.all([
+      const [placesRes, hotelsRes, restsRes, actsRes] = await Promise.allSettled([
         axios.get(`${import.meta.env.VITE_API_BASE_URL}/places${qs}`, { headers }),
         axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels${qs}`, { headers }),
         axios.get(`${import.meta.env.VITE_API_BASE_URL}/restaurants${qs}`, { headers }),
         axios.get(`${import.meta.env.VITE_API_BASE_URL}/activities${qs}`, { headers })
       ]);
       
-      setPlaces(placesRes.data.data || []);
-      setHotels(hotelsRes.data.data || []);
-      setRestaurants(restsRes.data.data || []);
-      setActivities(actsRes.data.data || []);
+      setPlaces(placesRes.status === 'fulfilled' ? placesRes.value.data?.data || [] : []);
+      setHotels(hotelsRes.status === 'fulfilled' ? hotelsRes.value.data?.data || [] : []);
+      setRestaurants(restsRes.status === 'fulfilled' ? restsRes.value.data?.data || [] : []);
+      setActivities(actsRes.status === 'fulfilled' ? actsRes.value.data?.data || [] : []);
     } catch (err) {
       console.error("Failed to fetch recommendations", err);
     } finally {
@@ -189,8 +190,8 @@ export default function ExploreDestination() {
               {(latParam && lngParam) ? (
                 <MapContainer center={center} zoom={12} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution={MAP_ATTRIBUTION}
+                    url={MAP_TILE_URL}
                   />
                   
                   {/* Center Marker */}

@@ -190,32 +190,41 @@ export default function ItineraryBuilder() {
     setErrorMsg("");
     setGeneratedItinerary(null);
     try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/itineraries/generate`,
         {
           origin: originName || undefined,
           destination_name: destinationName,
           place_ids: selectedPlaces.map(p => p.id),
-          days: parseInt(days),
-          start_time: startTime,
-          end_time: endTime,
+          days: parseInt(days) || 1,
+          start_time: startTime || "09:00",
+          end_time: endTime || "20:00",
           accommodation: accommodation || undefined,
-          energy_level: energyLevel,
-          budget: budget,
-          travel_type: travelType,
-          transportation_mode: transportationMode,
-          local_transportation: localTransportation,
-          interests: interests
+          energy_level: energyLevel || "Moderate",
+          budget: budget || "Medium",
+          travel_type: travelType || "Couple",
+          transportation_mode: transportationMode || "flight",
+          local_transportation: localTransportation || "taxi",
+          interests: interests || []
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers }
       );
-      setGeneratedItinerary(res.data.data);
-      setSelectedOptionIndex(0);
-      setActiveDay(1);
-      setTitle(`${destinationName} Trip`);
+      if (res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+        setGeneratedItinerary(res.data.data);
+        setSelectedOptionIndex(0);
+        setActiveDay(1);
+        setTitle(`${destinationName} Trip`);
+      } else {
+        throw new Error("Invalid itinerary structure received from server.");
+      }
     } catch (err) {
-      console.error(err);
-      setErrorMsg("We couldn't create your itinerary. Something went wrong while planning your trip. Please try again.");
+      console.error("Itinerary generation error:", err);
+      const detail = err.response?.data?.detail;
+      const errorText = typeof detail === "string" 
+        ? detail 
+        : (Array.isArray(detail) ? detail.map(d => d.msg).join(", ") : (err.message || "Failed to generate itinerary."));
+      setErrorMsg(`We couldn't create your itinerary: ${errorText}. Please adjust your settings and try again.`);
     } finally {
       setGenerating(false);
     }
@@ -223,13 +232,18 @@ export default function ItineraryBuilder() {
 
   const handleSave = async () => {
     if (!generatedItinerary) return;
+    if (!token) {
+      alert("Please log in or create an account to save your itinerary.");
+      navigate("/login");
+      return;
+    }
     setSaving(true);
     try {
       await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/itineraries`,
         {
           title: title,
-          days: parseInt(days),
+          days: parseInt(days) || 1,
           schedule: generatedItinerary[selectedOptionIndex].schedule
         },
         { headers: { Authorization: `Bearer ${token}` } }

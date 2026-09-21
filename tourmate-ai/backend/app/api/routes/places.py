@@ -68,9 +68,22 @@ async def get_clusters(
     category: Optional[str] = None,
     lat: Optional[float] = Query(None, description="Latitude for geo-search"),
     lng: Optional[float] = Query(None, description="Longitude for geo-search"),
-    radius_km: Optional[float] = Query(10.0, description="Radius in kilometers for geo-search")
+    radius_km: Optional[float] = Query(10.0, description="Radius in kilometers for geo-search"),
+    db: AsyncSession = Depends(get_async_db),
 ):
-    places = await get_all_places(destination_id, category_id, category, None, lat, lng, radius_km)
+    places = await poi_service.get_all_pois(
+        destination_id=destination_id,
+        category_id=category_id or category,
+        lat=lat,
+        lng=lng,
+        radius_km=radius_km,
+        db=db,
+    )
+    if not places:
+        try:
+            places = await get_all_places(destination_id, category_id, category, None, lat, lng, radius_km)
+        except Exception:
+            places = []
     clusters_data = await generate_place_clusters(places, k)
     return Envelope(success=True, data=clusters_data)
 
