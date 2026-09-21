@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     jwt_refresh_token_expire_days: int = 7
 
     # Networking & CORS
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:3000"
+    cors_origins: str = "https://frontend-delta-six-hf0z79dpo8.vercel.app,http://localhost:5173,http://127.0.0.1:5173,https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:3000"
     gemini_api_key: str | None = None
     google_maps_api_key: str | None = None
 
@@ -40,7 +40,9 @@ class Settings(BaseSettings):
         origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
         if "http://localhost:5173" in origins and "http://127.0.0.1:5173" not in origins:
             origins.append("http://127.0.0.1:5173")
-        return origins if origins else ["http://localhost:5173", "http://127.0.0.1:5173"]
+        if "https://frontend-delta-six-hf0z79dpo8.vercel.app" not in origins:
+            origins.append("https://frontend-delta-six-hf0z79dpo8.vercel.app")
+        return origins if origins else ["https://frontend-delta-six-hf0z79dpo8.vercel.app", "http://localhost:5173", "http://127.0.0.1:5173"]
 
     @property
     def async_database_url(self) -> str:

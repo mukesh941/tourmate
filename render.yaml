@@ -24,6 +24,6 @@ services:
       - key: JWT_REFRESH_TOKEN_EXPIRE_DAYS
         value: 7
       - key: CORS_ORIGINS
-        value: https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:5173
+        value: https://frontend-delta-six-hf0z79dpo8.vercel.app,https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:5173
       - key: GEMINI_API_KEY
         sync: false
