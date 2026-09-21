@@ -166,28 +166,34 @@ async def get_all_pois(
     return [_format_poi_to_response(p) for p in pois]
 
 
-async def get_poi_by_id(poi_id: str, db: AsyncSession) -> Optional[TouristPlaceResponse]:
+async def get_poi_by_id(poi_id: str, db: Optional[AsyncSession] = None) -> Optional[TouristPlaceResponse]:
     """Retrieves a single POI by UUID from PostgreSQL."""
     try:
         poi_uuid = uuid.UUID(poi_id)
     except (ValueError, TypeError):
         return None
 
-    stmt = (
-        select(POI)
-        .join(POI.location)
-        .join(POI.category)
-        .options(
-            selectinload(POI.location),
-            selectinload(POI.category),
-            selectinload(POI.poi_images).selectinload(POIImage.image),
+    async def _execute_query(session: AsyncSession):
+        stmt = (
+            select(POI)
+            .join(POI.location)
+            .join(POI.category)
+            .options(
+                selectinload(POI.location),
+                selectinload(POI.category),
+                selectinload(POI.poi_images).selectinload(POIImage.image),
+            )
+            .where(POI.id == poi_uuid, POI.is_active == True)
         )
-        .where(POI.id == poi_uuid, POI.is_active == True)
-    )
+        result = await session.execute(stmt)
+        poi = result.scalar_one_or_none()
+        if poi is None:
+            return None
+        return _format_poi_to_response(poi)
 
-    result = await db.execute(stmt)
-    poi = result.scalar_one_or_none()
-    if poi is None:
-        return None
+    if db is not None:
+        return await _execute_query(db)
 
-    return _format_poi_to_response(poi)
+    from app.core.db import AsyncSessionLocal
+    async with AsyncSessionLocal() as session:
+        return await _execute_query(session)

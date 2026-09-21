@@ -73,11 +73,26 @@ async def get_all_places(
     return places
 
 async def get_place(place_id: str) -> TouristPlaceResponse | None:
-    db = get_db()
-    doc = await db.tourist_places.find_one({"_id": ObjectId(place_id)})
-    if doc:
-        doc["id"] = str(doc["_id"])
-        return TouristPlaceResponse(**doc)
+    # 1. Query PostgreSQL canonical POIs first
+    try:
+        from app.services.poi_service import get_poi_by_id
+        pg_place = await get_poi_by_id(place_id)
+        if pg_place:
+            return pg_place
+    except Exception as e:
+        print(f"PostgreSQL POI lookup in get_place: {e}")
+
+    # 2. Check if valid MongoDB ObjectId before querying legacy MongoDB
+    try:
+        from bson.errors import InvalidId
+        obj_id = ObjectId(place_id)
+        db = get_db()
+        doc = await db.tourist_places.find_one({"_id": obj_id})
+        if doc:
+            doc["id"] = str(doc["_id"])
+            return TouristPlaceResponse(**doc)
+    except Exception:
+        pass
     return None
 
 async def create_place(payload: TouristPlaceCreate) -> TouristPlaceResponse:

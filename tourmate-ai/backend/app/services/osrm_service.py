@@ -303,7 +303,14 @@ async def calculate_route(
 
     try:
         profile = _resolve_profile(mode)
-        coords_str = ";".join([f"{c['longitude']},{c['latitude']}" for c in coordinates])
+        def _to_coord_str(c):
+            if isinstance(c, (list, tuple)):
+                return f"{c[0]},{c[1]}"
+            lat = c.get("latitude") if "latitude" in c else c.get("lat")
+            lon = c.get("longitude") if "longitude" in c else c.get("lng", c.get("lon"))
+            return f"{lon},{lat}"
+
+        coords_str = ";".join([_to_coord_str(c) for c in coordinates])
         url = f"{OSRM_BASE_URL}/{profile}/{coords_str}"
 
         async with httpx.AsyncClient(timeout=10.0) as client:
