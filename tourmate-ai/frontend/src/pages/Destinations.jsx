@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getDestinations } from "../api/places";
+import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
 
 export default function Destinations() {
   const [destinations, setDestinations] = useState([]);
@@ -17,12 +18,10 @@ export default function Destinations() {
           <Link key={d.id} to={`/destinations/${d.id}`} className="group block bg-white dark:bg-slate-800 rounded-xl shadow-md dark:shadow-none overflow-hidden hover:shadow-xl dark:shadow-none transition transform hover:-translate-y-1">
             <div className="h-48 bg-gray-200 dark:bg-slate-700 overflow-hidden relative">
               <img 
-                src={d.cover_image || d.images?.[0] || "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80"} 
+                src={d.cover_image || d.images?.[0] || NEUTRAL_PLACEHOLDER_IMAGE} 
                 alt={d.name} 
                 className="w-full h-full object-cover group-hover:scale-105 transition duration-300" 
-                onError={(e) => {
-                  e.target.src = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80";
-                }}
+                onError={handleImageError}
               />
             </div>
             <div className="p-5">

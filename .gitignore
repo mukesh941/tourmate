@@ -31,3 +31,7 @@ venv/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Vercel deployment artifacts
+.vercel/
+

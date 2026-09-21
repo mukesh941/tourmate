@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getDestination, getPlaces } from "../api/places";
 import { useTranslation } from "react-i18next";
+import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from '../config/imageConfig';
 
 export default function DestinationDetail() {
   const { id } = useParams();
@@ -35,12 +36,10 @@ export default function DestinationDetail() {
     <div className="max-w-6xl mx-auto p-4 space-y-8">
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow overflow-hidden">
         <img 
-          src={destination.cover_image || destination.images?.[0] || "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80"} 
+          src={destination.cover_image || destination.images?.[0] || NEUTRAL_PLACEHOLDER_IMAGE} 
           alt={destination.name} 
           className="w-full h-72 object-cover" 
-          onError={(e) => {
-            e.target.src = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80";
-          }}
+          onError={handleImageError}
         />
         <div className="p-8">
           <div className="flex justify-between items-start mb-2">
@@ -69,13 +68,11 @@ export default function DestinationDetail() {
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow overflow-hidden h-full transition-transform transform group-hover:-translate-y-1 group-hover:shadow-lg flex flex-col">
                   <div className="h-44 overflow-hidden bg-gray-100 dark:bg-slate-700">
                     <img 
-                      src={p.images?.[0] || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80"} 
+                      src={p.images?.[0] || NEUTRAL_PLACEHOLDER_IMAGE} 
                       alt={p.name} 
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      onError={(e) => {
-                        e.target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80";
-                      }}
+                      onError={handleImageError}
                     />
                   </div>
                   <div className="p-5 flex flex-col flex-1">

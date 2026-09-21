@@ -1,21 +1,19 @@
 """
-Deterministic and idempotent seeder for Phase 2 Geographic & POI Foundation.
+Deterministic and idempotent seeder for Phase 2 & Pass 3 Geographic & POI Foundation.
 Can be executed via Alembic migration (sync connection) or directly via CLI.
 """
 import asyncio
 import sys
 import uuid
 from datetime import time
-from sqlalchemy import text, Table, MetaData
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import text
 from app.db.seeds.canonical_seed_data import PILOT_POIS, PILOT_ACCOMMODATIONS
+from app.db.seeds.canonical_expanded_data import EXPANDED_POIS, EXPANDED_ACCOMMODATIONS
 
 
-def seed_geographic_foundation(conn):
+def _ingest_pois_and_accommodations(conn, pois, accommodations):
     """
-    Seeds canonical locations, POIs, opening hours, accommodations, and media.
-    Idempotent using ON CONFLICT DO NOTHING.
-    Works with synchronous SQLAlchemy connection (such as during Alembic migration).
+    Core idempotent ingestion routine for locations, POIs, images, and accommodations.
     """
     # 1. Fetch category map
     cat_rows = conn.execute(text("SELECT id, name FROM categories;")).fetchall()
@@ -26,7 +24,7 @@ def seed_geographic_foundation(conn):
             raise ValueError(f"Required canonical category '{required_cat}' is not seeded in PostgreSQL.")
 
     # 2. Ingest POIs
-    for poi in PILOT_POIS:
+    for poi in pois:
         loc = poi["location"]
         # Insert location
         conn.execute(
@@ -76,31 +74,40 @@ def seed_geographic_foundation(conn):
             },
         )
 
-        # Insert images and poi_images
+        # Insert images and poi_images safely handling uq_images_source_external_id
         for idx, img in enumerate(poi.get("images", [])):
-            conn.execute(
-                text("""
-                    INSERT INTO images (
-                        id, url, thumbnail_url, caption, source,
-                        external_image_id, license_type, attribution_text, is_fallback
-                    )
-                    VALUES (
-                        :id, :url, :thumb, :caption, :source,
-                        :ext_id, :license, :attr, false
-                    )
-                    ON CONFLICT (id) DO NOTHING;
-                """),
-                {
-                    "id": img["id"],
-                    "url": img["url"],
-                    "thumb": img.get("thumbnail_url"),
-                    "caption": img.get("caption"),
-                    "source": img.get("source"),
-                    "ext_id": img.get("external_image_id"),
-                    "license": img.get("license_type"),
-                    "attr": img.get("attribution_text"),
-                },
-            )
+            existing_img = conn.execute(
+                text("SELECT id FROM images WHERE id = :id OR (source = :source AND external_image_id = :ext_id);"),
+                {"id": img["id"], "source": img.get("source"), "ext_id": img.get("external_image_id")}
+            ).fetchone()
+
+            if existing_img:
+                real_img_id = existing_img[0]
+            else:
+                conn.execute(
+                    text("""
+                        INSERT INTO images (
+                            id, url, thumbnail_url, caption, source,
+                            external_image_id, license_type, attribution_text, is_fallback
+                        )
+                        VALUES (
+                            :id, :url, :thumb, :caption, :source,
+                            :ext_id, :license, :attr, false
+                        )
+                        ON CONFLICT DO NOTHING;
+                    """),
+                    {
+                        "id": img["id"],
+                        "url": img["url"],
+                        "thumb": img.get("thumbnail_url"),
+                        "caption": img.get("caption"),
+                        "source": img.get("source"),
+                        "ext_id": img.get("external_image_id"),
+                        "license": img.get("license_type"),
+                        "attr": img.get("attribution_text"),
+                    },
+                )
+                real_img_id = img["id"]
 
             conn.execute(
                 text("""
@@ -109,35 +116,35 @@ def seed_geographic_foundation(conn):
                     ON CONFLICT (poi_id, image_id) DO NOTHING;
                 """),
                 {
-                    "id": str(uuid.uuid5(uuid.UUID(poi["id"]), img["id"])),
+                    "id": str(uuid.uuid5(uuid.UUID(poi["id"]), str(real_img_id))),
                     "poi_id": poi["id"],
-                    "img_id": img["id"],
+                    "img_id": real_img_id,
                     "primary": img.get("is_primary", True),
                     "order": idx,
                 },
             )
 
-        # Insert opening hours
+        # Insert opening hours safely handling uq_opening_hours_poi_day
         for oh in poi.get("opening_hours", []):
-            oh_id = str(uuid.uuid5(uuid.UUID(poi["id"]), f"day_{oh['day_of_week']}"))
+            oh_id = str(uuid.uuid5(uuid.UUID(poi["id"]), str(oh["day_of_week"])))
             conn.execute(
                 text("""
                     INSERT INTO opening_hours (id, poi_id, day_of_week, open_time, close_time, is_closed)
-                    VALUES (:id, :poi_id, :dow, :open_t, :close_t, :closed)
+                    VALUES (:id, :poi_id, :day, :open, :close, :closed)
                     ON CONFLICT (poi_id, day_of_week) DO NOTHING;
                 """),
                 {
                     "id": oh_id,
                     "poi_id": poi["id"],
-                    "dow": oh["day_of_week"],
-                    "open_t": oh["open_time"],
-                    "close_t": oh["close_time"],
+                    "day": oh["day_of_week"],
+                    "open": oh["open_time"],
+                    "close": oh["close_time"],
                     "closed": oh["is_closed"],
                 },
             )
 
     # 3. Ingest Accommodations
-    for acc in PILOT_ACCOMMODATIONS:
+    for acc in accommodations:
         loc = acc["location"]
         # Insert location
         conn.execute(
@@ -186,31 +193,40 @@ def seed_geographic_foundation(conn):
             },
         )
 
-        # Insert images and accommodation_images
+        # Insert images and accommodation_images safely handling uq_images_source_external_id
         for idx, img in enumerate(acc.get("images", [])):
-            conn.execute(
-                text("""
-                    INSERT INTO images (
-                        id, url, thumbnail_url, caption, source,
-                        external_image_id, license_type, attribution_text, is_fallback
-                    )
-                    VALUES (
-                        :id, :url, :thumb, :caption, :source,
-                        :ext_id, :license, :attr, false
-                    )
-                    ON CONFLICT (id) DO NOTHING;
-                """),
-                {
-                    "id": img["id"],
-                    "url": img["url"],
-                    "thumb": img.get("thumbnail_url"),
-                    "caption": img.get("caption"),
-                    "source": img.get("source"),
-                    "ext_id": img.get("external_image_id"),
-                    "license": img.get("license_type"),
-                    "attr": img.get("attribution_text"),
-                },
-            )
+            existing_img = conn.execute(
+                text("SELECT id FROM images WHERE id = :id OR (source = :source AND external_image_id = :ext_id);"),
+                {"id": img["id"], "source": img.get("source"), "ext_id": img.get("external_image_id")}
+            ).fetchone()
+
+            if existing_img:
+                real_img_id = existing_img[0]
+            else:
+                conn.execute(
+                    text("""
+                        INSERT INTO images (
+                            id, url, thumbnail_url, caption, source,
+                            external_image_id, license_type, attribution_text, is_fallback
+                        )
+                        VALUES (
+                            :id, :url, :thumb, :caption, :source,
+                            :ext_id, :license, :attr, false
+                        )
+                        ON CONFLICT DO NOTHING;
+                    """),
+                    {
+                        "id": img["id"],
+                        "url": img["url"],
+                        "thumb": img.get("thumbnail_url"),
+                        "caption": img.get("caption"),
+                        "source": img.get("source"),
+                        "ext_id": img.get("external_image_id"),
+                        "license": img.get("license_type"),
+                        "attr": img.get("attribution_text"),
+                    },
+                )
+                real_img_id = img["id"]
 
             conn.execute(
                 text("""
@@ -219,13 +235,29 @@ def seed_geographic_foundation(conn):
                     ON CONFLICT (accommodation_id, image_id) DO NOTHING;
                 """),
                 {
-                    "id": str(uuid.uuid5(uuid.UUID(acc["id"]), img["id"])),
+                    "id": str(uuid.uuid5(uuid.UUID(acc["id"]), str(real_img_id))),
                     "acc_id": acc["id"],
-                    "img_id": img["id"],
+                    "img_id": real_img_id,
                     "primary": img.get("is_primary", True),
                     "order": idx,
                 },
             )
+
+
+def seed_geographic_foundation(conn):
+    """Seeds original Phase 2 pilot geographic data (Agra, New Delhi, Jaipur, Mumbai)."""
+    _ingest_pois_and_accommodations(conn, PILOT_POIS, PILOT_ACCOMMODATIONS)
+
+
+def seed_expanded_geographic_foundation(conn):
+    """Seeds Pass 3 expanded canonical data (11 new destinations, 33 POIs, 26 accommodations)."""
+    _ingest_pois_and_accommodations(conn, EXPANDED_POIS, EXPANDED_ACCOMMODATIONS)
+
+
+def seed_all_geographic_foundation(conn):
+    """Seeds all 15 canonical destinations, POIs, and accommodations."""
+    seed_geographic_foundation(conn)
+    seed_expanded_geographic_foundation(conn)
 
 
 def run_standalone():
@@ -237,8 +269,8 @@ def run_standalone():
     print(f"Connecting to {sync_url}...")
     engine = create_engine(sync_url)
     with engine.begin() as conn:
-        seed_geographic_foundation(conn)
-    print("Seeding completed successfully.")
+        seed_all_geographic_foundation(conn)
+    print("All canonical geographic seeding completed successfully.")
 
 
 if __name__ == "__main__":

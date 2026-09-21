@@ -23,6 +23,7 @@ import {
   Share2
 } from "lucide-react";
 import ShareModal from "../components/ShareModal";
+import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
 
 export default function HotelDetail() {
   const { id } = useParams();
@@ -204,12 +205,10 @@ export default function HotelDetail() {
           {/* Main Large Image */}
           <div className="lg:col-span-2 h-80 sm:h-[420px] rounded-2xl overflow-hidden shadow-sm bg-gray-100 dark:bg-slate-800">
             <img
-              src={selectedImage || hotel.cover_image}
+              src={selectedImage || hotel.cover_image || NEUTRAL_PLACEHOLDER_IMAGE}
               alt={hotel.name}
               className="w-full h-full object-cover transition-all duration-300"
-              onError={(e) => {
-                e.target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80";
-              }}
+              onError={handleImageError}
             />
           </div>
 
@@ -318,12 +317,10 @@ export default function HotelDetail() {
                 <div>
                   <div className="relative h-48 w-full overflow-hidden bg-gray-100 dark:bg-slate-700">
                     <img
-                      src={room.image || hotel.cover_image}
+                      src={room.image || hotel.cover_image || NEUTRAL_PLACEHOLDER_IMAGE}
                       alt={room.name}
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80";
-                      }}
+                      onError={handleImageError}
                     />
                     <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-lg text-xs font-bold text-white">
                       {hotel.currency}{room.price_per_night} <span className="font-normal text-gray-300">/ night</span>
@@ -416,7 +413,7 @@ export default function HotelDetail() {
                   </div>
                   <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-bold text-sm">
                     <span>Total Paid:</span>
-                    <span className="text-brand-600">${bookingSuccess.total_price}</span>
+                    <span className="text-brand-600">{hotel?.currency || '₹'}{bookingSuccess.total_price}</span>
                   </div>
                 </div>
 
@@ -500,16 +497,16 @@ export default function HotelDetail() {
                 {/* Price Summary Breakdown */}
                 <div className="p-4 bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-100 dark:border-slate-700/50 space-y-1.5 text-xs text-gray-600 dark:text-slate-300">
                   <div className="flex justify-between">
-                    <span>${roomPrice} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
-                    <span>${subtotal}</span>
+                    <span>{hotel?.currency || '₹'}{roomPrice} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
+                    <span>{hotel?.currency || '₹'}{subtotal}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Taxes & Hotel Fees (12%)</span>
-                    <span>${taxes}</span>
+                    <span>{hotel?.currency || '₹'}{taxes}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-bold text-sm text-gray-900 dark:text-white">
-                    <span>Total Amount</span>
-                    <span className="text-brand-600">${total}</span>
+                    <span>Total Amount (Indicative)</span>
+                    <span className="text-brand-600">{hotel?.currency || '₹'}{total}</span>
                   </div>
                 </div>
 

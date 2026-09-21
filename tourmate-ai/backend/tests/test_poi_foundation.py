@@ -32,14 +32,14 @@ def test_pois_contain_pilot_data(sync_engine):
     """2. Verify pois table contains pilot data."""
     with sync_engine.connect() as conn:
         count = conn.execute(text("SELECT count(*) FROM pois;")).scalar()
-        assert count == 12, f"Expected 12 pilot POIs, found {count}"
+        assert count >= 12, f"Expected at least 12 pilot POIs, found {count}"
 
 
 def test_accommodations_contain_pilot_data(sync_engine):
     """3. Verify accommodations table contains pilot data."""
     with sync_engine.connect() as conn:
         count = conn.execute(text("SELECT count(*) FROM accommodations;")).scalar()
-        assert count == 6, f"Expected 6 pilot accommodations, found {count}"
+        assert count >= 6, f"Expected at least 6 pilot accommodations, found {count}"
 
 
 def test_poi_location_foreign_keys_resolve(sync_engine):
@@ -179,7 +179,7 @@ def test_embeddings_dimension_and_normalization(sync_engine):
     with sync_engine.connect() as conn:
         res = conn.execute(text("SELECT id, name, embedding FROM pois;"))
         rows = res.fetchall()
-        assert len(rows) == 12
+        assert len(rows) >= 12
         for r in rows:
             vec_raw = r[2]
             assert vec_raw is not None, f"POI {r[1]} has null embedding"
@@ -195,14 +195,18 @@ def test_embeddings_dimension_and_normalization(sync_engine):
 
 def test_seeder_idempotency(sync_engine):
     """21. Verify running the seed twice does not duplicate records."""
+    with sync_engine.connect() as conn:
+        before_poi = conn.execute(text("SELECT count(*) FROM pois;")).scalar()
+        before_loc = conn.execute(text("SELECT count(*) FROM locations;")).scalar()
+
     with sync_engine.begin() as conn:
         seed_geographic_foundation(conn)
 
     with sync_engine.connect() as conn:
-        poi_count = conn.execute(text("SELECT count(*) FROM pois;")).scalar()
-        assert poi_count == 12, f"Expected 12 POIs after repeat seed, found {poi_count}"
-        loc_count = conn.execute(text("SELECT count(*) FROM locations;")).scalar()
-        assert loc_count >= 18, f"Expected at least 18 locations after repeat seed, found {loc_count}"
+        after_poi = conn.execute(text("SELECT count(*) FROM pois;")).scalar()
+        after_loc = conn.execute(text("SELECT count(*) FROM locations;")).scalar()
+        assert after_poi == before_poi, f"Expected POI count to remain {before_poi}, found {after_poi}"
+        assert after_loc == before_loc, f"Expected location count to remain {before_loc}, found {after_loc}"
 
 
 @pytest.mark.asyncio

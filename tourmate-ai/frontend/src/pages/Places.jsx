@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getPlaces, getCategories, getDestinations } from "../api/places";
 import MapComponent from "../components/MapComponent";
+import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
 
 export default function Places() {
   const [places, setPlaces] = useState([]);
@@ -136,13 +137,11 @@ export default function Places() {
               {/* Image Header */}
               <div className="relative h-48 bg-gray-200 dark:bg-slate-700 overflow-hidden">
                 <img 
-                  src={p.images?.[0] || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80"} 
+                  src={p.images?.[0] || NEUTRAL_PLACEHOLDER_IMAGE} 
                   alt={p.name} 
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out"
-                  onError={(e) => {
-                    e.target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80";
-                  }}
+                  onError={handleImageError}
                 />
                 <div className="absolute top-3 right-3 glass px-2 py-1 rounded-lg text-xs font-bold text-gray-900 shadow-sm flex items-center gap-1">
                   ⭐ {p.rating.toFixed(1)}

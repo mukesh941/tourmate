@@ -16,6 +16,7 @@ import {
   Building,
   Check
 } from "lucide-react";
+import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
 
 export default function Hotels() {
   const [hotels, setHotels] = useState([]);
@@ -211,12 +212,10 @@ export default function Hotels() {
                   {/* Photo Container */}
                   <div className="relative h-60 w-full overflow-hidden bg-gray-100 dark:bg-slate-700">
                     <img
-                      src={hotel.cover_image}
+                      src={hotel.cover_image || NEUTRAL_PLACEHOLDER_IMAGE}
                       alt={hotel.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
-                      onError={(e) => {
-                        e.target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80";
-                      }}
+                      onError={handleImageError}
                     />
                     <span className="absolute top-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-xs font-semibold text-white">
                       {hotel.hotel_type}
@@ -234,7 +233,7 @@ export default function Hotels() {
                       <MapPin className="w-3.5 h-3.5" />
                       <span>{hotel.city}, India</span>
                     </div>
-                    <h3 className="font-bold text-xl text-gray-900 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors line-clamp-1 mb-2">
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition mb-2">
                       {hotel.name}
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-4">
@@ -263,7 +262,7 @@ export default function Hotels() {
                 {/* Footer Bar */}
                 <div className="p-6 pt-0 border-t border-gray-100 dark:border-slate-700/60 mt-4 flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-gray-400">Starting from</span>
+                    <span className="text-xs text-gray-400">Indicative baseline from</span>
                     <div className="text-lg font-extrabold text-gray-900 dark:text-white">
                       {hotel.currency}{hotel.price_per_night_start}
                       <span className="text-xs font-normal text-gray-500 dark:text-slate-400"> / night</span>

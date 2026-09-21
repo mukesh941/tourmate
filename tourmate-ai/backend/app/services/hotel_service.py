@@ -40,7 +40,7 @@ def _format_acc_to_hotel_response(acc: Accommodation) -> HotelResponse:
             if ai.image and ai.image.url:
                 images.append(ai.image.url)
 
-    cover_image = images[0] if images else "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80"
+    cover_image = images[0] if images else "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22800%22%20height%3D%22600%22%20viewBox%3D%220%200%20800%20600%22%20fill%3D%22none%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23f8fafc%22%2F%3E%3Cpath%20d%3D%22M360%20320h80v40h-80zM350%20220h100v180H350z%22%20fill%3D%22%2394a3b8%22%2F%3E%3Ctext%20x%3D%22400%22%20y%3D%22430%22%20fill%3D%22%2364748b%22%20font-family%3D%22system-ui%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%3EVerified%20Accommodation%3C%2Ftext%3E%3C%2Fsvg%3E"
 
     price = float(acc.price_per_night) if acc.price_per_night else 3500.0
 
@@ -220,16 +220,31 @@ async def create_hotel_booking(
     db: Optional[AsyncSession] = None,
 ) -> HotelBookingResponse:
     hotel = await get_hotel_by_id(payload.hotel_id, db=db)
-    hotel_name = hotel.name if hotel else "Hotel Stay"
-    hotel_city = hotel.city if hotel else "India"
-    hotel_image = hotel.cover_image if hotel else ""
+    if not hotel:
+        raise ValueError(f"Hotel with ID '{payload.hotel_id}' not found.")
 
     try:
         d_in = datetime.strptime(payload.check_in_date, "%Y-%m-%d")
         d_out = datetime.strptime(payload.check_out_date, "%Y-%m-%d")
-        nights = max(1, (d_out - d_in).days)
-    except Exception:
-        nights = 1
+        nights = (d_out - d_in).days
+        if nights < 1:
+            raise ValueError("Check-out date must be at least one day after check-in date.")
+    except ValueError as e:
+        if "Check-out" in str(e):
+            raise
+        raise ValueError(f"Invalid date format for booking: {e}")
+
+    # Determine price per night from selected room or hotel starting price
+    price_per_night = float(hotel.price_per_night_start)
+    matched_room_name = payload.room_name
+    if hotel.rooms:
+        for room in hotel.rooms:
+            if (payload.room_name and room.name.lower() == payload.room_name.strip().lower()) or (payload.room_id and room.id == payload.room_id):
+                price_per_night = float(room.price_per_night)
+                matched_room_name = room.name
+                break
+
+    total_price = round(price_per_night * nights, 2)
 
     booking_id = str(uuid.uuid4())
     booking = {
@@ -237,17 +252,17 @@ async def create_hotel_booking(
         "user_id": user_id,
         "user_name": user_name,
         "user_email": user_email,
-        "hotel_id": payload.hotel_id,
-        "hotel_name": hotel_name,
-        "hotel_city": hotel_city,
-        "hotel_image": hotel_image,
-        "room_name": payload.room_name,
+        "hotel_id": str(hotel.id),
+        "hotel_name": hotel.name,
+        "hotel_city": hotel.city,
+        "hotel_image": hotel.cover_image,
+        "room_name": matched_room_name,
         "check_in_date": payload.check_in_date,
         "check_out_date": payload.check_out_date,
         "nights": nights,
         "guests": payload.guests,
-        "price_per_night": 5000.0,
-        "total_price": 5000.0 * nights,
+        "price_per_night": price_per_night,
+        "total_price": total_price,
         "status": "confirmed",
         "special_requests": payload.special_requests,
         "created_at": datetime.utcnow().isoformat()

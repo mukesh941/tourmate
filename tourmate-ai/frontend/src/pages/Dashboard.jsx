@@ -42,7 +42,7 @@ export default function Dashboard() {
         axios.get(`${import.meta.env.VITE_API_BASE_URL}/places?q=adventure`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
-      if (destRes.status === 'fulfilled') setDestinations(destRes.value.data.data?.slice(0, 4) || []);
+      if (destRes.status === 'fulfilled') setDestinations(destRes.value.data.data?.slice(0, 8) || []);
       if (recRes.status === 'fulfilled') setRecommendations(recRes.value.data.data?.slice(0, 4) || []);
       if (hotelRes.status === 'fulfilled') setHotels(hotelRes.value.data.data?.slice(0, 4) || []);
       if (foodRes.status === 'fulfilled') setFoods(foodRes.value.data.data?.slice(0, 4) || []);

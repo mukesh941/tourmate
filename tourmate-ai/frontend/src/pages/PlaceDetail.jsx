@@ -5,6 +5,7 @@ import api from "../api/axios";
 import { toggleFavorite, getFavorites, addReview, getReviews, getSentimentSummary } from "../api/interactions";
 import { useTranslation } from "react-i18next";
 import ShareModal from "../components/ShareModal";
+import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
 
 export default function PlaceDetail() {
   const { id } = useParams();
@@ -124,13 +125,11 @@ export default function PlaceDetail() {
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow overflow-hidden">
         <div className="w-full h-80 overflow-hidden bg-gray-100 dark:bg-slate-700">
           <img 
-            src={(place.images && place.images.length > 0) ? place.images[0] : "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80"} 
+            src={(place.images && place.images.length > 0) ? place.images[0] : NEUTRAL_PLACEHOLDER_IMAGE} 
             alt={place.name} 
             referrerPolicy="no-referrer"
             className="w-full h-80 object-cover"
-            onError={(e) => {
-              e.target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80";
-            }}
+            onError={handleImageError}
           />
         </div>
         <div className="p-8">

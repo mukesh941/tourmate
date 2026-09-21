@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ArrowRight, Navigation, MapPin } from 'lucide-react';
 
+import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from '../config/imageConfig';
+
 export default function RecommendationCard({ 
   item, 
   type, // "place", "hotel", "restaurant", "activity", "destination"
@@ -52,13 +54,11 @@ export default function RecommendationCard({
       {/* 4:3 Aspect Ratio Image Container */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
         <img 
-          src={item.cover_image || (item.images && item.images[0]) || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80"} 
+          src={item.cover_image || (item.images && item.images[0]) || NEUTRAL_PLACEHOLDER_IMAGE} 
           alt={item.name} 
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
-          onError={(e) => {
-            e.target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80";
-          }}
+          onError={handleImageError}
         />
         
         {/* Rating Badge */}

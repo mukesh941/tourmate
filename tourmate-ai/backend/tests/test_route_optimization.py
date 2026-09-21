@@ -89,8 +89,11 @@ async def cleanup_test_records():
     yield
     async with AsyncSessionLocal() as session:
         from app.db.seeds.canonical_seed_data import PILOT_POIS, PILOT_ACCOMMODATIONS
-        poi_ids = [f"'{p['id']}'" for p in PILOT_POIS]
-        acc_ids = [f"'{a['id']}'" for a in PILOT_ACCOMMODATIONS]
+        from app.db.seeds.canonical_expanded_data import EXPANDED_POIS, EXPANDED_ACCOMMODATIONS
+        all_pois = PILOT_POIS + EXPANDED_POIS
+        all_accs = PILOT_ACCOMMODATIONS + EXPANDED_ACCOMMODATIONS
+        poi_ids = [f"'{p['id']}'" for p in all_pois]
+        acc_ids = [f"'{a['id']}'" for a in all_accs]
         await session.execute(text("DELETE FROM alternative_routes;"))
         await session.execute(text("DELETE FROM routes;"))
         await session.execute(text("DELETE FROM itinerary_stops;"))
