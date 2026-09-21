@@ -34,8 +34,22 @@ from app.core.config import settings
 from app.core.database import ensure_indexes
 from app.core.limiter import limiter
 
+def _run_migrations_safely():
+    try:
+        import os
+        from alembic.config import Config
+        from alembic import command
+        ini_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "alembic.ini")
+        if os.path.exists(ini_path):
+            alembic_cfg = Config(ini_path)
+            command.upgrade(alembic_cfg, "head")
+            logging.info("Alembic migrations applied successfully.")
+    except Exception as exc:
+        logging.warning("Alembic auto-migration skipped or failed: %s", exc)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _run_migrations_safely()
     await ensure_indexes()
     yield
 
