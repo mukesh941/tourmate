@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 async def optimize_and_persist_itinerary(
     payload: ItineraryOptimizePlanRequest,
     db: AsyncSession,
+    current_user_id: Optional[str] = None,
 ) -> ItineraryOptimizePlanResponse:
     """
     Executes the full Phase 4 itinerary optimization pipeline and persists
@@ -83,6 +84,13 @@ async def optimize_and_persist_itinerary(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Trip '{payload.trip_id}' not found",
+        )
+
+    # Authorization / IDOR Protection
+    if current_user_id is not None and str(trip.user_id) != str(current_user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to access or optimize this trip.",
         )
 
     # 2. Resolve Accommodation (Strict Anchor Rule)

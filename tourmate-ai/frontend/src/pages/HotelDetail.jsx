@@ -75,16 +75,16 @@ export default function HotelDetail() {
       const d1 = new Date(checkIn);
       const d2 = new Date(checkOut);
       const diffTime = d2 - d1;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays > 0 ? diffDays : 1;
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays > 0 ? diffDays : 0;
     } catch {
-      return 1;
+      return 0;
     }
   };
 
   const nights = calculateNights();
   const roomPrice = selectedRoom?.price_per_night || hotel?.price_per_night_start || 100;
-  const subtotal = roomPrice * nights;
+  const subtotal = nights > 0 ? roomPrice * nights : 0;
   const taxes = Math.round(subtotal * 0.12);
   const total = subtotal + taxes;
 
@@ -510,6 +510,12 @@ export default function HotelDetail() {
                   </div>
                 </div>
 
+                {nights <= 0 && (
+                  <p className="text-xs text-rose-500 dark:text-rose-400 font-medium">
+                    ⚠️ Check-out date must be at least one day after check-in date.
+                  </p>
+                )}
+
                 <div className="pt-2 flex justify-end gap-3">
                   <button
                     type="button"
@@ -520,10 +526,10 @@ export default function HotelDetail() {
                   </button>
                   <button
                     type="submit"
-                    disabled={bookingLoading}
-                    className="px-5 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
+                    disabled={bookingLoading || nights <= 0}
+                    className="px-5 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {bookingLoading ? "Confirming..." : `Confirm & Reserve ($${total})`}
+                    {bookingLoading ? "Confirming..." : (nights <= 0 ? "Select Valid Dates" : `Confirm & Reserve (${hotel?.currency || '₹'}${total})`)}
                   </button>
                 </div>
               </form>

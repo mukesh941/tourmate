@@ -143,5 +143,5 @@ async def optimize_itinerary_plan(
     Opening-hour validation -> Second-best alternative tour -> A*/Dijkstra benchmark ->
     PostgreSQL persistence.
     """
-    result = await optimize_and_persist_itinerary(payload, db=db)
+    result = await optimize_and_persist_itinerary(payload, db=db, current_user_id=str(current_user.id))
     return Envelope(success=True, data=result)

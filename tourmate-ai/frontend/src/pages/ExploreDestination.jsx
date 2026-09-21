@@ -285,7 +285,8 @@ export default function ExploreDestination() {
               </div>
               
               <Link 
-                to="/itinerary-builder" 
+                to={`/itinerary-builder?destination=${encodeURIComponent(locationName)}`}
+                state={{ destination: locationName }}
                 className="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg"
               >
                 <Calendar className="w-5 h-5" /> Create My Trip

@@ -62,12 +62,14 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     logging.exception("Unhandled server exception on %s %s: %s", request.method, request.url.path, exc)
+    is_dev = settings.environment.lower() in ("development", "dev", "test")
+    err_detail = str(exc) if is_dev else "An unexpected internal server error occurred."
     return JSONResponse(
         status_code=500,
         content={
             "success": False,
             "data": None,
-            "error": {"message": "Internal server error", "detail": str(exc)},
+            "error": {"message": "Internal server error", "detail": err_detail},
         },
     )
 
@@ -80,12 +82,14 @@ async def add_security_headers(request: Request, call_next):
         response: Response = await call_next(request)
     except Exception as exc:
         logging.exception("Unhandled error processing %s %s: %s", request.method, request.url.path, exc)
+        is_dev = settings.environment.lower() in ("development", "dev", "test")
+        err_detail = str(exc) if is_dev else "An unexpected internal server error occurred."
         response = JSONResponse(
             status_code=500,
             content={
                 "success": False,
                 "data": None,
-                "error": {"message": "Internal server error", "detail": str(exc)},
+                "error": {"message": "Internal server error", "detail": err_detail},
             },
         )
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -111,6 +115,7 @@ app.include_router(places_router, prefix="/api")
 app.include_router(ai_router, prefix="/api")
 app.include_router(itineraries_router, prefix="/api")
 app.include_router(interactions_router, prefix="/api/interactions")
+app.include_router(interactions_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(guides_router, prefix="/api")
 app.include_router(applications_router, prefix="/api")

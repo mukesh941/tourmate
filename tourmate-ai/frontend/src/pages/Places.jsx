@@ -6,6 +6,7 @@ import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConf
 
 export default function Places() {
   const [places, setPlaces] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [destinations, setDestinations] = useState([]);
   const [showMap, setShowMap] = useState(true);
@@ -21,7 +22,16 @@ export default function Places() {
   }, []);
 
   const loadPlaces = async () => {
-    setPlaces(await getPlaces(filters));
+    setLoading(true);
+    try {
+      const data = await getPlaces(filters);
+      setPlaces(data || []);
+    } catch (err) {
+      console.error("Failed to load places:", err);
+      setPlaces([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -163,7 +173,13 @@ export default function Places() {
               </div>
             </Link>
           ))}
-          {places.length === 0 && (
+          {loading && (
+            <div className="col-span-full flex flex-col items-center justify-center py-20">
+              <div className="w-10 h-10 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin mb-3"></div>
+              <p className="text-gray-500 dark:text-slate-400 font-medium text-sm">Discovering amazing tourist destinations...</p>
+            </div>
+          )}
+          {!loading && places.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-20 glass rounded-3xl border border-dashed border-gray-300 dark:border-slate-600">
               <div className="text-5xl mb-4 animate-bounce">🗺️</div>
               <h3 className="text-2xl font-display font-bold text-gray-800 dark:text-slate-200 mb-2">No places found</h3>

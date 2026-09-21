@@ -73,7 +73,10 @@ export default function ChatbotWidget() {
       ]);
     } catch (err) {
       console.error("TourMate AI Chat error:", err);
-      const errMsg = err.response?.data?.error || "Sorry, I'm having trouble connecting to TourMate assistant right now. Please try again.";
+      const rawErr = err.response?.data?.error;
+      const errMsg = typeof rawErr === "string" 
+        ? rawErr 
+        : (rawErr?.message || rawErr?.detail || (typeof err.response?.data?.detail === "string" ? err.response?.data?.detail : null) || "Sorry, I'm having trouble connecting to TourMate assistant right now. Please try again.");
       setMessages([
         ...newMessages, 
         { 

@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     jwt_refresh_token_expire_days: int = 7
 
     # Networking & CORS
+    environment: str = "development"
     cors_origins: str = "https://frontend-delta-six-hf0z79dpo8.vercel.app,http://localhost:5173,http://127.0.0.1:5173,https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:3000"
     gemini_api_key: str | None = None
     google_maps_api_key: str | None = None

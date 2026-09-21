@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, Fragment } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Hotel, MapPin, Star, Wifi, Coffee, Waves, ArrowRight, Plane, Train, Car, Bike, Navigation, Map as MapIcon, Clock, BedDouble, Users, IndianRupee, Activity, CheckCircle2, ChevronDown, ChevronUp, Trash2, Save, RefreshCw, Share2, Sparkles } from "lucide-react";
 
 import ItineraryHeader from "../components/itinerary/ItineraryHeader";
@@ -109,9 +109,11 @@ export default function ItineraryBuilder() {
   const [allPlaces, setAllPlaces] = useState([]);
   const [selectedPlaces, setSelectedPlaces] = useState([]);
   
+  const location = useLocation();
+  const initialDestination = location.state?.destination || new URLSearchParams(location.search).get("destination") || "";
   // Form State
   const [originName, setOriginName] = useState("");
-  const [destinationName, setDestinationName] = useState("");
+  const [destinationName, setDestinationName] = useState(initialDestination);
   const [days, setDays] = useState(3);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("20:00");
