@@ -66,7 +66,7 @@ export default function LocationSearch() {
         <input
           type="text"
           className="w-full bg-white/95 backdrop-blur-md text-gray-900 border-none rounded-2xl py-4 pl-14 pr-6 text-lg shadow-2xl focus:ring-4 focus:ring-brand-500 outline-none transition-all placeholder-gray-500"
-          placeholder="Where do you want to go? (e.g. Pokhara)"
+          placeholder="Where do you want to go? (e.g. Jaipur, Agra, Goa)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => { if (query.length >= 2) setShowDropdown(true); }}

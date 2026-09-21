@@ -42,9 +42,8 @@ export default function RecommendationCard({
 
   const linkTarget = 
     type === 'hotel' ? `/hotels/${item.id}` 
-    : type === 'place' ? `/places/${item.id}` 
     : type === 'destination' ? `/destinations/${item.id}`
-    : `/${type}s/${item.id}`;
+    : `/places/${item.id}`;
 
   return (
     <Link 

@@ -21,25 +21,27 @@ export default function Dashboard() {
   const [activities, setActivities] = useState([]);
 
   const fetchData = async () => {
-    if (!token) return;
     setLoading(true);
     try {
-      // Fetch user preferences first
-      const prefRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/users/preferences`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(() => ({ data: { data: { interests: [] } } }));
-      
-      if (!prefRes.data.data || prefRes.data.data.interests.length === 0) {
-        setShowOnboarding(true);
+      // Fetch user preferences first if logged in
+      if (token) {
+        const prefRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/users/preferences`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => ({ data: { data: { interests: [] } } }));
+        
+        if (!prefRes.data?.data || prefRes.data.data.interests.length === 0) {
+          setShowOnboarding(true);
+        }
       }
 
-      // Parallel data fetching for homepage sections
+      // Parallel data fetching for homepage sections (publicly accessible endpoints)
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const [destRes, recRes, hotelRes, foodRes, actRes] = await Promise.allSettled([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/destinations`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/places/recommendations`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/places?q=restaurant`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/places?q=adventure`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/destinations`, { headers }),
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/places/recommendations`, { headers }),
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels`, { headers }),
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/places?q=restaurant`, { headers }),
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/places?q=adventure`, { headers }),
       ]);
 
       if (destRes.status === 'fulfilled') setDestinations(destRes.value.data.data?.slice(0, 8) || []);
