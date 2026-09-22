@@ -20,6 +20,7 @@ from app.core.config import settings
 # ─── In-Memory Cache ───────────────────────────────────────────────────────────
 _cache: Dict[str, Dict] = {}
 CACHE_TTL_SECONDS = 300  # 5 minutes
+MAX_CACHE_ENTRIES = 200
 
 
 def _cache_key(*args) -> str:
@@ -35,6 +36,13 @@ def _cache_get(key: str):
 
 
 def _cache_set(key: str, data: Any):
+    if len(_cache) >= MAX_CACHE_ENTRIES:
+        # Evict oldest entry
+        try:
+            oldest_key = min(_cache.keys(), key=lambda k: _cache[k]["ts"])
+            _cache.pop(oldest_key, None)
+        except Exception:
+            _cache.clear()
     _cache[key] = {"ts": time.time(), "data": data}
 
 

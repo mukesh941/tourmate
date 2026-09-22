@@ -21,8 +21,9 @@ from app.services.sentiment_service import analyze_sentiment
 
 router = APIRouter()
 
-# In-memory favorites store: user_id -> set of place_ids
+# In-memory favorites store: user_id -> set of place_ids (bounded to 500 users)
 _user_favorites: Dict[str, set] = {}
+MAX_FAVORITES_USERS = 500
 
 
 @router.post("/favorites/{place_id}", response_model=Envelope[dict])
@@ -32,6 +33,11 @@ async def toggle_favorite(
 ):
     uid = str(current_user.id)
     if uid not in _user_favorites:
+        if len(_user_favorites) >= MAX_FAVORITES_USERS:
+            try:
+                _user_favorites.pop(next(iter(_user_favorites)))
+            except Exception:
+                _user_favorites.clear()
         _user_favorites[uid] = set()
 
     if place_id in _user_favorites[uid]:

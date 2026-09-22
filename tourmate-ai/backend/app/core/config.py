@@ -50,10 +50,23 @@ class Settings(BaseSettings):
         """Returns asynchronous connection URL normalized for asyncpg."""
         url = self.database_url
         if url.startswith("postgres://"):
-            return url.replace("postgres://", "postgresql+asyncpg://", 1)
-        if url.startswith("postgresql://"):
-            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
-        return url
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+        # Normalize query params for asyncpg (asyncpg does not accept sslmode query param)
+        try:
+            from sqlalchemy.engine.url import make_url
+            parsed = make_url(url)
+            query = dict(parsed.query)
+            sslmode = query.pop("sslmode", None)
+            if sslmode:
+                if sslmode.lower() not in ("disable", "allow"):
+                    query["ssl"] = "require"
+            parsed = parsed._replace(query=query)
+            return parsed.render_as_string(hide_password=False)
+        except Exception:
+            return url
 
     @property
     def sync_database_url(self) -> str:

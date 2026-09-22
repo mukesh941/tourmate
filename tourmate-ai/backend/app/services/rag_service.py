@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
-from app.services.embedding_service import get_embedding
+from app.services.embedding_service import get_embedding, async_get_embedding
 
 
 def is_route_or_distance_query(message: str) -> bool:
@@ -220,8 +220,8 @@ async def retrieve_knowledge_chunks(
     k = top_k if top_k is not None else settings.rag_top_k
     threshold = min_similarity if min_similarity is not None else settings.rag_min_similarity
 
-    # Generate 384-d normalized query vector
-    query_vec = get_embedding(query)
+    # Generate 384-d normalized query vector non-blockingly
+    query_vec = await async_get_embedding(query)
     query_vec_str = str(query_vec)
 
     # POI-aware filter: if poi_id is provided, restrict to (poi_id = :poi_id OR poi_id IS NULL)

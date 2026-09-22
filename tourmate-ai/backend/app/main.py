@@ -34,7 +34,12 @@ from app.core.config import settings
 from app.core.database import ensure_indexes
 from app.core.limiter import limiter
 
-def _run_migrations_safely():
+import asyncio
+from app.core.db import async_engine, AsyncSessionLocal
+from app.core.database import close_client
+
+async def _run_startup_tasks_safely():
+    # 1. Alembic migrations (verified non-blockingly)
     try:
         import os
         from alembic.config import Config
@@ -42,16 +47,39 @@ def _run_migrations_safely():
         ini_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "alembic.ini")
         if os.path.exists(ini_path):
             alembic_cfg = Config(ini_path)
-            command.upgrade(alembic_cfg, "head")
-            logging.info("Alembic migrations applied successfully.")
+            await asyncio.wait_for(asyncio.to_thread(command.upgrade, alembic_cfg, "head"), timeout=15.0)
+            logging.info("Alembic migrations verified successfully.")
     except Exception as exc:
-        logging.warning("Alembic auto-migration skipped or failed: %s", exc)
+        logging.warning("Alembic auto-migration check skipped or timed out: %s", exc)
+
+    # 2. Legacy Mongo index check (only if non-localhost and configured)
+    try:
+        if settings.mongo_uri and ("localhost" not in settings.mongo_uri or settings.environment == "development"):
+            await asyncio.wait_for(ensure_indexes(), timeout=5.0)
+    except Exception as exc:
+        logging.warning("MongoDB index check skipped: %s", exc)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    _run_migrations_safely()
-    await ensure_indexes()
+    # Startup: Launch background tasks without delaying port binding
+    bg_task = asyncio.create_task(_run_startup_tasks_safely())
     yield
+    # Shutdown: Cleanly dispose resources
+    try:
+        if not bg_task.done():
+            bg_task.cancel()
+    except Exception:
+        pass
+    try:
+        await async_engine.dispose()
+        logging.info("Async database engine disposed successfully.")
+    except Exception as exc:
+        logging.warning("Error disposing database engine: %s", exc)
+    try:
+        close_client()
+        logging.info("MongoDB client closed successfully.")
+    except Exception as exc:
+        logging.warning("Error closing MongoDB client: %s", exc)
 
 app = FastAPI(title="TourMate AI API", version="0.1.0", lifespan=lifespan)
 
@@ -132,4 +160,43 @@ async def root():
 @app.get("/health")
 @app.get("/api/health")
 async def health():
+    """
+    Lightweight, ultra-fast liveness check.
+    Zero external calls, zero database queries, zero AI/model loading.
+    Must respond < 5ms for container health checkers (Render, Kubernetes).
+    """
     return {"success": True, "data": {"status": "ok"}, "error": None}
+
+
+@app.get("/ready")
+@app.get("/api/ready")
+async def ready():
+    """
+    Readiness probe verifying core dependencies (PostgreSQL database connectivity).
+    Uses a strict 2-second timeout so it never hangs.
+    """
+    db_status = "unknown"
+    try:
+        from sqlalchemy import text
+        # Verify database connectivity with strict 2-second timeout
+        async with asyncio.timeout(2.0):
+            async with AsyncSessionLocal() as session:
+                await session.execute(text("SELECT 1"))
+                db_status = "connected"
+    except Exception as exc:
+        logging.warning("Readiness probe database check failed: %s", exc)
+        db_status = "disconnected"
+        return JSONResponse(
+            status_code=503,
+            content={
+                "success": False,
+                "data": {"status": "unready", "database": db_status},
+                "error": {"message": "Service unavailable: database connection check failed"},
+            },
+        )
+
+    return {
+        "success": True,
+        "data": {"status": "ready", "database": db_status},
+        "error": None,
+    }

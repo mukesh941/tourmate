@@ -11,13 +11,15 @@ from sqlalchemy.ext.asyncio import (
 )
 from app.core.config import settings
 
-# Create Async Engine
+# Create Async Engine with production-hardened connection pool settings
 async_engine: AsyncEngine = create_async_engine(
     settings.async_database_url,
     echo=False,
     future=True,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=10.0,
+    pool_recycle=300,
     pool_pre_ping=True,
 )
 
@@ -40,7 +42,11 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
         except Exception:
-            await session.rollback()
+            if session.in_transaction():
+                await session.rollback()
             raise
         finally:
+            if session.in_transaction():
+                await session.rollback()
             await session.close()
+

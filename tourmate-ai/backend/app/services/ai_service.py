@@ -20,6 +20,28 @@ from app.services.rag_service import (
 logger = logging.getLogger(__name__)
 
 
+def _safe_generate_content(model, contents, timeout_sec: float = 12.0) -> Optional[str]:
+    """
+    Executes Gemini generate_content with a bounded timeout and safe exception handling.
+    Prevents external API latency from blocking worker threads or leaking API keys.
+    """
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(model.generate_content, contents)
+        try:
+            res = future.result(timeout=timeout_sec)
+            if res and hasattr(res, "text") and res.text:
+                return res.text.strip()
+            return None
+        except concurrent.futures.TimeoutError:
+            logger.warning("Gemini API call timed out after %.1fs", timeout_sec)
+            return None
+        except Exception as exc:
+            logger.warning("Gemini API call failed safely: %s", type(exc).__name__)
+            return None
+
+
+
 def get_grounded_chat_response(
     user_message: str,
     history: List[Dict[str, str]],
@@ -104,8 +126,7 @@ def get_grounded_chat_response(
             # Append current question
             contents.append({"role": "user", "parts": [user_message]})
 
-            res = model.generate_content(contents)
-            answer_text = res.text.strip()
+            answer_text = _safe_generate_content(model, contents, timeout_sec=12.0)
             if answer_text:
                 return {
                     "response": answer_text,
@@ -114,7 +135,7 @@ def get_grounded_chat_response(
                     "is_grounded": True,
                 }
         except Exception as e:
-            print(f"Gemini Grounded RAG Error, falling back to local synthesis: {e}")
+            logger.warning("Gemini Grounded RAG Error, falling back to local synthesis: %s", type(e).__name__)
 
     # 4. Deterministic Local Fallback (when GEMINI_API_KEY is absent or API fails)
     # Conservatively extracts facts from canonical database and top retrieved chunks without hallucination
@@ -184,10 +205,12 @@ def get_ai_response(user_message: str, history: List[Dict[str, str]], context: s
     })
     
     try:
-        response = model.generate_content(contents)
-        return response.text
+        text = _safe_generate_content(model, contents, timeout_sec=10.0)
+        if text:
+            return text
+        return "I'm sorry, I'm having trouble thinking right now. Please try again later."
     except Exception as e:
-        print(f"AI Error: {e}")
+        logger.warning("AI Error: %s", type(e).__name__)
         return "I'm sorry, I'm having trouble thinking right now. Please try again later."
 
 import json
@@ -413,17 +436,17 @@ def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: s
             ]
             """
             
-            response = model.generate_content(prompt)
-            text = response.text.strip()
-            import re
-            match = re.search(r'```(?:json)?(.*?)```', text, re.DOTALL)
-            if match:
-                text = match.group(1).strip()
-            result = json.loads(text)
-            if isinstance(result, list) and len(result) > 0:
-                return result
+            text = _safe_generate_content(model, prompt, timeout_sec=15.0)
+            if text:
+                import re
+                match = re.search(r'```(?:json)?(.*?)```', text, re.DOTALL)
+                if match:
+                    text = match.group(1).strip()
+                result = json.loads(text)
+                if isinstance(result, list) and len(result) > 0:
+                    return result
         except Exception as e:
-            print(f"Itinerary AI Error, falling back to structured deterministic itinerary: {e}")
+            logger.warning("Itinerary AI Error, falling back to structured deterministic itinerary: %s", type(e).__name__)
 
     # Fallback to structured deterministic generator
     return _build_fallback_itineraries(
@@ -446,16 +469,19 @@ import io
 
 # We will load the model lazily to avoid slowing down server startup
 _mobilenet_model = None
+_mobilenet_attempted = False
 
 def get_mobilenet_model():
-    global _mobilenet_model
-    if _mobilenet_model is None:
-        try:
-            from tensorflow.keras.applications import MobileNetV2
-            _mobilenet_model = MobileNetV2(weights="imagenet")
-        except Exception as e:
-            print(f"MobileNet model load skipped: {e}")
-            _mobilenet_model = None
+    global _mobilenet_model, _mobilenet_attempted
+    if _mobilenet_attempted:
+        return _mobilenet_model
+    _mobilenet_attempted = True
+    try:
+        from tensorflow.keras.applications import MobileNetV2
+        _mobilenet_model = MobileNetV2(weights="imagenet")
+    except Exception as e:
+        logger.warning("MobileNet model load skipped: %s", e)
+        _mobilenet_model = None
     return _mobilenet_model
 
 async def _find_canonical_poi_match(
@@ -783,8 +809,9 @@ Respond strictly with a JSON object matching this schema:
         for m_name in models:
             try:
                 model = genai.GenerativeModel(m_name, generation_config={"response_mime_type": "application/json"})
-                response = model.generate_content(prompt)
-                text = response.text.strip()
+                text = _safe_generate_content(model, prompt, timeout_sec=10.0)
+                if not text:
+                    continue
                 match = re.search(r'```(?:json)?(.*?)```', text, re.DOTALL)
                 if match:
                     text = match.group(1).strip()
@@ -867,16 +894,22 @@ def enrich_cluster_with_ai(places: List[Dict], user_interests: List[str] = []) -
     """
     
     try:
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-        import re
-        match = re.search(r'```(?:json)?(.*?)```', text, re.DOTALL)
-        if match:
-            text = match.group(1).strip()
-        result = json.loads(text)
-        return result
+        text = _safe_generate_content(model, prompt, timeout_sec=10.0)
+        if text:
+            import re
+            match = re.search(r'```(?:json)?(.*?)```', text, re.DOTALL)
+            if match:
+                text = match.group(1).strip()
+            result = json.loads(text)
+            return result
+        return {
+            "cluster_name": "Local District",
+            "description": "A geographic cluster of attractions.",
+            "categories": [],
+            "reasons": ["Geographically close to each other"]
+        }
     except Exception as e:
-        print(f"Cluster Enrichment AI Error: {e}")
+        logger.warning("Cluster Enrichment AI Error: %s", type(e).__name__)
         return {
             "cluster_name": "Local District",
             "description": "A geographic cluster of attractions.",

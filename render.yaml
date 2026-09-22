@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: free
     rootDir: tourmate-ai/backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python -m app.services.embedding_service --download-only
     preDeployCommand: alembic upgrade head && python -m app.db.seeds.seed_knowledge
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
