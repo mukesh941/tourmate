@@ -42,15 +42,23 @@ export default function DestinationDetail() {
           onError={handleImageError}
         />
         <div className="p-8">
-          <div className="flex justify-between items-start mb-2">
+          <div className="flex flex-wrap justify-between items-start gap-4 mb-2">
             <h1 className="text-4xl font-bold text-gray-800 dark:text-slate-100">{destination.name}</h1>
-            <button 
-              onClick={speakDescription}
-              className="flex items-center gap-2 bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 px-4 py-2 rounded-full font-medium hover:bg-brand-200 dark:hover:bg-brand-800 transition"
-              title="Listen to description"
-            >
-              🔊 {t('Listen')}
-            </button>
+            <div className="flex items-center gap-3">
+              <Link
+                to={`/places?destination=${encodeURIComponent(destination.name)}`}
+                className="flex items-center gap-2 bg-brand-600 text-white hover:bg-brand-700 px-4 py-2 rounded-full font-medium shadow-sm transition"
+              >
+                🗺️ {t('View on Map')}
+              </Link>
+              <button 
+                onClick={speakDescription}
+                className="flex items-center gap-2 bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 px-4 py-2 rounded-full font-medium hover:bg-brand-200 dark:hover:bg-brand-800 transition"
+                title="Listen to description"
+              >
+                🔊 {t('Listen')}
+              </button>
+            </div>
           </div>
           <p className="text-lg text-gray-500 dark:text-slate-400 mb-6">{destination.state}, {destination.country}</p>
           <p className="text-gray-700 dark:text-slate-200 leading-relaxed">{destination.description}</p>

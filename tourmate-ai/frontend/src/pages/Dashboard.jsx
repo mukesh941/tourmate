@@ -62,7 +62,7 @@ export default function Dashboard() {
     fetchData();
   }, [token]);
 
-  const quickSearches = ["Goa", "Kerala", "Jaipur", "Kashmir", "Manali", "Udaipur"];
+  const quickSearches = ["Goa", "Agra", "Jaipur", "Mumbai", "New Delhi", "Manali", "Udaipur", "Varanasi"];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-20">
@@ -97,11 +97,11 @@ export default function Dashboard() {
           </div>
 
           <div className="mt-8 flex flex-wrap justify-center items-center gap-2 md:gap-3">
-            <span className="text-gray-300 text-sm font-medium mr-2 drop-shadow-sm">Popular:</span>
+            <span className="text-gray-300 text-sm font-medium mr-2 drop-shadow-sm">Popular Destinations:</span>
             {quickSearches.map(term => (
               <Link 
                 key={term} 
-                to={`/places?q=${term}`}
+                to={`/places?destination=${encodeURIComponent(term)}`}
                 className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/25 text-white border border-white/20 backdrop-blur-md transition-all text-sm font-bold shadow-sm"
               >
                 {term}

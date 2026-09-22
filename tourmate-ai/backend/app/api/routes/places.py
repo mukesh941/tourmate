@@ -31,7 +31,9 @@ router = APIRouter(prefix="/places", tags=["places"])
 @router.get("", response_model=Envelope[List[TouristPlaceResponse]])
 async def read_places(
     destination_id: Optional[str] = None,
+    destination: Optional[str] = None,
     category_id: Optional[str] = None,
+    category: Optional[str] = None,
     q: Optional[str] = None,
     min_rating: Optional[float] = None,
     lat: Optional[float] = Query(None, description="Latitude for geo-search"),
@@ -39,10 +41,11 @@ async def read_places(
     radius_km: Optional[float] = Query(10.0, description="Radius in kilometers for geo-search"),
     db: AsyncSession = Depends(get_async_db),
 ):
-    # Query canonical PostgreSQL POIs first
+    effective_destination = destination_id or destination
+    effective_category = category_id or category
     pg_places = await poi_service.get_all_pois(
-        destination_id=destination_id,
-        category_id=category_id,
+        destination_id=effective_destination,
+        category_id=effective_category,
         q=q,
         min_rating=min_rating,
         lat=lat,
@@ -50,15 +53,7 @@ async def read_places(
         radius_km=radius_km,
         db=db,
     )
-    if pg_places:
-        return Envelope(success=True, data=pg_places)
-
-    # Fallback to legacy MongoDB places if PostgreSQL has no results (e.g. legacy destination_id)
-    try:
-        places = await get_all_places(destination_id, category_id, q, min_rating, lat, lng, radius_km)
-        return Envelope(success=True, data=places)
-    except Exception:
-        return Envelope(success=True, data=[])
+    return Envelope(success=True, data=pg_places)
 
 @router.get("/clusters", response_model=Envelope[dict])
 async def get_clusters(

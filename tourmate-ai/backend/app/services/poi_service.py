@@ -92,22 +92,41 @@ async def get_all_pois(
     filters = []
 
     if destination_id:
+        clean_dest = str(destination_id).strip()
         try:
-            dest_uuid = uuid.UUID(destination_id)
+            dest_uuid = uuid.UUID(clean_dest)
             filters.append(or_(POI.location_id == dest_uuid, Location.id == dest_uuid))
         except (ValueError, TypeError):
-            filters.append(func.lower(Location.city) == destination_id.strip().lower())
-
-    if category_id:
-        try:
-            cat_uuid = uuid.UUID(category_id)
-            filters.append(POI.category_id == cat_uuid)
-        except ValueError:
-            # Maybe category_id is category slug or name
+            clean_lower = clean_dest.lower()
+            clean_norm = clean_lower.replace("-", " ").replace("_", " ").strip()
             filters.append(
                 or_(
-                    func.lower(Category.name) == category_id.lower(),
-                    func.lower(Category.slug) == category_id.lower(),
+                    func.lower(Location.city) == clean_lower,
+                    func.lower(Location.city) == clean_norm,
+                    func.lower(Location.state) == clean_lower,
+                    func.lower(Location.state) == clean_norm,
+                    func.replace(func.lower(Location.city), " ", "-") == clean_lower,
+                    func.replace(func.lower(Location.city), " ", "_") == clean_lower,
+                )
+            )
+
+    if category_id:
+        clean_cat = str(category_id).strip()
+        try:
+            cat_uuid = uuid.UUID(clean_cat)
+            filters.append(POI.category_id == cat_uuid)
+        except (ValueError, TypeError):
+            # Maybe category_id is category slug or name
+            clean_cat_lower = clean_cat.lower()
+            clean_cat_norm = clean_cat_lower.replace("-", " ").replace("_", " ").strip()
+            filters.append(
+                or_(
+                    func.lower(Category.name) == clean_cat_lower,
+                    func.lower(Category.slug) == clean_cat_lower,
+                    func.lower(Category.name) == clean_cat_norm,
+                    func.lower(Category.slug) == clean_cat_norm,
+                    func.replace(func.lower(Category.name), " ", "-") == clean_cat_lower,
+                    func.replace(func.lower(Category.slug), " ", "_") == clean_cat_lower,
                 )
             )
 

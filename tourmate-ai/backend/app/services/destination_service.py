@@ -177,7 +177,18 @@ async def get_destination(destination_id: str, db: Optional[AsyncSession] = None
             pass
 
         if loc is None:
-            stmt = select(Location).where(func.lower(Location.city) == destination_id.strip().lower()).options(
+            clean_name = destination_id.strip().lower()
+            clean_norm = clean_name.replace("-", " ").replace("_", " ").strip()
+            stmt = select(Location).where(
+                or_(
+                    func.lower(Location.city) == clean_name,
+                    func.lower(Location.city) == clean_norm,
+                    func.lower(Location.state) == clean_name,
+                    func.lower(Location.state) == clean_norm,
+                    func.replace(func.lower(Location.city), " ", "-") == clean_name,
+                    func.replace(func.lower(Location.city), " ", "_") == clean_name,
+                )
+            ).options(
                 selectinload(Location.pois).selectinload(POI.poi_images).selectinload(POIImage.image)
             )
             res = await session.execute(stmt)
