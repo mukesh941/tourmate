@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Check, X, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE_URL } from '../../api/axios';
 
 export default function OptimizeDayModal({ isOpen, onClose, dayPlan, onApply }) {
   const { token } = useAuth();
@@ -14,7 +15,7 @@ export default function OptimizeDayModal({ isOpen, onClose, dayPlan, onApply }) 
     setError('');
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/itineraries/optimize`,
+        `${API_BASE_URL}/itineraries/optimize`,
         {
           day_schedule: dayPlan,
           context: "Please reduce travel time and add buffers if schedule is too tight."

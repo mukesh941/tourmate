@@ -4,8 +4,9 @@
  * is NEVER used on the frontend directly.
  */
 import axios from "axios";
+import { API_BASE_URL } from "../api/axios";
 
-const BASE = import.meta.env.VITE_API_BASE_URL;
+const BASE = API_BASE_URL;
 
 /**
  * Nearby Search — find tourist places around a geographic point.

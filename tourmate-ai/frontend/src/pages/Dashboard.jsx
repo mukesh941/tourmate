@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from "../api/axios";
 import OnboardingModal from "../components/OnboardingModal";
 import LocationSearch from '../components/LocationSearch';
 import RecommendationCard from "../components/RecommendationCard";
@@ -25,7 +26,7 @@ export default function Dashboard() {
     try {
       // Fetch user preferences first if logged in
       if (token) {
-        const prefRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/users/preferences`, {
+        const prefRes = await axios.get(`${API_BASE_URL}/users/preferences`, {
           headers: { Authorization: `Bearer ${token}` }
         }).catch(() => ({ data: { data: { interests: [] } } }));
         
@@ -37,11 +38,11 @@ export default function Dashboard() {
       // Parallel data fetching for homepage sections (publicly accessible endpoints)
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const [destRes, recRes, hotelRes, foodRes, actRes] = await Promise.allSettled([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/destinations`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/places/recommendations`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/places?q=restaurant`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/places?q=adventure`, { headers }),
+        axios.get(`${API_BASE_URL}/destinations`, { headers }),
+        axios.get(`${API_BASE_URL}/places/recommendations`, { headers }),
+        axios.get(`${API_BASE_URL}/hotels`, { headers }),
+        axios.get(`${API_BASE_URL}/places?q=restaurant`, { headers }),
+        axios.get(`${API_BASE_URL}/places?q=adventure`, { headers }),
       ]);
 
       if (destRes.status === 'fulfilled') setDestinations(destRes.value.data.data?.slice(0, 8) || []);

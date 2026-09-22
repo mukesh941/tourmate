@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../api/axios';
 import { Star, ShieldCheck, MapPin, Clock, CheckCircle, Sparkles, Compass, AlertCircle } from 'lucide-react';
 
 export default function Guides() {
@@ -29,8 +30,8 @@ export default function Guides() {
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const url = searchLocation 
-        ? `${import.meta.env.VITE_API_BASE_URL}/guides?location=${searchLocation}`
-        : `${import.meta.env.VITE_API_BASE_URL}/guides`;
+        ? `${API_BASE_URL}/guides?location=${searchLocation}`
+        : `${API_BASE_URL}/guides`;
         
       const res = await axios.get(url, { headers, timeout: 6000 });
       setGuides(res.data?.data || []);
@@ -57,7 +58,7 @@ export default function Guides() {
     setBookingLoading(true);
     try {
       await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/guides/book`,
+        `${API_BASE_URL}/guides/book`,
         {
           guide_id: selectedGuide.id,
           date: bookingDate,

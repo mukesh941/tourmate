@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, Fragment } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Hotel, MapPin, Star, Wifi, Coffee, Waves, ArrowRight, Plane, Train, Car, Bike, Navigation, Map as MapIcon, Clock, BedDouble, Users, IndianRupee, Activity, CheckCircle2, ChevronDown, ChevronUp, Trash2, Save, RefreshCw, Share2, Sparkles } from "lucide-react";
@@ -74,7 +75,7 @@ function NearbyHotelsSuggestion({ places, destinationName }) {
       } else if (destinationName) {
         params.city = destinationName.split(",")[0].trim();
       }
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels`, { params });
+      const res = await axios.get(`${API_BASE_URL}/hotels`, { params });
       setHotels((res.data.data || []).slice(0, 3));
     } catch (err) {
       console.error("Hotel suggestions error:", err);
@@ -176,7 +177,7 @@ export default function ItineraryBuilder() {
   useEffect(() => {
     const fetchPlaces = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/places`, {
+        const res = await axios.get(`${API_BASE_URL}/places`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setAllPlaces(res.data.data || []);
@@ -195,7 +196,7 @@ export default function ItineraryBuilder() {
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/itineraries/generate`,
+        `${API_BASE_URL}/itineraries/generate`,
         {
           origin: originName || undefined,
           destination_name: destinationName,
@@ -243,7 +244,7 @@ export default function ItineraryBuilder() {
     setSaving(true);
     try {
       await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/itineraries`,
+        `${API_BASE_URL}/itineraries`,
         {
           title: title,
           days: parseInt(days) || 1,

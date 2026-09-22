@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import MapComponent from "../components/MapComponent";
 import { MapPin, Navigation, Map as MapIcon, Compass, Crosshair, Search, Plus, Trash2, ArrowRight, Car, Bike, Footprints, Bus, Info } from "lucide-react";
@@ -48,7 +49,7 @@ export default function RoutePlannerView() {
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/locations/reverse?lat=${latitude}&lon=${longitude}`);
+          const res = await axios.get(`${API_BASE_URL}/locations/reverse?lat=${latitude}&lon=${longitude}`);
           setOrigin({
             query: res.data.data.display_name,
             lat: latitude,
@@ -74,7 +75,7 @@ export default function RoutePlannerView() {
   const handleSearch = async (query, index = null) => {
     if (!query || query.length < 2) return;
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/locations/geocode?query=${query}`);
+      const res = await axios.get(`${API_BASE_URL}/locations/geocode?query=${query}`);
       const data = res.data.data;
       if (data) {
         if (index === 'origin') setOrigin({ query: data.display_name, lat: data.latitude, lng: data.longitude });
@@ -117,7 +118,7 @@ export default function RoutePlannerView() {
       ];
       
       const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/locations/route`,
+        `${API_BASE_URL}/locations/route`,
         { coordinates, mode: transportMode }
       );
       
@@ -161,7 +162,7 @@ export default function RoutePlannerView() {
     setDiscovering(true);
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/ai/discover`,
+        `${API_BASE_URL}/ai/discover`,
         {
           origin: origin.query,
           destination: destination.query,

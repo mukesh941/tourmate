@@ -7,6 +7,7 @@ import L from 'leaflet';
 import { Compass, MapPin, Navigation, Calendar, Settings, SlidersHorizontal, Loader } from 'lucide-react';
 import RecommendationCard from '../components/RecommendationCard';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../api/axios';
 import { MAP_TILE_URL, MAP_ATTRIBUTION } from '../config/mapConfig';
 import { openGoogleMapsNavigation } from '../utils/navigation';
 
@@ -74,10 +75,10 @@ export default function ExploreDestination() {
     
     try {
       const [placesRes, hotelsRes, restsRes, actsRes] = await Promise.allSettled([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/places${qs}`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels${qs}`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/restaurants${qs}`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/activities${qs}`, { headers })
+        axios.get(`${API_BASE_URL}/places${qs}`, { headers }),
+        axios.get(`${API_BASE_URL}/hotels${qs}`, { headers }),
+        axios.get(`${API_BASE_URL}/restaurants${qs}`, { headers }),
+        axios.get(`${API_BASE_URL}/activities${qs}`, { headers })
       ]);
       
       setPlaces(placesRes.status === 'fulfilled' ? placesRes.value.data?.data || [] : []);

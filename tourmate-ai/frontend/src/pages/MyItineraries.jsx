@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import ShareModal from "../components/ShareModal";
@@ -39,7 +40,7 @@ export default function MyItineraries() {
   const fetchItineraries = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/itineraries`, {
+      const res = await axios.get(`${API_BASE_URL}/itineraries`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setItineraries(res.data.data || []);
@@ -53,7 +54,7 @@ export default function MyItineraries() {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this itinerary?")) return;
     try {
-      await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/itineraries/${id}`, {
+      await axios.delete(`${API_BASE_URL}/itineraries/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       removeOfflineItinerary(id);

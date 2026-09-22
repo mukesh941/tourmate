@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Search, MapPin } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../api/axios';
 
 export default function LocationSearch() {
   const [query, setQuery] = useState('');
@@ -28,7 +29,7 @@ export default function LocationSearch() {
       if (query.length >= 2) {
         setIsLoading(true);
         try {
-          const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/locations/search?query=${query}`, {
+          const res = await axios.get(`${API_BASE_URL}/locations/search?query=${query}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : {}
           });
           setResults(res.data.data || []);

@@ -4,8 +4,16 @@
  */
 import axios from "axios";
 
+const rawBase =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? "https://tourmate-backend-cfcv.onrender.com/api"
+    : "http://localhost:8000/api");
+
+export const API_BASE_URL = rawBase.trim().replace(/\/+$/, "").replace(/(?<!\/api)$/, "/api");
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: API_BASE_URL,
 });
 
 api.interceptors.request.use((config) => {

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from "../api/axios";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -53,7 +54,7 @@ export default function ChatbotWidget() {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/ai/chat`,
+        `${API_BASE_URL}/ai/chat`,
         { message: userMessage, history, place_id: placeId, language: i18n.language },
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { API_BASE_URL } from "../api/axios";
 import { 
   Hotel, 
   MapPin, 
@@ -83,7 +84,7 @@ export default function Hotels() {
         params.append("min_price", "15000");
       }
 
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels?${params.toString()}`);
+      const res = await axios.get(`${API_BASE_URL}/hotels?${params.toString()}`);
       setHotels(res.data.data || []);
     } catch (err) {
       console.error("Failed to fetch hotels:", err);

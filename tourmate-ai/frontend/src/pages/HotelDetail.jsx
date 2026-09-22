@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from "../api/axios";
 import { 
   MapPin, 
   Star, 
@@ -57,7 +58,7 @@ export default function HotelDetail() {
   const fetchHotel = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/hotels/${id}`);
+      const res = await axios.get(`${API_BASE_URL}/hotels/${id}`);
       setHotel(res.data.data);
       if (res.data.data?.cover_image) {
         setSelectedImage(res.data.data.cover_image);
@@ -115,7 +116,7 @@ export default function HotelDetail() {
       };
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/hotels/book`,
+        `${API_BASE_URL}/hotels/book`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );

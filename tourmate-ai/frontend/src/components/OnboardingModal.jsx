@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from "../api/axios";
 
 export default function OnboardingModal({ isOpen, onClose, onComplete }) {
   const { token } = useAuth();
@@ -41,7 +42,7 @@ export default function OnboardingModal({ isOpen, onClose, onComplete }) {
     setSubmitting(true);
     try {
       await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL}/users/preferences`,
+        `${API_BASE_URL}/users/preferences`,
         preferences,
         { headers: { Authorization: `Bearer ${token}` } }
       );
