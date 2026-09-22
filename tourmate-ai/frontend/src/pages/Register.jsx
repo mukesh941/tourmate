@@ -16,7 +16,7 @@ export default function Register() {
     setError("");
     setSubmitting(true);
     try {
-      await register(form.name, form.email, form.password, form.isAdmin || false);
+      await register(form.name, form.email, form.password);
       navigate("/login");
     } catch (err) {
       const detail = err.response?.data?.detail;
@@ -101,19 +101,6 @@ export default function Register() {
               onChange={update("password")}
               className="w-full bg-black/20 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:bg-black/40 transition-all font-medium"
             />
-          </div>
-
-          <div className="animate-fade-in-up-delay-1 flex items-center pt-2">
-            <input
-              id="is_admin"
-              type="checkbox"
-              checked={form.isAdmin || false}
-              onChange={(e) => setForm({ ...form, isAdmin: e.target.checked })}
-              className="w-4 h-4 rounded bg-black/20 border border-white/10 text-brand-500 focus:ring-brand-400 focus:ring-offset-0 focus:ring-2"
-            />
-            <label htmlFor="is_admin" className="ml-2 text-sm font-medium text-brand-100 cursor-pointer">
-              Register as Administrator
-            </label>
           </div>
 
           <div className="animate-fade-in-up-delay-2 pt-2">

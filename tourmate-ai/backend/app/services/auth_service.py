@@ -43,7 +43,7 @@ async def _execute_register(payload: RegisterRequest, db: AsyncSession) -> UserP
         name=payload.name,
         email=payload.email,
         password_hash=hash_password(payload.password),
-        role="admin" if payload.is_admin else "user",
+        role="user",  # Public registration MUST ALWAYS assign 'user' role. Never trust client-supplied role or is_admin fields.
         preferred_language="en",
         is_active=True,
     )
