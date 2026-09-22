@@ -467,23 +467,6 @@ def generate_itinerary_via_llm(places_info: List[Dict], days: int, start_time: s
 
 import io
 
-# We will load the model lazily to avoid slowing down server startup
-_mobilenet_model = None
-_mobilenet_attempted = False
-
-def get_mobilenet_model():
-    global _mobilenet_model, _mobilenet_attempted
-    if _mobilenet_attempted:
-        return _mobilenet_model
-    _mobilenet_attempted = True
-    try:
-        from tensorflow.keras.applications import MobileNetV2
-        _mobilenet_model = MobileNetV2(weights="imagenet")
-    except Exception as e:
-        logger.warning("MobileNet model load skipped: %s", e)
-        _mobilenet_model = None
-    return _mobilenet_model
-
 async def _find_canonical_poi_match(
     name: str,
     location_str: str = "",
@@ -494,6 +477,7 @@ async def _find_canonical_poi_match(
         return None
 
     clean_query = name.lower().strip()
+    clean_norm = clean_query.replace("monument", "").replace("heritage", "").strip()
 
     async def _search_in_session(session: AsyncSession):
         stmt = (
@@ -509,14 +493,29 @@ async def _find_canonical_poi_match(
         res = await session.execute(stmt)
         all_pois = res.scalars().all()
 
-        best_match = None
+        # 1. Exact match
         for p in all_pois:
-            p_name = p.name.lower()
-            if clean_query == p_name:
+            p_name = p.name.lower().strip()
+            if clean_query == p_name or (clean_norm and clean_norm == p_name):
                 return p
-            if clean_query in p_name or p_name in clean_query:
-                best_match = p
-        return best_match
+
+        # 2. Substring match
+        for p in all_pois:
+            p_name = p.name.lower().strip()
+            if p_name in clean_query or (len(clean_query) >= 4 and clean_query in p_name):
+                return p
+
+        # 3. Location-aware candidate match
+        if location_str:
+            loc_clean = location_str.lower()
+            for p in all_pois:
+                if p.location and (p.location.city.lower() in loc_clean or loc_clean in p.location.city.lower()):
+                    query_words = set(clean_query.split())
+                    poi_words = set(p.name.lower().split())
+                    if len(query_words.intersection(poi_words)) >= 1:
+                        return p
+
+        return None
 
     matched = None
     try:
@@ -536,7 +535,7 @@ async def _find_canonical_poi_match(
             "name": matched.name,
             "location": f"{matched.location.city}, {matched.location.state}" if matched.location else "",
             "category": matched.category.name if matched.category else "Attraction",
-            "rating": matched.rating,
+            "rating": float(matched.rating) if matched.rating else 4.8,
             "description": matched.description,
             "latitude": matched.location.latitude if matched.location else None,
             "longitude": matched.location.longitude if matched.location else None,
@@ -552,14 +551,36 @@ async def predict_landmark_from_image(image_bytes: bytes, db: Optional[AsyncSess
     import io
     from PIL import Image
 
-    # 1. Prefer Gemini Vision if API key is provided
+    # 1. Validate image
+    try:
+        pil_img = Image.open(io.BytesIO(image_bytes))
+        pil_img.load()
+        if pil_img.mode != "RGB":
+            pil_img = pil_img.convert("RGB")
+        # Resize large images to max 1024px to ensure fast processing
+        if max(pil_img.size) > 1024:
+            pil_img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+    except Exception as e:
+        logger.warning("Image decoding failed: %s", e)
+        return {
+            "name": "Invalid Image",
+            "location": "",
+            "category": "Non-Landmark",
+            "confidence": "None",
+            "is_landmark": False,
+            "is_grounded": False,
+            "description": "The uploaded file could not be decoded as a valid image. Please upload a clear photo in JPEG, PNG, or WebP format."
+        }
+
+    # 2. Prefer Gemini Vision if API key is provided
     api_key = settings.gemini_api_key
     gemini_data = None
     if api_key:
         models_to_try = [
-            getattr(settings, "gemini_model", "gemini-1.5-flash"),
-            "gemini-1.5-flash",
+            getattr(settings, "gemini_model", "gemini-2.0-flash"),
             "gemini-2.0-flash",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
         ]
         seen = set()
         models = [m for m in models_to_try if not (m in seen or seen.add(m))]
@@ -583,31 +604,39 @@ async def predict_landmark_from_image(image_bytes: bytes, db: Optional[AsyncSess
             "Respond strictly with a JSON object in this format:\n"
             '{"is_landmark": true, "name": "Exact Landmark Name", "location": "City, State", "category": "Category", "confidence": "High", "description": "2-3 factual sentences."}'
         )
-        image_part = {"mime_type": "image/jpeg", "data": image_bytes}
+
         for m_name in models:
             try:
                 genai.configure(api_key=api_key)
                 gemini = genai.GenerativeModel(m_name)
                 res = gemini.generate_content(
-                    [prompt, image_part],
+                    [prompt, pil_img],
                     generation_config={"response_mime_type": "application/json"},
                 )
-                data = json.loads(res.text)
-                if isinstance(data, dict) and data.get("name"):
-                    gemini_data = data
-                    break
+                if res and res.text:
+                    clean_text = res.text.strip()
+                    if clean_text.startswith("```json"):
+                        clean_text = clean_text[7:]
+                    if clean_text.startswith("```"):
+                        clean_text = clean_text[3:]
+                    if clean_text.endswith("```"):
+                        clean_text = clean_text[:-3]
+                    data = json.loads(clean_text.strip())
+                    if isinstance(data, dict) and data.get("name"):
+                        gemini_data = data
+                        break
             except Exception as e:
                 logger.warning("Gemini model %s landmark recognition attempt failed: %s", m_name, e)
 
     if gemini_data:
         candidate_name = gemini_data.get("name", "").strip()
         is_landmark = gemini_data.get("is_landmark", True)
-        confidence = gemini_data.get("confidence", "High")
+        confidence = str(gemini_data.get("confidence", "High")).capitalize()
         location = gemini_data.get("location", "")
         category = gemini_data.get("category", "Landmark")
         description = gemini_data.get("description", "")
 
-        if not is_landmark or str(confidence).lower() == "none" or "unrecognized" in candidate_name.lower():
+        if not is_landmark or confidence.lower() == "none" or "unrecognized" in candidate_name.lower():
             return {
                 "name": "Unrecognized Landmark",
                 "location": "",
@@ -635,83 +664,26 @@ async def predict_landmark_from_image(image_bytes: bytes, db: Optional[AsyncSess
                 "longitude": grounded_poi["longitude"]
             }
 
-        # Verified real-world landmark recognized by Vision model (e.g. Vidhana Soudha)
-        if str(confidence).lower() in ("medium", "moderate", "low"):
-            formatted_desc = f"This appears to be {candidate_name}, but I can't confidently confirm it without a clearer angle. {description}"
-        else:
-            formatted_desc = description
+        # Recognized real-world landmark that is not yet in TourMate's verified POI database (e.g. Vidhana Soudha)
+        grounding_notice = f"Identified as {candidate_name}"
+        if location:
+            grounding_notice += f" in {location}"
+        grounding_notice += ". TourMate does not currently have this landmark in its verified POI database."
+
+        full_description = f"{grounding_notice} {description}".strip()
 
         return {
             "name": candidate_name,
             "location": location,
             "category": category,
-            "confidence": confidence.capitalize() if confidence else "High",
+            "confidence": confidence if confidence in ("High", "Moderate", "Low") else "Moderate",
             "is_landmark": True,
             "is_grounded": False,
-            "description": formatted_desc
+            "poi_id": None,
+            "description": full_description
         }
 
-    # 2. Fallback to local image analysis
-    try:
-        from tensorflow.keras.applications.mobilenet_v2 import preprocess_input, decode_predictions
-        import numpy as np
-
-        image = Image.open(io.BytesIO(image_bytes))
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        image = image.resize((224, 224))
-        img_array = np.expand_dims(preprocess_input(np.array(image)), axis=0)
-
-        model = get_mobilenet_model()
-        if model is not None:
-            predictions = model.predict(img_array)
-            decoded = decode_predictions(predictions, top=3)[0]
-            top_label = decoded[0][1].replace("_", " ").lower()
-
-            ARCHITECTURAL_CLASSES = {
-                "palace", "monastery", "church", "mosque", "castle",
-                "triumphal arch", "bell cote", "beacon", "pagoda", "stupas",
-                "suspension bridge", "viaduct"
-            }
-
-            if any(arch in top_label for arch in ARCHITECTURAL_CLASSES):
-                grounded_poi = await _find_canonical_poi_match(top_label, "", db=db)
-                if grounded_poi:
-                    return {
-                        "name": grounded_poi["name"],
-                        "location": grounded_poi["location"],
-                        "category": grounded_poi["category"],
-                        "confidence": "High",
-                        "is_landmark": True,
-                        "is_grounded": True,
-                        "poi_id": grounded_poi["id"],
-                        "rating": grounded_poi["rating"],
-                        "description": grounded_poi["description"],
-                        "latitude": grounded_poi["latitude"],
-                        "longitude": grounded_poi["longitude"]
-                    }
-                return {
-                    "name": "Unverified Architectural Site",
-                    "location": "Location Unconfirmed",
-                    "category": f"Architectural ({top_label.title()})",
-                    "confidence": "Low",
-                    "is_landmark": True,
-                    "is_grounded": False,
-                    "description": f"Visual analysis detected architectural features characteristic of a {top_label}, but an exact landmark cannot be confirmed without AI Vision verification."
-                }
-            else:
-                return {
-                    "name": "Unrecognized Landmark",
-                    "location": "",
-                    "category": "Non-Landmark",
-                    "confidence": "None",
-                    "is_landmark": False,
-                    "is_grounded": False,
-                    "description": "Unable to identify a recognized landmark or tourist attraction in this image. Please upload a clear photo of an attraction, monument, or historical site."
-                }
-    except Exception as e:
-        logger.warning("MobileNet prediction fallback error: %s", e)
-
+    # If Gemini Vision was unavailable / unconfigured
     return {
         "name": "Unrecognized Landmark",
         "location": "",
@@ -719,7 +691,7 @@ async def predict_landmark_from_image(image_bytes: bytes, db: Optional[AsyncSess
         "confidence": "None",
         "is_landmark": False,
         "is_grounded": False,
-        "description": "Unable to identify a recognized landmark or tourist attraction in this image."
+        "description": "Unable to identify a recognized landmark in this image. Please ensure the photo clearly depicts a known monument or attraction."
     }
 
 

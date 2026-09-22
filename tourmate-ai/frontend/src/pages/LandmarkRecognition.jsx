@@ -38,10 +38,11 @@ export default function LandmarkRecognition() {
   };
 
   const handleAnalyze = async () => {
-    if (!file) return;
+    if (!file || loading) return;
     
     setLoading(true);
     setError(null);
+    setResult(null);
     
     const formData = new FormData();
     formData.append("file", file);
@@ -52,10 +53,17 @@ export default function LandmarkRecognition() {
           "Content-Type": "multipart/form-data",
         }
       });
-      setResult(res.data.data);
+      if (res.data && res.data.success && res.data.data) {
+        setResult(res.data.data);
+      } else if (res.data && res.data.error) {
+        setError(res.data.error);
+      } else {
+        setError("Failed to analyze the image. Please try again.");
+      }
     } catch (err) {
-      console.error(err);
-      setError("Failed to analyze the image. Please try again.");
+      console.error("AI Lens error:", err);
+      const serverMsg = err.response?.data?.error || err.response?.data?.detail;
+      setError(typeof serverMsg === "string" ? serverMsg : "Failed to analyze the image. Please ensure it is a valid photo and try again.");
     } finally {
       setLoading(false);
     }
@@ -156,9 +164,13 @@ export default function LandmarkRecognition() {
                     }`}>
                       {result.confidence === "High" ? "✓ Verified Landmark (High Confidence)" : "⚠ Probable Match (Moderate Confidence)"}
                     </span>
-                    {result.is_grounded && (
+                    {result.is_grounded ? (
                       <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-bold px-3 py-1 rounded-full text-xs">
-                        TourMate Canonical POI
+                        ✓ TourMate Canonical POI
+                      </span>
+                    ) : (
+                      <span className="bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300 font-medium px-3 py-1 rounded-full text-xs">
+                        ℹ️ Uncataloged in TourMate Database
                       </span>
                     )}
                   </div>

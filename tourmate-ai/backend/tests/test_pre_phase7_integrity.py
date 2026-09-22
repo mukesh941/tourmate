@@ -172,6 +172,15 @@ async def test_itinerary_case_7_no_valid_candidates_fails_gracefully():
 # BUG 3 TESTS: AI LENS LANDMARK RECOGNITION & CANONICAL POI GROUNDING
 # ============================================================================
 
+def _make_test_image() -> bytes:
+    import io
+    from PIL import Image
+    img = Image.new("RGB", (32, 32), color="red")
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    return buf.getvalue()
+
+
 @pytest.mark.anyio
 async def test_landmark_case_1_known_canonical_poi(monkeypatch):
     """1. Known TourMate POI: returns exact name, verified location, and is_grounded=True."""
@@ -185,11 +194,10 @@ async def test_landmark_case_1_known_canonical_poi(monkeypatch):
         def __init__(self, *args, **kwargs): pass
         def generate_content(self, *args, **kwargs): return mock_gemini_content()
 
-    import google.generativeai as genai
-    monkeypatch.setattr(genai, "GenerativeModel", MockModel)
-    monkeypatch.setattr("app.core.config.settings.gemini_api_key", "test-key")
+    monkeypatch.setattr("app.services.ai_service.genai.GenerativeModel", MockModel)
+    monkeypatch.setattr("app.services.ai_service.settings.gemini_api_key", "test-key")
 
-    dummy_image = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xff\xdb\x00C\x00\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xc4\x00\x1f\x00\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\n\x0b\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xbf\x00\xff\xd9"
+    dummy_image = _make_test_image()
     result = await predict_landmark_from_image(dummy_image)
     assert result["name"] == "Taj Mahal"
     assert result["is_landmark"] is True
@@ -210,11 +218,10 @@ async def test_landmark_case_2_vidhana_soudha(monkeypatch):
         def __init__(self, *args, **kwargs): pass
         def generate_content(self, *args, **kwargs): return mock_gemini_content()
 
-    import google.generativeai as genai
-    monkeypatch.setattr(genai, "GenerativeModel", MockModel)
-    monkeypatch.setattr("app.core.config.settings.gemini_api_key", "test-key")
+    monkeypatch.setattr("app.services.ai_service.genai.GenerativeModel", MockModel)
+    monkeypatch.setattr("app.services.ai_service.settings.gemini_api_key", "test-key")
 
-    dummy_image = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xff\xdb\x00C\x00\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xc4\x00\x1f\x00\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\n\x0b\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xbf\x00\xff\xd9"
+    dummy_image = _make_test_image()
     result = await predict_landmark_from_image(dummy_image)
     assert result["name"] == "Vidhana Soudha"
     assert "Bengaluru" in result["location"]
@@ -235,11 +242,10 @@ async def test_landmark_case_3_unrelated_image(monkeypatch):
         def __init__(self, *args, **kwargs): pass
         def generate_content(self, *args, **kwargs): return mock_gemini_content()
 
-    import google.generativeai as genai
-    monkeypatch.setattr(genai, "GenerativeModel", MockModel)
-    monkeypatch.setattr("app.core.config.settings.gemini_api_key", "test-key")
+    monkeypatch.setattr("app.services.ai_service.genai.GenerativeModel", MockModel)
+    monkeypatch.setattr("app.services.ai_service.settings.gemini_api_key", "test-key")
 
-    dummy_image = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xff\xdb\x00C\x00\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xc4\x00\x1f\x00\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\n\x0b\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xbf\x00\xff\xd9"
+    dummy_image = _make_test_image()
     result = await predict_landmark_from_image(dummy_image)
     assert result["is_landmark"] is False
     assert result["confidence"] == "None"

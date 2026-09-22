@@ -118,23 +118,47 @@ async def chat_endpoint(
     )
 
 from fastapi import UploadFile, File
+from app.api.deps import get_optional_current_user
 from app.services.ai_service import predict_landmark_from_image
+import logging
+
+logger = logging.getLogger(__name__)
 
 @router.post("/recognize-landmark", response_model=Envelope[dict])
-@limiter.limit("10/minute")
+@limiter.limit("20/minute")
 async def recognize_landmark(
     request: Request,
     file: UploadFile = File(...),
-    current_user: UserPublic = Depends(get_current_user_dependency),
+    current_user: Optional[UserPublic] = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_async_db),
 ):
+    if not file or not file.filename:
+        return Envelope(success=False, error="No image file provided.")
+
+    content_type = (file.content_type or "").lower()
+    allowed_types = ("image/jpeg", "image/jpg", "image/png", "image/webp", "image/bmp", "image/gif")
+    allowed_exts = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif")
+    if content_type and content_type not in allowed_types and not file.filename.lower().endswith(allowed_exts):
+        return Envelope(
+            success=False,
+            error="Unsupported image format. Please upload a JPEG, PNG, or WebP image."
+        )
+
     try:
         image_bytes = await file.read()
+        if not image_bytes or len(image_bytes) == 0:
+            return Envelope(success=False, error="Uploaded image file is empty.")
+        if len(image_bytes) > 15 * 1024 * 1024:
+            return Envelope(success=False, error="Image file too large. Maximum supported size is 15MB.")
+
         result = await predict_landmark_from_image(image_bytes, db=db)
         return Envelope(success=True, data=result)
     except Exception as e:
-        print(f"Error predicting landmark: {e}")
-        return Envelope(success=False, error="Failed to recognize landmark. Please try again.")
+        logger.error("Error recognizing landmark: %s", e)
+        return Envelope(
+            success=False,
+            error="Failed to analyze the image. Please ensure it is a valid photo and try again."
+        )
 
 @router.post("/discover", response_model=Envelope[dict])
 @limiter.limit("10/minute")

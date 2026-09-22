@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     max_daily_candidate_pois: int = 8
 
     # Phase 5 RAG & AI Assistant Configuration
-    gemini_model: str = "gemini-3.6-flash"
+    gemini_model: str = "gemini-2.0-flash"
     rag_top_k: int = 4
     rag_min_similarity: float = 0.40
 
