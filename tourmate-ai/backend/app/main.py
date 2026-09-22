@@ -39,29 +39,22 @@ from app.core.db import async_engine, AsyncSessionLocal
 from app.core.database import close_client
 
 async def _run_startup_tasks_safely():
-    # 1. Alembic migrations (verified non-blockingly)
-    try:
-        import os
-        from alembic.config import Config
-        from alembic import command
-        ini_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "alembic.ini")
-        if os.path.exists(ini_path):
-            alembic_cfg = Config(ini_path)
-            await asyncio.wait_for(asyncio.to_thread(command.upgrade, alembic_cfg, "head"), timeout=15.0)
-            logging.info("Alembic migrations verified successfully.")
-    except Exception as exc:
-        logging.warning("Alembic auto-migration check skipped or timed out: %s", exc)
+    """
+    Optional background startup tasks.
+    Alembic migrations are executed during Render preDeployCommand.
+    This background task only checks MongoDB indexes if explicitly configured.
+    """
+    if settings.mongo_uri and ("mongodb+srv" in settings.mongo_uri or settings.environment == "development"):
+        try:
+            await asyncio.wait_for(ensure_indexes(), timeout=2.0)
+            logging.info("MongoDB index verification completed.")
+        except Exception as exc:
+            logging.warning("MongoDB index check skipped: %s", exc)
 
-    # 2. Legacy Mongo index check (only if non-localhost and configured)
-    try:
-        if settings.mongo_uri and ("localhost" not in settings.mongo_uri or settings.environment == "development"):
-            await asyncio.wait_for(ensure_indexes(), timeout=5.0)
-    except Exception as exc:
-        logging.warning("MongoDB index check skipped: %s", exc)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Launch background tasks without delaying port binding
+    # Startup: Non-blocking background verification
     bg_task = asyncio.create_task(_run_startup_tasks_safely())
     yield
     # Shutdown: Cleanly dispose resources

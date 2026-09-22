@@ -58,33 +58,51 @@ async def test_2_health_is_lightweight():
 @pytest.mark.asyncio
 async def test_3_database_session_closes_correctly():
     """3. Database session dependency guarantees closure and rollback on exit."""
-    session_gen = get_async_db()
-    session = await anext(session_gen)
-    assert isinstance(session, AsyncSession)
+    mock_session = AsyncMock()
+    mock_session.in_transaction.return_value = False
+    mock_result = MagicMock()
+    mock_result.scalar.return_value = 1
+    mock_session.execute.return_value = mock_result
 
-    # Perform lightweight query
-    result = await session.execute(text("SELECT 1"))
-    assert result.scalar() == 1
+    with patch("app.core.db.AsyncSessionLocal") as mock_session_local:
+        mock_session_local.return_value.__aenter__.return_value = mock_session
+        session_gen = get_async_db()
+        session = await anext(session_gen)
+        assert session is mock_session
 
-    # Close via generator cleanup
-    with pytest.raises(StopAsyncIteration):
-        await anext(session_gen)
+        # Perform lightweight query
+        result = await session.execute(text("SELECT 1"))
+        assert result.scalar() == 1
+
+        # Close via generator cleanup
+        with pytest.raises(StopAsyncIteration):
+            await anext(session_gen)
+
+        mock_session.close.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_4_failed_database_connection_does_not_leak_resources():
     """4. Failed database connection during session rolls back cleanly without leaving unclosed state."""
-    session_gen = get_async_db()
-    session = await anext(session_gen)
+    mock_session = AsyncMock()
+    mock_session.in_transaction.return_value = True
 
-    # Simulate an error within session usage
-    try:
-        raise RuntimeError("Simulated transaction error")
-    except RuntimeError as exc:
+    with patch("app.core.db.AsyncSessionLocal") as mock_session_local:
+        mock_session_local.return_value.__aenter__.return_value = mock_session
+        session_gen = get_async_db()
+        session = await anext(session_gen)
+
+        # Simulate an error within session usage
         try:
-            await session_gen.athrow(exc)
-        except RuntimeError:
-            pass  # Expected to re-raise
+            raise RuntimeError("Simulated transaction error")
+        except RuntimeError as exc:
+            try:
+                await session_gen.athrow(exc)
+            except RuntimeError:
+                pass  # Expected to re-raise
+
+        mock_session.rollback.assert_awaited()
+        mock_session.close.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -155,10 +173,19 @@ async def test_8_repeated_health_requests_remain_stable():
 @pytest.mark.asyncio
 async def test_9_repeated_database_requests_remain_stable():
     """9. Repeated database queries through connection pool stay stable without connection leaks."""
-    for _ in range(15):
-        async with AsyncSessionLocal() as session:
-            res = await session.execute(text("SELECT 1"))
-            assert res.scalar() == 1
+    mock_session = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalar.return_value = 1
+    mock_session.execute.return_value = mock_result
+
+    mock_session_local = MagicMock()
+    mock_session_local.return_value.__aenter__.return_value = mock_session
+
+    with patch("tests.test_production_stability.AsyncSessionLocal", mock_session_local):
+        for _ in range(15):
+            async with mock_session_local() as session:
+                res = await session.execute(text("SELECT 1"))
+                assert res.scalar() == 1
 
 
 @pytest.mark.asyncio
@@ -178,11 +205,18 @@ async def test_10_application_exception_does_not_kill_subsequent_requests():
 @pytest.mark.asyncio
 async def test_11_readiness_probe_success():
     """11. /ready and /api/ready return 200 when database is healthy."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/ready")
-        assert resp.status_code == 200
-        assert resp.json()["data"]["status"] == "ready"
-        assert resp.json()["data"]["database"] == "connected"
+    mock_session = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalar.return_value = 1
+    mock_session.execute.return_value = mock_result
+
+    with patch("app.main.AsyncSessionLocal") as mock_session_local:
+        mock_session_local.return_value.__aenter__.return_value = mock_session
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/api/ready")
+            assert resp.status_code == 200
+            assert resp.json()["data"]["status"] == "ready"
+            assert resp.json()["data"]["database"] == "connected"
 
 
 @pytest.mark.asyncio

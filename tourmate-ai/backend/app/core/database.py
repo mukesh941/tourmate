@@ -10,6 +10,7 @@ _client: AsyncIOMotorClient | None = None
 
 def get_client() -> AsyncIOMotorClient:
     global _client
+    uri = settings.mongo_uri or "mongodb://localhost:27017"
     if _client is not None:
         try:
             if _client.get_io_loop().is_closed():
@@ -18,7 +19,7 @@ def get_client() -> AsyncIOMotorClient:
             _client = None
 
     if _client is None:
-        _client = AsyncIOMotorClient(settings.mongo_uri)
+        _client = AsyncIOMotorClient(uri, serverSelectionTimeoutMS=1500)
     return _client
 
 
@@ -34,8 +35,8 @@ def get_db():
 
 
 async def ensure_indexes():
-    """Create indexes idempotently. Called once on startup if MongoDB is configured."""
-    if not settings.mongo_uri:
+    """Create indexes idempotently. Only runs if remote MongoDB is configured."""
+    if not settings.mongo_uri or ("mongodb+srv" not in settings.mongo_uri and "localhost" in settings.mongo_uri):
         return
     try:
         db = get_db()

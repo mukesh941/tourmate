@@ -17,6 +17,11 @@ from app.db.seeds.seeder import seed_geographic_foundation
 @pytest.fixture(scope="module")
 def sync_engine():
     engine = create_engine(settings.sync_database_url)
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as e:
+        pytest.skip(f"Live local PostgreSQL is not reachable: {e}")
     yield engine
     engine.dispose()
 

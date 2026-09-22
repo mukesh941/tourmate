@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     # PostgreSQL + pgvector
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5435/tourmate"
 
-    # Backward-compatible MongoDB configuration (optional during transition)
-    mongo_uri: str = "mongodb://localhost:27017"
+    # Backward-compatible MongoDB configuration (optional during transition, disabled by default)
+    mongo_uri: str | None = None
     mongo_db_name: str = "tourmate"
 
     # JWT Authentication
