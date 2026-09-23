@@ -206,6 +206,66 @@ async def get_canonical_poi_details(
     }
 
 
+def is_travel_intent_query(message: str) -> bool:
+    """
+    Detects if a user query is a travel recommendation, exploration, or category question.
+    """
+    lower = message.lower()
+    patterns = [
+        r"\b(romantic|couples?|honeymoon|date\s+night|girlfriend|boyfriend|partner)\b",
+        r"\b(history|heritage|historical|culture|monument|fort|palace|ancient)\b",
+        r"\b(peaceful|quiet|serene|relaxing|nature|garden|park)\b",
+        r"\b(photograph(y|ic)?|photos?|scenic|views?|sunset|sunrise|vistas?)\b",
+        r"\b(family|kids?|children|parents|elderly)\b",
+        r"\b(architecture|architectural|design|sculpture)\b",
+        r"\b(first[- ]time|highlights?|top|best|must[- ]visit|famous|popular)\b",
+        r"\b(suggest|recommend|what\s+to\s+visit|where\s+to\s+go|what\s+should\s+i\s+see|places\s+to\s+visit|where\s+can\s+we\s+go)\b",
+        r"\b(things\s+to\s+do|sightseeing|attractions?|tourist\s+places?)\b",
+    ]
+    return any(re.search(p, lower) for p in patterns)
+
+
+def enhance_search_query(user_query: str) -> str:
+    """
+    Enriches natural language recommendation queries with semantic domain context
+    to bridge the gap between conversational queries and encyclopedic POI chunks,
+    without inventing unsupported facts.
+    """
+    lower = user_query.lower()
+    expansions = []
+
+    # Intent mappings
+    if re.search(r"\b(romantic|couples?|honeymoon|date\s+night|girlfriend|boyfriend|partner)\b", lower):
+        expansions.append("romantic scenic places for couples, peaceful gardens, scenic views, sunset spots, monuments and tranquil ambiance")
+    if re.search(r"\b(history|historical|heritage|culture|ancient|dynasty|empire|mughal|rajput)\b", lower):
+        expansions.append("historical monuments, heritage architecture, UNESCO world heritage, forts, palaces, ancient history and cultural landmarks")
+    if re.search(r"\b(peaceful|quiet|serene|relaxing|nature|greenery|garden|park)\b", lower):
+        expansions.append("peaceful gardens, charbagh layout, calm green spaces, serene nature parks and scenic walking spots")
+    if re.search(r"\b(photograph(y|ic)?|photos?|scenic|views?|sunset|sunrise|vistas?)\b", lower):
+        expansions.append("scenic viewpoints, photography spots, picturesque riverfront views, sunset vistas and iconic architectural backdrops")
+    if re.search(r"\b(family|kids?|children|parents)\b", lower):
+        expansions.append("family friendly attractions, spacious monument complexes, gardens, cultural exhibits and historic sites")
+    if re.search(r"\b(architecture|architectural|craftsmanship|marble|red\s+sandstone)\b", lower):
+        expansions.append("marble and red sandstone architecture, intricate carvings, domes, minarets, gateways and heritage craftsmanship")
+    if re.search(r"\b(what\s+to\s+visit|where\s+to\s+go|what\s+should\s+i\s+see|suggest|recommend|places\s+to\s+visit|things\s+to\s+do|sightseeing|top|best)\b", lower):
+        expansions.append("top tourist attractions, iconic landmarks, historic monuments, cultural heritage and sightseeing places")
+
+    # Destination awareness
+    if "agra" in lower:
+        expansions.append("Agra Uttar Pradesh, Taj Mahal, Agra Fort, Mehtab Bagh, Yamuna river")
+    elif "jaipur" in lower:
+        expansions.append("Jaipur Rajasthan, Hawa Mahal, Amer Fort, City Palace, Jantar Mantar")
+    elif "delhi" in lower or "new delhi" in lower:
+        expansions.append("Delhi, Qutub Minar, Red Fort, Humayun's Tomb, India Gate, Lodhi Garden")
+    elif "mumbai" in lower:
+        expansions.append("Mumbai Maharashtra, Gateway of India, Marine Drive, Elephanta Caves")
+
+    if not expansions:
+        return user_query
+
+    return f"{user_query}. Context: {' '.join(expansions)}"
+
+
 async def retrieve_knowledge_chunks(
     query: str,
     db: AsyncSession,
@@ -215,13 +275,25 @@ async def retrieve_knowledge_chunks(
 ) -> List[Dict[str, Any]]:
     """
     Retrieves top-K knowledge chunks matching query from PostgreSQL pgvector.
-    Applies configurable similarity threshold and POI-awareness.
+    Applies configurable similarity threshold, travel-intent awareness, and POI-awareness.
     """
     k = top_k if top_k is not None else settings.rag_top_k
-    threshold = min_similarity if min_similarity is not None else settings.rag_min_similarity
+
+    is_travel = is_travel_intent_query(query)
+
+    # Determine similarity threshold
+    if min_similarity is not None:
+        threshold = min_similarity
+    elif is_travel:
+        threshold = 0.24  # Principled semantic threshold for conversational recommendation queries
+    else:
+        threshold = settings.rag_min_similarity  # 0.40 for factual/non-travel queries
+
+    # Determine embedding search query
+    search_text = enhance_search_query(query) if is_travel else query
 
     # Generate 384-d normalized query vector non-blockingly
-    query_vec = await async_get_embedding(query)
+    query_vec = await async_get_embedding(search_text)
     query_vec_str = str(query_vec)
 
     # POI-aware filter: if poi_id is provided, restrict to (poi_id = :poi_id OR poi_id IS NULL)

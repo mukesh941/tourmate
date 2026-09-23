@@ -128,6 +128,12 @@ def get_grounded_chat_response(
 
             answer_text = _safe_generate_content(model, contents, timeout_sec=12.0)
             if answer_text:
+                logger.info(
+                    "AI request: provider=gemini model=%s rag_candidates=%d accepted_context=%d grounded=true",
+                    model_name,
+                    len(retrieved_chunks),
+                    len(sources),
+                )
                 return {
                     "response": answer_text,
                     "answer": answer_text,
@@ -148,13 +154,20 @@ def get_grounded_chat_response(
         )
 
     if retrieved_chunks:
-        primary_chunk = retrieved_chunks[0]
-        extractive_lines.append(primary_chunk["content"])
-
-        if len(retrieved_chunks) > 1 and retrieved_chunks[1]["similarity"] >= 0.50:
-            extractive_lines.append(f"\nAdditionally ({retrieved_chunks[1]['title']}): {retrieved_chunks[1]['content']}")
+        if len(retrieved_chunks) == 1:
+            extractive_lines.append(retrieved_chunks[0]["content"])
+        else:
+            extractive_lines.append("Here are relevant verified places from TourMate database:")
+            for c in retrieved_chunks:
+                poi_label = c.get("poi_name") or c.get("title")
+                extractive_lines.append(f"• **{poi_label}**: {c['content']}")
 
     fallback_response = "\n".join(extractive_lines)
+    logger.info(
+        "AI request: provider=deterministic_fallback rag_candidates=%d accepted_context=%d grounded=true",
+        len(retrieved_chunks),
+        len(sources),
+    )
     return {
         "response": fallback_response,
         "answer": fallback_response,

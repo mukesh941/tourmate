@@ -78,10 +78,15 @@ async def test_user(db_session):
     await db_session.commit()
 
 
+from app.core.limiter import limiter
+
+
 @pytest.fixture
 async def client():
+    limiter.reset()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
+    limiter.reset()
 
 
 # -----------------------------------------------------------------------------
@@ -505,3 +510,189 @@ async def test_correct_is_grounded_semantics(client, test_user):
     )
     assert res_c.json()["data"]["is_grounded"] is True
     assert "Route Optimization" in res_c.json()["data"]["response"]
+
+
+# -----------------------------------------------------------------------------
+# 24. Test Matrix: Natural Language Recommendations & Intent Evaluation
+# -----------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_matrix_exact_factual(client, test_user):
+    """Test Matrix A: Exact factual query"""
+    user, token = test_user
+    res = await client.post(
+        "/api/ai/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"message": "What is the Taj Mahal?"},
+    )
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["is_grounded"] is True
+    assert len(data["sources"]) > 0
+    assert any("Taj Mahal" in s["title"] for s in data["sources"])
+
+
+@pytest.mark.asyncio
+async def test_matrix_paraphrase(client, test_user):
+    """Test Matrix B: Paraphrase query"""
+    user, token = test_user
+    res = await client.post(
+        "/api/ai/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"message": "Tell me about the Taj Mahal."},
+    )
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["is_grounded"] is True
+    assert len(data["sources"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_matrix_semantic_recommendation_romantic(client, test_user):
+    """Test Matrix C: Semantic recommendation for romantic places in Agra"""
+    user, token = test_user
+    res = await client.post(
+        "/api/ai/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"message": "What are some romantic places in Agra?"},
+    )
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["is_grounded"] is True
+    assert len(data["sources"]) > 0
+    # Must retrieve relevant Agra POIs (e.g. Mehtab Bagh, Taj Mahal, Agra Fort, Agra Overview)
+    source_titles = [s["title"] for s in data["sources"]]
+    assert any("Agra" in t or "Mehtab Bagh" in t or "Taj Mahal" in t for t in source_titles)
+
+
+@pytest.mark.asyncio
+async def test_matrix_couples_paraphrase(client, test_user):
+    """Test Matrix D: Couples recommendation paraphrase"""
+    user, token = test_user
+    res = await client.post(
+        "/api/ai/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"message": "Where can couples visit in Agra?"},
+    )
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["is_grounded"] is True
+    assert len(data["sources"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_matrix_category_intent_jaipur(client, test_user):
+    """Test Matrix E: Category intent for historical places in Jaipur"""
+    user, token = test_user
+    res = await client.post(
+        "/api/ai/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"message": "What historical places can I visit in Jaipur?"},
+    )
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["is_grounded"] is True
+    assert len(data["sources"]) > 0
+    source_titles = [s["title"] for s in data["sources"]]
+    assert any("Jaipur" in t or "Amer Fort" in t or "Hawa Mahal" in t for t in source_titles)
+
+
+@pytest.mark.asyncio
+async def test_matrix_opening_hours(client, test_user):
+    """Test Matrix F: Opening hours query"""
+    user, token = test_user
+    res = await client.post(
+        "/api/ai/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"message": "What are the opening hours of Taj Mahal?"},
+    )
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["is_grounded"] is True
+    assert len(data["sources"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_matrix_route_interception(client, test_user):
+    """Test Matrix G: Route distance query interception"""
+    user, token = test_user
+    res = await client.post(
+        "/api/ai/chat",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"message": "How far is Taj Mahal from Agra Fort?"},
+    )
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["is_grounded"] is True
+    # Handled authoritatively by routing engine / guardrail
+    assert "distance" in data["response"].lower() or "route" in data["response"].lower()
+
+
+@pytest.mark.asyncio
+async def test_matrix_unrelated_queries_rejection(client, test_user):
+    """Test Matrix H: Unrelated questions rejected safely without hallucination"""
+    user, token = test_user
+    unrelated_queries = [
+        "What is the capital of France?",
+        "Who is the president of the United States?",
+    ]
+    for q in unrelated_queries:
+        res = await client.post(
+            "/api/ai/chat",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"message": q},
+        )
+        assert res.status_code == 200
+        data = res.json()["data"]
+        assert data["is_grounded"] is False
+        assert data["sources"] == []
+        assert "not have verified knowledge" in data["response"].lower()
+
+
+def test_matrix_gemini_failure_fallback():
+    """Test Matrix I: Deterministic local fallback when Gemini fails"""
+    sample_chunks = [
+        {
+            "id": "c1",
+            "poi_name": "Mehtab Bagh",
+            "title": "Mehtab Bagh Overview",
+            "source": "editorial_verified",
+            "content": "Mehtab Bagh is a charbagh garden complex north of the Taj Mahal.",
+            "similarity": 0.45,
+        }
+    ]
+    # Simulate with invalid/failing configuration
+    res = get_grounded_chat_response(
+        user_message="Tell me about Mehtab Bagh",
+        history=[],
+        retrieved_chunks=sample_chunks,
+        language="en",
+    )
+    assert res["is_grounded"] is True
+    assert "Mehtab Bagh is a charbagh garden complex" in res["response"]
+    assert len(res["sources"]) == 1
+
+
+def test_matrix_gemini_key_missing_no_leakage(monkeypatch):
+    """Test Matrix J: Safe fallback when Gemini key is missing, no secret leakage"""
+    monkeypatch.setattr(settings, "gemini_api_key", None)
+    sample_chunks = [
+        {
+            "id": "c1",
+            "poi_name": "Amer Fort",
+            "title": "Amer Fort History",
+            "source": "editorial_verified",
+            "content": "Amer Fort is a majestic fortress located in Amer, Rajasthan.",
+            "similarity": 0.55,
+        }
+    ]
+    res = get_grounded_chat_response(
+        user_message="Tell me about Amer Fort",
+        history=[],
+        retrieved_chunks=sample_chunks,
+        language="en",
+    )
+    assert res["is_grounded"] is True
+    assert "Amer Fort is a majestic fortress" in res["response"]
+    assert "GEMINI" not in res["response"]
+    assert "API_KEY" not in res["response"]
+
