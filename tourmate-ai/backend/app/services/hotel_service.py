@@ -23,6 +23,15 @@ from app.schemas.hotel import (
 _in_memory_bookings: List[dict] = []
 
 
+DESTINATION_ALIASES = {
+    "kerala": ["kochi", "kerala", "munnar", "alleppey", "wayanad", "trivandrum"],
+    "kashmir": ["srinagar", "kashmir", "gulmarg", "pahalgam", "jammu and kashmir"],
+    "delhi": ["new delhi", "delhi"],
+    "goa": ["goa", "candolim", "panaji", "morjim", "calangute"],
+    "ladakh": ["leh", "ladakh"],
+}
+
+
 def _format_acc_to_hotel_response(acc: Accommodation) -> HotelResponse:
     # Build coordinates
     location_schema = None
@@ -40,7 +49,7 @@ def _format_acc_to_hotel_response(acc: Accommodation) -> HotelResponse:
             if ai.image and ai.image.url:
                 images.append(ai.image.url)
 
-    cover_image = images[0] if images else "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22800%22%20height%3D%22600%22%20viewBox%3D%220%200%20800%20600%22%20fill%3D%22none%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23f8fafc%22%2F%3E%3Cpath%20d%3D%22M360%20320h80v40h-80zM350%20220h100v180H350z%22%20fill%3D%22%2394a3b8%22%2F%3E%3Ctext%20x%3D%22400%22%20y%3D%22430%22%20fill%3D%22%2364748b%22%20font-family%3D%22system-ui%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%3EVerified%20Accommodation%3C%2Ftext%3E%3C%2Fsvg%3E"
+    cover_image = images[0] if images else "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22800%22%20height%3D%22600%22%20viewBox%3D%220%200%20800%20600%22%20fill%3D%22none%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23f8fafc%22%2F%3E%3Cpath%20d%3D%22M360%20320h80v40h-80zM350%20220h100v180H350z%22%20fill%3D%22%2394a3b8%22%2F%3E%3Ctext%20x%3D%22400%22%20y%3D%22430%22%20fill%3D%22%2364748b%22%20font-family%3D%22system-ui%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%3ETourMate%20Verified%20Accommodation%3C%2Ftext%3E%3C%2Fsvg%3E"
 
     price = float(acc.price_per_night) if acc.price_per_night else 3500.0
 
@@ -88,7 +97,9 @@ def _format_acc_to_hotel_response(acc: Accommodation) -> HotelResponse:
         images=images or [cover_image],
         amenities=["Free WiFi", "Pool", "Restaurant", "Air Conditioning", "Spa", "Breakfast"],
         hotel_type=acc.type.capitalize() if acc.type else "Hotel",
-        rooms=rooms
+        rooms=rooms,
+        source="canonical",
+        external_booking_url=acc.external_booking_url,
     )
 
 
@@ -104,6 +115,10 @@ async def get_all_hotels(
     radius_km: Optional[float] = 10.0,
     db: Optional[AsyncSession] = None,
 ) -> List[HotelResponse]:
+    from app.core.config import settings
+    from app.services.google_places_service import search_lodging
+    import logging
+
     async def _query(session: AsyncSession) -> List[HotelResponse]:
         stmt = (
             select(Accommodation)
@@ -118,7 +133,15 @@ async def get_all_hotels(
         filters = []
 
         if city:
-            filters.append(func.lower(Location.city).like(f"%{city.strip().lower()}%"))
+            c_clean = city.strip().lower()
+            aliases = DESTINATION_ALIASES.get(c_clean, [c_clean])
+            city_or_filters = []
+            for alias in aliases:
+                pat = f"%{alias}%"
+                city_or_filters.append(func.lower(Location.city).like(pat))
+                city_or_filters.append(func.lower(Location.state).like(pat))
+                city_or_filters.append(func.lower(Location.name).like(pat))
+            filters.append(or_(*city_or_filters))
 
         if query:
             q_pat = f"%{query.strip().lower()}%"
@@ -174,7 +197,27 @@ async def get_all_hotels(
                         filtered.append(a)
             accs = filtered
 
-        return [_format_acc_to_hotel_response(a) for a in accs]
+        canonical_results = [_format_acc_to_hotel_response(a) for a in accs]
+
+        # Layered Discovery: If insufficient canonical results and Google Places configured, query external provider
+        if len(canonical_results) < 2 and (city or (lat and lng)) and settings.google_maps_api_key:
+            try:
+                dest_target = city or "India"
+                ext_places = await search_lodging(destination=dest_target, lat=lat, lng=lng, max_results=10)
+                
+                # Deduplicate against canonical results by name
+                canonical_names = {c.name.strip().lower() for c in canonical_results}
+                for ep in ext_places:
+                    ep_name = ep.get("name", "").strip().lower()
+                    if ep_name and ep_name not in canonical_names:
+                        if min_rating is not None and (ep.get("rating") is None or ep.get("rating") < min_rating):
+                            continue
+                        canonical_results.append(HotelResponse(**ep))
+                        canonical_names.add(ep_name)
+            except Exception as e:
+                logging.warning("External lodging discovery failed gracefully: %s", e)
+
+        return canonical_results
 
     if db is not None:
         return await _query(db)

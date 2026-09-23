@@ -196,12 +196,28 @@ export default function Hotels() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
           </div>
         ) : hotels.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-gray-200 dark:border-slate-700">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-gray-200 dark:border-slate-700 max-w-xl mx-auto shadow-sm">
             <Building className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-gray-800 dark:text-slate-200">No accommodations found</h3>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-slate-200">
+              {selectedCity !== "All" ? `No verified stays found in ${selectedCity} yet.` : "No accommodations found"}
+            </h3>
             <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-              Try adjusting your destination, price filters, or keyword search.
+              Try exploring all destinations or adjusting your filters to discover authentic stays.
             </p>
+            {selectedCity !== "All" && (
+              <button
+                onClick={() => {
+                  setSelectedCity("All");
+                  setSearchQuery("");
+                  setPriceFilter("all");
+                  setMinRating(0);
+                  setSelectedAmenity("");
+                }}
+                className="mt-5 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm transition transform active:scale-95"
+              >
+                Explore All Destinations
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -221,11 +237,15 @@ export default function Hotels() {
                     <span className="absolute top-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-xs font-semibold text-white">
                       {hotel.hotel_type}
                     </span>
-                    <div className="absolute top-3 right-3 px-2.5 py-1 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md rounded-lg text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1 shadow-sm">
-                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                      <span>{hotel.rating.toFixed(1)}</span>
-                      <span className="text-gray-400 font-normal">({hotel.review_count})</span>
-                    </div>
+                    {hotel.rating ? (
+                      <div className="absolute top-3 right-3 px-2.5 py-1 bg-white/95 dark:bg-slate-900/90 backdrop-blur-md rounded-lg text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1 shadow-sm">
+                        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                        <span>{Number(hotel.rating).toFixed(1)}</span>
+                        {hotel.review_count ? (
+                          <span className="text-gray-400 font-normal">({hotel.review_count})</span>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* Body Content */}
@@ -243,7 +263,7 @@ export default function Hotels() {
 
                     {/* Key Amenities */}
                     <div className="flex flex-wrap gap-1.5 mb-2">
-                      {hotel.amenities.slice(0, 3).map((amenity, aIdx) => (
+                      {hotel.amenities?.slice(0, 3).map((amenity, aIdx) => (
                         <span
                           key={aIdx}
                           className="px-2.5 py-1 bg-gray-50 dark:bg-slate-700/60 text-[11px] font-medium text-gray-600 dark:text-slate-300 rounded-lg border border-gray-100 dark:border-slate-600/50"
@@ -251,7 +271,7 @@ export default function Hotels() {
                           {amenity}
                         </span>
                       ))}
-                      {hotel.amenities.length > 3 && (
+                      {hotel.amenities?.length > 3 && (
                         <span className="px-2 py-1 bg-gray-50 dark:bg-slate-700/60 text-[11px] font-medium text-gray-400 rounded-lg">
                           +{hotel.amenities.length - 3} more
                         </span>
@@ -263,20 +283,40 @@ export default function Hotels() {
                 {/* Footer Bar */}
                 <div className="p-6 pt-0 border-t border-gray-100 dark:border-slate-700/60 mt-4 flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-gray-400">Indicative baseline from</span>
+                    <span className="text-xs text-gray-400">
+                      {hotel.price_per_night_start ? "Indicative baseline from" : "Pricing"}
+                    </span>
                     <div className="text-lg font-extrabold text-gray-900 dark:text-white">
-                      {hotel.currency}{hotel.price_per_night_start}
-                      <span className="text-xs font-normal text-gray-500 dark:text-slate-400"> / night</span>
+                      {hotel.price_per_night_start ? (
+                        <>
+                          {hotel.currency}{hotel.price_per_night_start}
+                          <span className="text-xs font-normal text-gray-500 dark:text-slate-400"> / night</span>
+                        </>
+                      ) : (
+                        <span className="text-xs font-semibold text-gray-500 dark:text-slate-400">Price unavailable</span>
+                      )}
                     </div>
                   </div>
 
-                  <Link
-                    to={`/hotels/${hotel.id}`}
-                    className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition transform active:scale-95"
-                  >
-                    <span>View Rooms</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  {hotel.source === "google" && hotel.external_booking_url ? (
+                    <a
+                      href={hotel.external_booking_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition transform active:scale-95"
+                    >
+                      <span>View Details</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </a>
+                  ) : (
+                    <Link
+                      to={`/hotels/${hotel.id}`}
+                      className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition transform active:scale-95"
+                    >
+                      <span>View Rooms</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}

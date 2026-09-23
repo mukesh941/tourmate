@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import ShareModal from "../components/ShareModal";
 import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
+import SafeImage from "../components/SafeImage";
 
 export default function HotelDetail() {
   const { id } = useParams();
@@ -205,17 +206,16 @@ export default function HotelDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-10">
           {/* Main Large Image */}
           <div className="lg:col-span-2 h-80 sm:h-[420px] rounded-2xl overflow-hidden shadow-sm bg-gray-100 dark:bg-slate-800">
-            <img
-              src={selectedImage || hotel.cover_image || NEUTRAL_PLACEHOLDER_IMAGE}
+            <SafeImage
+              src={selectedImage || hotel.cover_image || hotel.images?.[0]}
               alt={hotel.name}
               className="w-full h-full object-cover transition-all duration-300"
-              onError={handleImageError}
             />
           </div>
 
           {/* Thumbnail Strip */}
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-4 h-auto lg:h-[420px]">
-            {hotel.images.slice(0, 3).map((img, idx) => (
+            {hotel.images?.slice(0, 3).map((img, idx) => (
               <div
                 key={idx}
                 onClick={() => setSelectedImage(img)}
@@ -225,7 +225,7 @@ export default function HotelDetail() {
                     : "border-transparent opacity-80 hover:opacity-100"
                 }`}
               >
-                <img
+                <SafeImage
                   src={img}
                   alt={`${hotel.name} preview ${idx + 1}`}
                   className="w-full h-full object-cover"
@@ -317,11 +317,10 @@ export default function HotelDetail() {
               >
                 <div>
                   <div className="relative h-48 w-full overflow-hidden bg-gray-100 dark:bg-slate-700">
-                    <img
-                      src={room.image || hotel.cover_image || NEUTRAL_PLACEHOLDER_IMAGE}
+                    <SafeImage
+                      src={room.image || hotel.cover_image || hotel.images?.[0]}
                       alt={room.name}
                       className="w-full h-full object-cover"
-                      onError={handleImageError}
                     />
                     <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-lg text-xs font-bold text-white">
                       {hotel.currency}{room.price_per_night} <span className="font-normal text-gray-300">/ night</span>
@@ -544,8 +543,8 @@ export default function HotelDetail() {
         <ShareModal
           isOpen={shareOpen}
           onClose={() => setShareOpen(false)}
-          title={`${hotel.name} — ${hotel.city}, ${hotel.state}`}
-          text={`🏨 Check out ${hotel.name} on TourMate! Rooms starting from $${hotel.starting_price_usd}/night with ${hotel.rating.toFixed(1)}★ rating.`}
+          title={`${hotel.name} — ${hotel.city}, India`}
+          text={`🏨 Check out ${hotel.name} in ${hotel.city} on TourMate! ${hotel.price_per_night_start ? `Rooms from ${hotel.currency}${hotel.price_per_night_start}/night` : 'Authentic verified stay'}${hotel.rating ? ` with ${hotel.rating.toFixed(1)}★ rating` : ''}.`}
           url={window.location.href}
         />
       )}

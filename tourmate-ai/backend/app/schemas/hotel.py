@@ -23,15 +23,18 @@ class HotelBase(BaseModel):
     address: str = Field(...)
     destination_id: Optional[str] = None
     location: Optional[GeoJSONPointSchema] = None
-    rating: float = Field(default=4.5, ge=1.0, le=5.0)
-    review_count: int = Field(default=0)
-    price_per_night_start: float = Field(..., gt=0)
+    rating: Optional[float] = Field(default=None, ge=1.0, le=5.0)
+    review_count: Optional[int] = Field(default=0)
+    price_per_night_start: Optional[float] = None
     currency: str = Field(default="₹")
-    cover_image: str = Field(...)
+    cover_image: Optional[str] = None
     images: List[str] = Field(default_factory=list)
     amenities: List[str] = Field(default_factory=list)
-    hotel_type: str = Field(default="Luxury Resort")  # Luxury Resort, Heritage Haveli, Boutique Hotel, Mountain Lodge, Beachfront Villa
+    hotel_type: str = Field(default="Hotel")  # Luxury Resort, Heritage Haveli, Boutique Hotel, Mountain Lodge, Beachfront Villa, Hostel, Hotel
     rooms: List[RoomType] = Field(default_factory=list)
+    source: str = Field(default="canonical")
+    external_place_id: Optional[str] = None
+    external_booking_url: Optional[str] = None
 
 class HotelCreate(HotelBase):
     pass

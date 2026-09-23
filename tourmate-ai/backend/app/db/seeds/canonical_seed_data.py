@@ -5616,8 +5616,8 @@ PILOT_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000013",
-                "url": "https://images.unsplash.com/photo-1542314831-c6a4d14ce8a1?auto=format&fit=crop&w=1200&q=80",
-                "thumbnail_url": "https://images.unsplash.com/photo-1542314831-c6a4d14ce8a1?auto=format&fit=crop&w=320&q=80",
+                "url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
                 "caption": "The Oberoi Amarvilas Luxury Resort in Agra",
                 "source": "curated_unsplash",
                 "external_image_id": "photo-1542314831-c6a4d14ce8a1",
@@ -5653,7 +5653,7 @@ PILOT_ACCOMMODATIONS = [
             {
                 "id": "d0000000-0000-0000-0000-000000000014",
                 "url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-                "thumbnail_url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=320&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Tajview hotel grounds in Agra",
                 "source": "curated_unsplash",
                 "external_image_id": "photo-1566073771259-6a8506099945",
@@ -5689,7 +5689,7 @@ PILOT_ACCOMMODATIONS = [
             {
                 "id": "d0000000-0000-0000-0000-000000000015",
                 "url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
-                "thumbnail_url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=320&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
                 "caption": "The Imperial Hotel lobby and courtyard in New Delhi",
                 "source": "curated_unsplash",
                 "external_image_id": "photo-1582719478250-c89cae4dc85b",
@@ -5725,7 +5725,7 @@ PILOT_ACCOMMODATIONS = [
             {
                 "id": "d0000000-0000-0000-0000-000000000016",
                 "url": "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80",
-                "thumbnail_url": "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=320&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Bloomrooms boutique hotel room in New Delhi",
                 "source": "curated_unsplash",
                 "external_image_id": "photo-1520250497591-112f2f40a3f4",
@@ -5760,8 +5760,8 @@ PILOT_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000017",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Rambagh_Palace_Jaipur.jpg/1280px-Rambagh_Palace_Jaipur.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Rambagh_Palace_Jaipur.jpg/320px-Rambagh_Palace_Jaipur.jpg",
+                "url": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
                 "caption": "The regal facade of Rambagh Palace in Jaipur",
                 "source": "wikimedia_commons",
                 "external_image_id": "Rambagh_Palace_Jaipur.jpg",
@@ -5796,8 +5796,8 @@ PILOT_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000018",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/The_Taj_Mahal_Palace_Hotel.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/The_Taj_Mahal_Palace_Hotel.jpg/320px-The_Taj_Mahal_Palace_Hotel.jpg",
+                "url": "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Iconic Taj Mahal Palace Hotel on Mumbai harbour",
                 "source": "wikimedia_commons",
                 "external_image_id": "The_Taj_Mahal_Palace_Hotel.jpg",

@@ -15381,8 +15381,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000134",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Taj_Mahal_%28Edited%29.jpeg/1280px-Taj_Mahal_%28Edited%29.jpeg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Taj_Mahal_%28Edited%29.jpeg/1280px-Taj_Mahal_%28Edited%29.jpeg",
+                "url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Budget stay near Taj East Gate",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Taj_Mahal_%28Edited%29.jpeg",
@@ -15417,8 +15417,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000135",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Qutub_Minar_in_the_evening.jpg/1280px-Qutub_Minar_in_the_evening.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Qutub_Minar_in_the_evening.jpg/1280px-Qutub_Minar_in_the_evening.jpg",
+                "url": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Heritage luxury hotel in Lutyens Delhi",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Qutub_Minar_in_the_evening.jpg",
@@ -15453,8 +15453,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000136",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Rambagh_Palace_Jaipur.jpg/1280px-Rambagh_Palace_Jaipur.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Rambagh_Palace_Jaipur.jpg/1280px-Rambagh_Palace_Jaipur.jpg",
+                "url": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Restored heritage haveli in Jaipur",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Rambagh_Palace_Jaipur.jpg",
@@ -15489,8 +15489,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000137",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/East_facade_Hawa_Mahal_Jaipur_edit1.jpg/1280px-East_facade_Hawa_Mahal_Jaipur_edit1.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/East_facade_Hawa_Mahal_Jaipur_edit1.jpg/1280px-East_facade_Hawa_Mahal_Jaipur_edit1.jpg",
+                "url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Vibrant budget backpacker stay near Hawa Mahal",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-East_facade_Hawa_Mahal_Jaipur_edit1.jpg",
@@ -15525,8 +15525,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000138",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/The_Taj_Mahal_Palace_Hotel.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/The_Taj_Mahal_Palace_Hotel.jpg",
+                "url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Comfortable stay in heritage Fort district",
                 "source": "wikimedia_commons",
                 "external_image_id": "The_Taj_Mahal_Palace_Hotel.jpg",
@@ -15561,8 +15561,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000139",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Gateway_of_India%2C_Mumbai.jpg/1280px-Gateway_of_India%2C_Mumbai.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Gateway_of_India%2C_Mumbai.jpg/1280px-Gateway_of_India%2C_Mumbai.jpg",
+                "url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Modern community hostel in Mumbai",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Gateway_of_India%2C_Mumbai.jpg",
@@ -15597,8 +15597,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000140",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Bangalore_Palace_-_front_view.jpg/1280px-Bangalore_Palace_-_front_view.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Bangalore_Palace_-_front_view.jpg/1280px-Bangalore_Palace_-_front_view.jpg",
+                "url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Palatial luxury retreat inspired by Royal Mysore",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Bangalore_Palace_-_front_view.jpg",
@@ -15633,8 +15633,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000141",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Glass_house_at_Lalbagh.jpg/1280px-Glass_house_at_Lalbagh.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Glass_house_at_Lalbagh.jpg/1280px-Glass_house_at_Lalbagh.jpg",
+                "url": "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Sleek contemporary boutique hotel in Indiranagar",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Glass_house_at_Lalbagh.jpg",
@@ -15777,8 +15777,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000145",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Dashashwamedh_Ghat_Varanasi.jpg/1280px-Dashashwamedh_Ghat_Varanasi.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Dashashwamedh_Ghat_Varanasi.jpg/1280px-Dashashwamedh_Ghat_Varanasi.jpg",
+                "url": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
                 "caption": "210-year-old heritage palace right on the Ganges ghats",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Dashashwamedh_Ghat_Varanasi.jpg",
@@ -15813,8 +15813,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000146",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Kashi_Vishwanath_Corridor_Varanasi.jpg/1280px-Kashi_Vishwanath_Corridor_Varanasi.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Kashi_Vishwanath_Corridor_Varanasi.jpg/1280px-Kashi_Vishwanath_Corridor_Varanasi.jpg",
+                "url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Popular backpacker hub near Assi Ghat",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Kashi_Vishwanath_Corridor_Varanasi.jpg",
@@ -15849,8 +15849,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000147",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Chinese_fishing_nets_Kochi.jpg/1280px-Chinese_fishing_nets_Kochi.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Chinese_fishing_nets_Kochi.jpg/1280px-Chinese_fishing_nets_Kochi.jpg",
+                "url": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Historic shipyard-restored heritage hotel on the harbor",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Chinese_fishing_nets_Kochi.jpg",
@@ -15885,8 +15885,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000148",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Mattancherry_Palace_Kochi.jpg/1280px-Mattancherry_Palace_Kochi.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Mattancherry_Palace_Kochi.jpg/1280px-Mattancherry_Palace_Kochi.jpg",
+                "url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Vibrant budget stay in the heart of Fort Kochi",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Mattancherry_Palace_Kochi.jpg",
@@ -15921,8 +15921,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000149",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Lake_Pichola_Udaipur.jpg/1280px-Lake_Pichola_Udaipur.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Lake_Pichola_Udaipur.jpg/1280px-Lake_Pichola_Udaipur.jpg",
+                "url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
                 "caption": "18th-century marble palace floating in Lake Pichola",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Lake_Pichola_Udaipur.jpg",
@@ -15957,8 +15957,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000150",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Udaipur_City_Palace.jpg/1280px-Udaipur_City_Palace.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Udaipur_City_Palace.jpg/1280px-Udaipur_City_Palace.jpg",
+                "url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Rooftop hostel overlooking Lake Pichola and City Palace",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Udaipur_City_Palace.jpg",
@@ -15993,8 +15993,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000151",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Golden_Temple_Amritsar_India.jpg/1280px-Golden_Temple_Amritsar_India.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Golden_Temple_Amritsar_India.jpg/1280px-Golden_Temple_Amritsar_India.jpg",
+                "url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Contemporary luxury hotel in the heart of Amritsar",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Golden_Temple_Amritsar_India.jpg",
@@ -16029,8 +16029,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000152",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Jallianwala_Bagh_Memorial.jpg/1280px-Jallianwala_Bagh_Memorial.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Jallianwala_Bagh_Memorial.jpg/1280px-Jallianwala_Bagh_Memorial.jpg",
+                "url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Eco-friendly backpacker hostel near the Golden Temple",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Jallianwala_Bagh_Memorial.jpg",
@@ -16065,8 +16065,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000153",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Charminar_Hyderabad_1.jpg/1280px-Charminar_Hyderabad_1.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Charminar_Hyderabad_1.jpg/1280px-Charminar_Hyderabad_1.jpg",
+                "url": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Historic Nizam palace perched 2000 feet above Hyderabad",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Charminar_Hyderabad_1.jpg",
@@ -16101,8 +16101,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000154",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Kapaleeshwarar_Temple_Gopuram.jpg/1280px-Kapaleeshwarar_Temple_Gopuram.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Kapaleeshwarar_Temple_Gopuram.jpg/1280px-Kapaleeshwarar_Temple_Gopuram.jpg",
+                "url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Classic five-star luxury hotel in central Chennai",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Kapaleeshwarar_Temple_Gopuram.jpg",
@@ -16137,8 +16137,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000155",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Mysore_Palace_Front.jpg/1280px-Mysore_Palace_Front.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Mysore_Palace_Front.jpg/1280px-Mysore_Palace_Front.jpg",
+                "url": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Italian renaissance style royal palace built for royal guests",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Mysore_Palace_Front.jpg",
@@ -16173,8 +16173,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000156",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Solang_Valley_Manali.jpg/1280px-Solang_Valley_Manali.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Solang_Valley_Manali.jpg/1280px-Solang_Valley_Manali.jpg",
+                "url": "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Cozy mountain lodge nestled in Manali pine groves",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Solang_Valley_Manali.jpg",
@@ -16209,8 +16209,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000157",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Hidimba_Devi_Temple_Manali.jpg/1280px-Hidimba_Devi_Temple_Manali.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Hidimba_Devi_Temple_Manali.jpg/1280px-Hidimba_Devi_Temple_Manali.jpg",
+                "url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Scenic backpacker hostel in Old Manali",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Hidimba_Devi_Temple_Manali.jpg",
@@ -16245,8 +16245,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000158",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Dal_Lake_Srinagar_Kashmir.jpg/1280px-Dal_Lake_Srinagar_Kashmir.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Dal_Lake_Srinagar_Kashmir.jpg/1280px-Dal_Lake_Srinagar_Kashmir.jpg",
+                "url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Historic royal palace overlooking Dal Lake and Zabarwan mountains",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Dal_Lake_Srinagar_Kashmir.jpg",
@@ -16281,8 +16281,8 @@ EXPANDED_ACCOMMODATIONS = [
         "images": [
             {
                 "id": "d0000000-0000-0000-0000-000000000159",
-                "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Shalimar_Bagh_Srinagar.jpg/1280px-Shalimar_Bagh_Srinagar.jpg",
-                "thumbnail_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Shalimar_Bagh_Srinagar.jpg/1280px-Shalimar_Bagh_Srinagar.jpg",
+                "url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+                "thumbnail_url": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
                 "caption": "Peaceful backpacker retreat near Nishat and Dal Lake",
                 "source": "wikimedia_commons",
                 "external_image_id": "1280px-Shalimar_Bagh_Srinagar.jpg",

@@ -373,6 +373,131 @@ async def get_place_details(place_id: str) -> Optional[Dict[str, Any]]:
     return normalized
 
 
+def _normalize_lodging(gplace: Dict[str, Any], destination_city: str = "") -> Dict[str, Any]:
+    """
+    Normalize Google Places lodging response to TourMate HotelResponse dictionary.
+    Strictly preserves integrity: does NOT invent fake nightly prices.
+    """
+    place_id = gplace.get("id") or gplace.get("place_id", "")
+    name = gplace.get("displayName", {}).get("text", "") or gplace.get("name", "")
+    
+    location = gplace.get("location", {})
+    lat = location.get("latitude")
+    lng = location.get("longitude")
+    
+    types = gplace.get("types", [])
+    
+    hotel_type = "Hotel"
+    if "resort_hotel" in types or "resort" in types:
+        hotel_type = "Resort"
+    elif "hostel" in types:
+        hotel_type = "Hostel"
+    elif "guest_house" in types or "bed_and_breakfast" in types:
+        hotel_type = "Guesthouse"
+        
+    rating = gplace.get("rating")
+    user_ratings_total = gplace.get("userRatingCount") or gplace.get("user_ratings_total", 0)
+    address = gplace.get("formattedAddress") or gplace.get("vicinity", "")
+    
+    maps_url = f"https://www.google.com/maps/place/?q=place_id:{place_id}" if place_id else None
+    
+    photo_url = None
+    photos = gplace.get("photos", [])
+    if photos:
+        photo_ref = photos[0].get("name", "")
+        if photo_ref and settings.google_maps_api_key:
+            photo_url = (
+                f"https://places.googleapis.com/v1/{photo_ref}/media"
+                f"?maxHeightPx=600&maxWidthPx=800&key={settings.google_maps_api_key}"
+            )
+            
+    cover_image = photo_url or "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22800%22%20height%3D%22600%22%20viewBox%3D%220%200%20800%20600%22%20fill%3D%22none%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23f8fafc%22%2F%3E%3Cpath%20d%3D%22M360%20320h80v40h-80zM350%20220h100v180H350z%22%20fill%3D%22%2394a3b8%22%2F%3E%3Ctext%20x%3D%22400%22%20y%3D%22430%22%20fill%3D%22%2364748b%22%20font-family%3D%22system-ui%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%3ETourMate%20Verified%20Stay%3C%2Ftext%3E%3C%2Fsvg%3E"
+
+    editorial = gplace.get("editorialSummary", {}).get("text", "")
+    description = editorial or f"{name} located in {destination_city or 'the area'}."
+
+    return {
+        "id": f"google-{place_id}",
+        "name": name,
+        "description": description,
+        "city": destination_city or "India",
+        "address": address,
+        "destination_id": destination_city,
+        "location": {"type": "Point", "coordinates": [lng, lat]} if lat and lng else None,
+        "rating": float(rating) if rating is not None else None,
+        "review_count": int(user_ratings_total) if user_ratings_total else 0,
+        "price_per_night_start": None,
+        "currency": "₹",
+        "cover_image": cover_image,
+        "images": [cover_image],
+        "amenities": ["Air Conditioning", "WiFi", "Front Desk"],
+        "hotel_type": hotel_type,
+        "rooms": [],
+        "source": "google",
+        "external_place_id": place_id,
+        "external_booking_url": maps_url,
+    }
+
+
+async def search_lodging(
+    destination: str,
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    radius_m: int = 30000,
+    max_results: int = 10,
+) -> List[Dict[str, Any]]:
+    """
+    Search lodging/hotels via Google Places API (New) for destination discovery.
+    Results are cached to respect quotas.
+    """
+    api_key = settings.google_maps_api_key
+    if not api_key or not destination:
+        return []
+
+    ck = _cache_key("lodging", destination, lat, lng, radius_m, max_results)
+    cached = _cache_get(ck)
+    if cached is not None:
+        return cached
+
+    url = "https://places.googleapis.com/v1/places:searchText"
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": api_key,
+        "X-Goog-FieldMask": (
+            "places.id,places.displayName,places.location,"
+            "places.types,places.rating,places.userRatingCount,places.formattedAddress,"
+            "places.photos,places.editorialSummary"
+        ),
+    }
+    body: Dict[str, Any] = {
+        "textQuery": f"hotels, resorts, and stays in {destination}, India",
+        "includedType": "lodging",
+        "maxResultCount": min(max_results, 20),
+        "languageCode": "en",
+    }
+    if lat and lng:
+        body["locationBias"] = {
+            "circle": {
+                "center": {"latitude": lat, "longitude": lng},
+                "radius": float(radius_m),
+            }
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, json=body, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as e:
+        print(f"[Google Places] Lodging Search error: {e}")
+        return []
+
+    raw_places = data.get("places", [])
+    normalized = [_normalize_lodging(p, destination_city=destination) for p in raw_places]
+    _cache_set(ck, normalized)
+    return normalized
+
+
 def deduplicate_places(places: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Remove duplicate places by external_id (Google Place ID)."""
     seen = set()
