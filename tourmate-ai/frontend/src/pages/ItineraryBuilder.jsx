@@ -12,54 +12,76 @@ import ActivityCard from "../components/itinerary/ActivityCard";
 import TravelConnector from "../components/itinerary/TravelConnector";
 import BudgetBreakdown from "../components/itinerary/BudgetBreakdown";
 import OptimizeDayModal from "../components/itinerary/OptimizeDayModal";
+import FullTripBudgetModal from "../components/itinerary/FullTripBudgetModal";
 import SafeImage from "../components/SafeImage";
 
-function HotelSuggestionCard({ hotel }) {
-  const amenityIcons = {
-    "WiFi": <Wifi className="w-3 h-3" />,
-    "Free WiFi": <Wifi className="w-3 h-3" />,
-    "Pool": <Waves className="w-3 h-3" />,
-    "Restaurant": <Coffee className="w-3 h-3" />,
-    "Breakfast": <Coffee className="w-3 h-3" />,
-  };
+function HotelSuggestionCard({ hotel, isSelected, onSelectHotel }) {
+  const hasPrice = typeof hotel.price_per_night === "number" && hotel.price_per_night > 0;
+
   return (
-    <div className="flex gap-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl p-3 hover:shadow-md transition-all group">
-      <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
-        <SafeImage 
-          src={hotel.images?.[0]} 
-          alt={hotel.name} 
-          className="w-full h-full object-cover rounded-lg" 
-        />
-      </div>
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <div className="flex items-start justify-between gap-2">
-          <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{hotel.name}</p>
-          <Link
-            to={`/hotels/${hotel.id}`}
-            className="text-[10px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 px-2 py-0.5 rounded-full shrink-0 hover:bg-brand-100 transition flex items-center gap-0.5"
-          >
-            View <ArrowRight className="w-2.5 h-2.5" />
-          </Link>
+    <div className={`flex flex-col gap-3 bg-white dark:bg-slate-800 border rounded-2xl p-4 transition-all ${
+      isSelected 
+        ? "border-brand-500 bg-brand-50/30 dark:bg-brand-900/20 ring-2 ring-brand-500/20 shadow-md" 
+        : "border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600 shadow-sm"
+    }`}>
+      <div className="flex gap-3 items-center">
+        <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+          <SafeImage 
+            src={hotel.images?.[0]} 
+            alt={hotel.name} 
+            className="w-full h-full object-cover rounded-xl" 
+          />
         </div>
-        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 mt-0.5">
-          <MapPin className="w-3 h-3" />
-          <span className="truncate">{hotel.city || hotel.address || "Nearby"}</span>
-        </div>
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          <div className="flex items-center gap-0.5 text-amber-500">
-            <Star className="w-3 h-3 fill-amber-500" />
-            <span className="text-xs font-bold">{hotel.rating ? hotel.rating.toFixed(1) : "4.0"}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-1">
+            <p className="font-bold text-sm text-gray-900 dark:text-white truncate" title={hotel.name}>{hotel.name}</p>
           </div>
-          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-            &#8377;{(hotel.price_per_night || 3000).toLocaleString("en-IN")}/night
-          </span>
+          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="truncate">{hotel.city || hotel.address || "Verified destination"}</span>
+          </div>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <div className="flex items-center gap-0.5 text-amber-500">
+              <Star className="w-3 h-3 fill-amber-500" />
+              <span className="text-xs font-bold">{hotel.rating ? hotel.rating.toFixed(1) : "4.0"}</span>
+            </div>
+            {hasPrice ? (
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                From &#8377;{hotel.price_per_night.toLocaleString("en-IN")}/night
+              </span>
+            ) : (
+              <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
+                Price unavailable
+              </span>
+            )}
+          </div>
         </div>
+      </div>
+
+      <div className="pt-2 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between gap-2">
+        <button
+          onClick={() => onSelectHotel && onSelectHotel(isSelected ? null : hotel)}
+          className={`text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1 ${
+            isSelected
+              ? "bg-brand-600 text-white shadow-sm hover:bg-brand-700"
+              : "bg-gray-100 dark:bg-slate-700 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-300 text-gray-700 dark:text-slate-200"
+          }`}
+        >
+          {isSelected ? "✓ Selected for Trip" : "+ Add to Trip Budget"}
+        </button>
+
+        <Link
+          to={`/hotels/${hotel.id}`}
+          className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-0.5"
+        >
+          Details <ArrowRight className="w-2.5 h-2.5" />
+        </Link>
       </div>
     </div>
   );
 }
 
-function NearbyHotelsSuggestion({ places, destinationName }) {
+function NearbyHotelsSuggestion({ places, destinationName, selectedHotel, onSelectHotel }) {
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -76,7 +98,7 @@ function NearbyHotelsSuggestion({ places, destinationName }) {
         params.city = destinationName.split(",")[0].trim();
       }
       const res = await axios.get(`${API_BASE_URL}/hotels`, { params });
-      setHotels((res.data.data || []).slice(0, 3));
+      setHotels(res.data.data || []);
     } catch (err) {
       console.error("Hotel suggestions error:", err);
     } finally {
@@ -88,19 +110,40 @@ function NearbyHotelsSuggestion({ places, destinationName }) {
     fetchNearbyHotels();
   }, [fetchNearbyHotels]);
 
-  if (loading || !hotels.length) return null;
-
   return (
-    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm mb-8">
-      <div className="flex items-center gap-2 mb-4">
-        <BedDouble className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-        <h4 className="text-base font-bold text-gray-900 dark:text-white">
-          Suggested Stays Nearby
-        </h4>
+    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <BedDouble className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+          <h4 className="text-base font-bold text-gray-900 dark:text-white">
+            Suggested Stays
+          </h4>
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">
+          Verified DB
+        </span>
       </div>
-      <div className="grid md:grid-cols-3 gap-4">
-        {hotels.map(h => <HotelSuggestionCard key={h.id} hotel={h} />)}
-      </div>
+
+      {loading ? (
+        <div className="py-8 text-center text-xs text-gray-400 animate-pulse">
+          Finding verified accommodations...
+        </div>
+      ) : hotels.length > 0 ? (
+        <div className="flex flex-col gap-3.5">
+          {hotels.slice(0, 3).map(h => (
+            <HotelSuggestionCard 
+              key={h.id} 
+              hotel={h} 
+              isSelected={selectedHotel?.id === h.id}
+              onSelectHotel={onSelectHotel}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="p-4 bg-gray-50 dark:bg-slate-800/40 rounded-2xl text-xs text-gray-500 dark:text-slate-400 text-center">
+          No accommodations with verified pricing are currently available for this destination.
+        </div>
+      )}
     </div>
   );
 }
@@ -129,6 +172,8 @@ export default function ItineraryBuilder() {
   const [budget, setBudget] = useState("Medium");
   
   const [interests, setInterests] = useState([]);
+  const [selectedHotel, setSelectedHotel] = useState(null);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const availableInterests = [
     { id: "History", icon: "🏛️", label: "History" },
     { id: "Nature", icon: "🌿", label: "Nature" },
@@ -657,83 +702,115 @@ export default function ItineraryBuilder() {
           </div>
 
           {/* Active Itinerary Details - New Structure */}
-          {generatedItinerary[selectedOptionIndex] && (
-            <div>
-              <ItineraryHeader 
-                title={title}
-                destinationName={destinationName}
-                days={days}
-                travelers={travelType}
-                tripStyle={interests.join(' • ')}
-                budget={budget}
-                totalEstimatedCost={generatedItinerary[selectedOptionIndex].total_estimated_cost + (generatedItinerary[selectedOptionIndex].transportation?.estimated_cost_max || 0)}
-                totalEstimatedTravelMinutes={generatedItinerary[selectedOptionIndex].schedule.reduce((total, day) => total + day.activities.reduce((sum, act) => sum + (act.travel_time_minutes || 0), 0), 0)}
-                onRegenerate={() => setGeneratedItinerary(null)}
-                onSave={handleSave}
-                saving={saving}
-              />
+          {generatedItinerary[selectedOptionIndex] && (() => {
+            const currentOption = generatedItinerary[selectedOptionIndex];
+            const activitiesCostSum = currentOption?.total_estimated_cost || 0;
+            const hotelNights = Math.max(1, parseInt(days) - 1 || 1);
+            const hotelCostTotal = (selectedHotel?.price_per_night && selectedHotel.price_per_night > 0)
+              ? selectedHotel.price_per_night * hotelNights
+              : 0;
+            const transportCostMax = currentOption?.transportation?.estimated_cost_max || 0;
+            const calculatedTotalCost = activitiesCostSum + hotelCostTotal + transportCostMax;
 
-              <div className="flex flex-col lg:flex-row gap-8 relative">
-                {/* Left Column: Timeline */}
-                <div className="flex-1 max-w-4xl">
-                  <DayNavigation 
-                    schedule={generatedItinerary[selectedOptionIndex].schedule} 
-                    activeDay={activeDay} 
-                    setActiveDay={setActiveDay} 
-                  />
+            return (
+              <div>
+                <ItineraryHeader 
+                  title={title}
+                  destinationName={destinationName}
+                  days={days}
+                  travelers={travelType}
+                  tripStyle={interests.join(' • ')}
+                  budget={budget}
+                  totalEstimatedCost={calculatedTotalCost}
+                  totalEstimatedTravelMinutes={currentOption.schedule.reduce((total, day) => total + day.activities.reduce((sum, act) => sum + (act.travel_time_minutes || 0), 0), 0)}
+                  onRegenerate={() => setGeneratedItinerary(null)}
+                  onSave={handleSave}
+                  saving={saving}
+                  onViewBudget={() => setIsBudgetModalOpen(true)}
+                />
 
-                  {/* AI Optimize Button */}
-                  <div className="flex justify-end mb-6">
-                    <button 
-                      onClick={() => setIsOptimizeModalOpen(true)}
-                      className="px-5 py-2.5 bg-brand-100 hover:bg-brand-200 dark:bg-brand-900/40 dark:hover:bg-brand-900/60 text-brand-700 dark:text-brand-300 font-bold rounded-2xl flex items-center gap-2 transition-colors border border-brand-200 dark:border-brand-800/50 shadow-sm"
-                    >
-                      <Sparkles className="w-4 h-4" /> Optimize My Day
-                    </button>
-                  </div>
+                <div className="flex flex-col lg:flex-row gap-8 relative">
+                  {/* Left Column: Timeline */}
+                  <div className="flex-1 max-w-4xl">
+                    <DayNavigation 
+                      schedule={currentOption.schedule} 
+                      activeDay={activeDay} 
+                      setActiveDay={setActiveDay} 
+                    />
 
-                  {generatedItinerary[selectedOptionIndex].schedule.filter(d => d.day === activeDay).map(dayPlan => (
-                    <div key={dayPlan.day}>
-                      <DailySummary dayPlan={dayPlan} />
-                      
-                      <div className="mt-8">
-                        {dayPlan.activities.map((act, i) => (
-                          <React.Fragment key={i}>
-                            <ActivityCard 
-                              activity={act}
-                              isFirst={i === 0}
-                              isLast={i === dayPlan.activities.length - 1}
-                              onMoveUp={() => handleMoveActivity(activeDay - 1, i, "up")}
-                              onMoveDown={() => handleMoveActivity(activeDay - 1, i, "down")}
-                            />
-                            {i < dayPlan.activities.length - 1 && (
-                              <TravelConnector 
-                                currentActivity={act}
-                                nextActivity={dayPlan.activities[i + 1]}
-                              />
-                            )}
-                          </React.Fragment>
-                        ))}
-                      </div>
-
-                      <BudgetBreakdown dayPlan={dayPlan} />
+                    {/* AI Optimize Button */}
+                    <div className="flex justify-end mb-6">
+                      <button 
+                        onClick={() => setIsOptimizeModalOpen(true)}
+                        className="px-5 py-2.5 bg-brand-100 hover:bg-brand-200 dark:bg-brand-900/40 dark:hover:bg-brand-900/60 text-brand-700 dark:text-brand-300 font-bold rounded-2xl flex items-center gap-2 transition-colors border border-brand-200 dark:border-brand-800/50 shadow-sm"
+                      >
+                        <Sparkles className="w-4 h-4" /> Optimize My Day
+                      </button>
                     </div>
-                  ))}
-                </div>
-                
-                {/* Right Column: Hotel Suggestions */}
-                <div className="w-full lg:w-[350px] shrink-0">
-                  <NearbyHotelsSuggestion places={selectedPlaces} destinationName={destinationName} />
+
+                    {currentOption.schedule.filter(d => d.day === activeDay).map(dayPlan => (
+                      <div key={dayPlan.day}>
+                        <DailySummary dayPlan={dayPlan} />
+                        
+                        <div className="mt-8">
+                          {dayPlan.activities.map((act, i) => (
+                            <React.Fragment key={i}>
+                              <ActivityCard 
+                                activity={act}
+                                isFirst={i === 0}
+                                isLast={i === dayPlan.activities.length - 1}
+                                onMoveUp={() => handleMoveActivity(activeDay - 1, i, "up")}
+                                onMoveDown={() => handleMoveActivity(activeDay - 1, i, "down")}
+                              />
+                              {i < dayPlan.activities.length - 1 && (
+                                <TravelConnector 
+                                  currentActivity={act}
+                                  nextActivity={dayPlan.activities[i + 1]}
+                                />
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </div>
+
+                        <BudgetBreakdown 
+                          dayPlan={dayPlan} 
+                          onViewFullBudget={() => setIsBudgetModalOpen(true)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Right Column: Hotel Suggestions */}
+                  <div className="w-full lg:w-[350px] shrink-0">
+                    <NearbyHotelsSuggestion 
+                      places={selectedPlaces} 
+                      destinationName={destinationName} 
+                      selectedHotel={selectedHotel}
+                      onSelectHotel={setSelectedHotel}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <OptimizeDayModal 
             isOpen={isOptimizeModalOpen}
             onClose={() => setIsOptimizeModalOpen(false)}
             dayPlan={generatedItinerary[selectedOptionIndex].schedule.find(d => d.day === activeDay)}
             onApply={handleApplyOptimizedDay}
+          />
+
+          <FullTripBudgetModal 
+            isOpen={isBudgetModalOpen}
+            onClose={() => setIsBudgetModalOpen(false)}
+            itinerary={generatedItinerary[selectedOptionIndex]}
+            destinationName={destinationName}
+            days={days}
+            travelType={travelType}
+            selectedHotel={selectedHotel}
+            transportationMode={transportationMode}
+            originName={originName}
           />
         </div>
       )}

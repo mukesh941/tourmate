@@ -12,7 +12,8 @@ export default function ItineraryHeader({
   totalEstimatedTravelMinutes, 
   onRegenerate, 
   onSave, 
-  saving 
+  saving,
+  onViewBudget
 }) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-gray-200 dark:border-slate-800 p-6 md:p-8 mb-8 animate-fade-in-up">
@@ -61,9 +62,15 @@ export default function ItineraryHeader({
             </button>
           </div>
 
-          <div className="flex gap-6 text-right">
-            <div>
-              <p className="text-[10px] text-gray-500 dark:text-slate-500 uppercase tracking-wider font-bold mb-1">Total Est. Budget</p>
+          <div className="flex gap-6 text-right items-end">
+            <div 
+              onClick={onViewBudget}
+              className={`text-right ${onViewBudget ? 'cursor-pointer group p-2 -m-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800/60 transition' : ''}`}
+              title={onViewBudget ? "Click to view full trip budget" : undefined}
+            >
+              <p className="text-[10px] text-gray-500 dark:text-slate-500 uppercase tracking-wider font-bold mb-1 flex items-center justify-end gap-1">
+                Total Est. Budget {onViewBudget && <span className="text-brand-500 group-hover:underline">→</span>}
+              </p>
               <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1">
                 <IndianRupee className="w-4 h-4" /> {totalEstimatedCost ? totalEstimatedCost.toLocaleString('en-IN') : '0'}
               </p>
