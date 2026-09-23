@@ -179,7 +179,7 @@ def get_grounded_chat_response(
 def get_ai_response(user_message: str, history: List[Dict[str, str]], context: str = None, language: str = 'en') -> str:
     api_key = settings.gemini_api_key
     if not api_key:
-        return "Please add your GEMINI_API_KEY to the backend .env file to activate the AI Tour Guide."
+        return "AI recommendations are temporarily unavailable. You can still explore the route and nearby places on the map."
 
     genai.configure(api_key=api_key)
     
@@ -221,10 +221,150 @@ def get_ai_response(user_message: str, history: List[Dict[str, str]], context: s
         text = _safe_generate_content(model, contents, timeout_sec=10.0)
         if text:
             return text
-        return "I'm sorry, I'm having trouble thinking right now. Please try again later."
+        return "AI recommendations are temporarily unavailable. You can still explore the route and nearby places on the map."
     except Exception as e:
         logger.warning("AI Error: %s", type(e).__name__)
-        return "I'm sorry, I'm having trouble thinking right now. Please try again later."
+        return "AI recommendations are temporarily unavailable. You can still explore the route and nearby places on the map."
+
+
+async def discover_places_along_route(
+    origin: str,
+    destination: str,
+    mode: str = "car",
+    stops_count: int = 0,
+    distance_km: float = 0.0,
+    db: Optional[AsyncSession] = None,
+) -> str:
+    """
+    Provides grounded suggestions (Food, Nature, Attraction) along a travel route.
+    Uses Gemini if GEMINI_API_KEY is configured with canonical POIs as context;
+    falls back to deterministic canonical database recommendations when offline.
+    Never exposes internal API configuration errors to users.
+    """
+    pois_list = []
+    
+    async def _fetch_pois(session: AsyncSession):
+        stmt = (
+            select(POI)
+            .join(Location, POI.location_id == Location.id)
+            .options(
+                selectinload(POI.location),
+                selectinload(POI.category),
+            )
+            .where(POI.is_active == True)
+        )
+        res = await session.execute(stmt)
+        return res.scalars().all()
+
+    try:
+        if db is not None:
+            pois_list = await _fetch_pois(db)
+        else:
+            from app.core.db import AsyncSessionLocal
+            async with AsyncSessionLocal() as session:
+                pois_list = await _fetch_pois(session)
+    except Exception as e:
+        logger.warning("Error fetching POIs for discover route: %s", e)
+
+    # Filter relevant POIs matching destination or origin
+    clean_dest = (destination or "").lower()
+    clean_orig = (origin or "").lower()
+
+    relevant_pois = []
+    for p in pois_list:
+        city = (p.location.city or "").lower() if p.location else ""
+        p_name = p.name.lower()
+        if (city and (city in clean_dest or clean_dest in city)) or (city and (city in clean_orig or clean_orig in city)):
+            relevant_pois.append(p)
+        elif p_name in clean_dest or p_name in clean_orig:
+            relevant_pois.append(p)
+
+    if not relevant_pois:
+        relevant_pois = pois_list[:10]
+
+    # Categorize POIs
+    food_poi = None
+    nature_poi = None
+    attraction_poi = None
+
+    for p in relevant_pois:
+        cat = (p.category.name if p.category else "").lower()
+        if not food_poi and any(w in cat for w in ["food", "restaurant", "cafe", "dining"]):
+            food_poi = p
+        elif not nature_poi and any(w in cat for w in ["nature", "garden", "park", "adventure"]):
+            nature_poi = p
+        elif not attraction_poi and any(w in cat for w in ["history", "culture", "architecture", "monument", "fort", "attraction"]):
+            attraction_poi = p
+
+    # Fallback to any remaining POIs if specific categories missing
+    for p in relevant_pois:
+        if not attraction_poi and p not in [food_poi, nature_poi]:
+            attraction_poi = p
+        elif not food_poi and p not in [nature_poi, attraction_poi]:
+            food_poi = p
+        elif not nature_poi and p not in [food_poi, attraction_poi]:
+            nature_poi = p
+
+    # If Gemini is configured, use grounded prompt
+    api_key = settings.gemini_api_key
+    if api_key:
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(settings.gemini_model)
+            
+            context_items = []
+            for p in relevant_pois[:6]:
+                cat_name = p.category.name if p.category else "Attraction"
+                city_name = p.location.city if p.location else ""
+                context_items.append(f"- {p.name} ({cat_name} in {city_name}): {p.description or ''}")
+
+            context_str = "\n".join(context_items) if context_items else "No specific POIs available."
+            
+            prompt = (
+                f"You are TourMate AI, an expert local travel guide.\n"
+                f"The user is planning a {mode} trip from '{origin}' to '{destination}' ({distance_km} km) with {stops_count} stops.\n"
+                f"Suggest 3 interesting places to discover along the route, categorized by:\n"
+                f"1. 🍽️ Food\n"
+                f"2. 🌳 Nature\n"
+                f"3. 🏛️ Attraction\n\n"
+                f"Ground your recommendations strictly using the following verified places from TourMate database when relevant:\n"
+                f"{context_str}\n\n"
+                f"Keep the entire response concise, friendly, and practical."
+            )
+            
+            text = _safe_generate_content(model, prompt, timeout_sec=10.0)
+            if text and len(text.strip()) > 10:
+                return text.strip()
+        except Exception as e:
+            logger.warning("Gemini discover route failed, using deterministic fallback: %s", e)
+
+    # Deterministic Grounded Fallback
+    dest_title = destination or "your destination"
+    lines = [f"✦ **Curated Discoveries for Your Route** ({origin} → {destination}):\n"]
+
+    if food_poi:
+        f_city = f" ({food_poi.location.city})" if food_poi.location and food_poi.location.city else ""
+        f_desc = f" - {food_poi.description}" if food_poi.description else ""
+        lines.append(f"🍽️ **Food & Dining**:\n• **{food_poi.name}**{f_city}{f_desc}\n")
+    else:
+        lines.append(f"🍽️ **Food & Dining**:\n• Explore local cafes and regional specialties in {dest_title}.\n")
+
+    if nature_poi:
+        n_city = f" ({nature_poi.location.city})" if nature_poi.location and nature_poi.location.city else ""
+        n_desc = f" - {nature_poi.description}" if nature_poi.description else ""
+        lines.append(f"🌳 **Nature & Scenery**:\n• **{nature_poi.name}**{n_city}{n_desc}\n")
+    else:
+        lines.append(f"🌳 **Nature & Scenery**:\n• Enjoy scenic viewpoints and serene public gardens along the {mode} route.\n")
+
+    if attraction_poi:
+        a_city = f" ({attraction_poi.location.city})" if attraction_poi.location and attraction_poi.location.city else ""
+        a_desc = f" - {attraction_poi.description}" if attraction_poi.description else ""
+        lines.append(f"🏛️ **Attraction & Heritage**:\n• **{attraction_poi.name}**{a_city}{a_desc}\n")
+    else:
+        lines.append(f"🏛️ **Attraction & Heritage**:\n• Visit top historical monuments and landmark attractions in {dest_title}.\n")
+
+    lines.append(f"*(Verified places for your {mode} journey from TourMate database)*")
+    return "\n".join(lines)
 
 import json
 

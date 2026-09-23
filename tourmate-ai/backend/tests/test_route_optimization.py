@@ -112,6 +112,7 @@ async def cleanup_test_records():
 # --------------------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_osrm_adapter_authoritative_routing():
+    OSRM_CACHE.clear()
     u = RouteNode(id="A", name="Start", latitude=27.1751, longitude=78.0421)
     v = RouteNode(id="B", name="End", latitude=27.1795, longitude=78.0211)
 
@@ -913,3 +914,104 @@ async def test_api_itineraries_optimize_plan_endpoint(client: AsyncClient, db_se
         assert itin_data["name"] == "API Test Itinerary"
         assert len(itin_data["days"]) == 1
         assert itin_data["days"][0]["tour"] == [str(acc.id), str(poi.id), str(acc.id)]
+
+
+# --------------------------------------------------------------------------
+# 24. Bug #9: Route Planner, Travel Modes, and Grounded AI Discover
+# --------------------------------------------------------------------------
+from app.services.osrm_service import _resolve_profile, _cache_key
+from app.services.ai_service import discover_places_along_route
+
+def test_resolve_profile_modes():
+    """Verify frontend transport modes resolve to correct OSRM profiles."""
+    assert _resolve_profile("car") == "driving"
+    assert _resolve_profile("driving") == "driving"
+    assert _resolve_profile("bike") == "cycling"
+    assert _resolve_profile("cycling") == "cycling"
+    assert _resolve_profile("bicycle") == "cycling"
+    assert _resolve_profile("walk") == "foot"
+    assert _resolve_profile("walking") == "foot"
+    assert _resolve_profile("foot") == "foot"
+    assert _resolve_profile(None) == "driving"
+
+
+def test_cache_key_mode_differentiation():
+    """Verify route cache keys differentiate travel modes for identical coordinates."""
+    coords = [(27.1751, 78.0421), (27.1795, 78.0211)]
+    key_car = _cache_key("driving", coords)
+    key_bike = _cache_key("cycling", coords)
+    key_walk = _cache_key("foot", coords)
+
+    assert key_car != key_bike
+    assert key_bike != key_walk
+    assert key_car != key_walk
+
+
+@pytest.mark.asyncio
+async def test_calculate_route_across_modes(client: AsyncClient):
+    """Test calculate_route endpoint with distinct transport modes."""
+    OSRM_CACHE.clear()
+    coords = [
+        {"latitude": 27.1751, "longitude": 78.0421},
+        {"latitude": 27.1795, "longitude": 78.0211},
+    ]
+
+    mock_resp = {
+        "code": "Ok",
+        "routes": [
+            {
+                "distance": 3500.0,
+                "duration": 420.0,
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[78.0421, 27.1751], [78.0211, 27.1795]],
+                },
+                "legs": [
+                    {
+                        "steps": [
+                            {
+                                "maneuver": {"type": "depart", "modifier": "straight"},
+                                "name": "Fatehabad Rd",
+                                "distance": 1200.0,
+                                "duration": 150.0,
+                            }
+                        ]
+                    }
+                ],
+            }
+        ],
+    }
+
+    with patch("httpx.AsyncClient.get", return_value=AsyncMock(status_code=200, json=lambda: mock_resp)):
+        for mode, expected_profile in [("car", "driving"), ("bike", "cycling"), ("walk", "foot")]:
+            res = await client.post("/api/locations/route", json={"coordinates": coords, "mode": mode})
+            assert res.status_code == 200
+            data = res.json()
+            assert data["success"] is True
+            assert data["data"]["transport_mode"] == mode
+            assert data["data"]["profile"] == expected_profile
+            assert data["data"]["distance_km"] == 3.5
+            assert data["data"]["duration_minutes"] == 7.0
+
+
+@pytest.mark.asyncio
+async def test_ai_discover_endpoint_fallback(client: AsyncClient, db_session: AsyncSession):
+    """Test /api/ai/discover does not crash or expose API key errors when Gemini key is absent."""
+    with patch("app.core.config.settings.gemini_api_key", None):
+        res = await client.post(
+            "/api/ai/discover",
+            json={
+                "origin": "Agra Fort",
+                "destination": "Taj Mahal, Agra",
+                "mode": "car",
+                "stops": 0,
+                "distance": 3.8
+            }
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["success"] is True
+        suggestions = data["data"]["suggestions"]
+        assert "GEMINI_API_KEY" not in suggestions
+        assert "Food" in suggestions or "Attraction" in suggestions
+

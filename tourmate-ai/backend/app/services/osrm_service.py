@@ -48,12 +48,12 @@ def _set_cached_route(key: str, data: Dict[str, Any]) -> None:
 
 
 def _resolve_profile(mode: str) -> str:
-    mode_lower = (mode or "driving").lower()
-    if mode_lower in ("car", "driving"):
+    mode_lower = (mode or "driving").lower().strip()
+    if mode_lower in ("car", "driving", "automobile", "taxi", "drive"):
         return "driving"
-    elif mode_lower in ("bike", "cycling"):
+    elif mode_lower in ("bike", "cycling", "bicycle", "cycle", "bicycling"):
         return "cycling"
-    elif mode_lower in ("walk", "walking", "foot"):
+    elif mode_lower in ("walk", "walking", "foot", "pedestrian"):
         return "foot"
     return "driving"
 
@@ -291,26 +291,46 @@ async def get_directed_pairwise_matrix(
 
 
 async def calculate_route(
-    coordinates: List[Dict[str, float]],
+    coordinates: List[Any],
     mode: str = "driving",
 ) -> Optional[Dict[str, Any]]:
     """
-    Backwards-compatible wrapper preserving existing POST /locations/route contract
-    for RoutePlannerView.jsx.
+    Authoritative route calculation for multi-stop journeys.
+    Preserves existing POST /locations/route contract for RoutePlannerView.jsx.
+    Cached by travel mode and coordinates.
     """
-    if len(coordinates) < 2:
+    if not coordinates or len(coordinates) < 2:
         return None
 
     try:
         profile = _resolve_profile(mode)
-        def _to_coord_str(c):
-            if isinstance(c, (list, tuple)):
-                return f"{c[0]},{c[1]}"
-            lat = c.get("latitude") if "latitude" in c else c.get("lat")
-            lon = c.get("longitude") if "longitude" in c else c.get("lng", c.get("lon"))
-            return f"{lon},{lat}"
+        parsed_coords: List[Tuple[float, float]] = []
 
-        coords_str = ";".join([_to_coord_str(c) for c in coordinates])
+        for c in coordinates:
+            lat = None
+            lon = None
+            if isinstance(c, (list, tuple)) and len(c) >= 2:
+                # If values are in range, first coordinate might be lat ([-90, 90]) or lon ([-180, 180])
+                lat = float(c[0])
+                lon = float(c[1])
+            elif isinstance(c, dict):
+                raw_lat = c.get("latitude") if "latitude" in c else c.get("lat")
+                raw_lon = c.get("longitude") if "longitude" in c else c.get("lng", c.get("lon"))
+                if raw_lat is not None and raw_lon is not None:
+                    lat = float(raw_lat)
+                    lon = float(raw_lon)
+            if lat is not None and lon is not None:
+                parsed_coords.append((lat, lon))
+
+        if len(parsed_coords) < 2:
+            return None
+
+        cache_k = _cache_key(profile, parsed_coords)
+        cached = _get_cached_route(cache_k)
+        if cached:
+            return cached
+
+        coords_str = ";".join([f"{lon},{lat}" for lat, lon in parsed_coords])
         url = f"{OSRM_BASE_URL}/{profile}/{coords_str}"
 
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -348,18 +368,21 @@ async def calculate_route(
                         "location": step.get("maneuver", {}).get("location", []),
                     })
 
-            return {
+            result = {
                 "distance": round(route["distance"] / 1000.0, 2),
                 "distance_km": round(route["distance"] / 1000.0, 2),
                 "duration": round(route["duration"] / 60.0, 2),
                 "duration_minutes": round(route["duration"] / 60.0, 2),
                 "transport_mode": mode,
+                "profile": profile,
                 "geometry": route["geometry"],
                 "steps": steps,
-                "origin": coordinates[0],
-                "destination": coordinates[-1],
-                "stops": coordinates[1:-1] if len(coordinates) > 2 else [],
+                "origin": {"latitude": parsed_coords[0][0], "longitude": parsed_coords[0][1]},
+                "destination": {"latitude": parsed_coords[-1][0], "longitude": parsed_coords[-1][1]},
+                "stops": [{"latitude": lat, "longitude": lon} for lat, lon in parsed_coords[1:-1]],
             }
+            _set_cached_route(cache_k, result)
+            return result
     except Exception as e:
         print(f"OSRM Routing error: {e}")
         return None

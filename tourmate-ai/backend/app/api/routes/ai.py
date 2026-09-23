@@ -7,7 +7,7 @@ from app.api.deps import get_current_user_dependency
 from app.core.db import get_async_db
 from app.schemas.auth import UserPublic
 from app.schemas.common import Envelope
-from app.services.ai_service import get_ai_response, get_grounded_chat_response
+from app.services.ai_service import get_ai_response, get_grounded_chat_response, discover_places_along_route
 from app.services import poi_service
 from app.services.rag_service import (
     retrieve_knowledge_chunks,
@@ -161,10 +161,20 @@ async def recognize_landmark(
         )
 
 @router.post("/discover", response_model=Envelope[dict])
-@limiter.limit("10/minute")
-async def discover_route(request: Request, payload: DiscoverRequest, current_user: UserPublic = Depends(get_current_user_dependency)):
-    prompt = f"I am taking a {payload.mode} trip from {payload.origin} to {payload.destination} ({payload.distance} km) with {payload.stops} stops. Suggest 3 interesting places to discover along the route, categorized by Food, Nature, and Attraction. Keep the response very concise."
-    
-    ai_text = get_ai_response(prompt, [], None, "en")
-    
-    return Envelope(success=True, data={"suggestions": ai_text})
+@limiter.limit("20/minute")
+async def discover_route(
+    request: Request,
+    payload: DiscoverRequest,
+    current_user: Optional[UserPublic] = Depends(get_optional_current_user),
+    db: AsyncSession = Depends(get_async_db),
+):
+    suggestions = await discover_places_along_route(
+        origin=payload.origin,
+        destination=payload.destination,
+        mode=payload.mode,
+        stops_count=payload.stops,
+        distance_km=payload.distance,
+        db=db,
+    )
+    return Envelope(success=True, data={"suggestions": suggestions})
+
