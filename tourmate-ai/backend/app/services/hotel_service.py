@@ -32,6 +32,57 @@ DESTINATION_ALIASES = {
 }
 
 
+ACC_IMAGE_MAP = {
+    # Agra
+    "The Oberoi Amarvilas": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+    "Tajview - IHCL SeleQtions": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+    "Zostel Agra": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+    # New Delhi
+    "The Imperial New Delhi": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+    "Bloomrooms @ Janpath": "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80",
+    "The Claridges New Delhi": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
+    # Jaipur
+    "Rambagh Palace": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+    "Alsisar Haveli": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
+    "Zostel Jaipur": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+    # Mumbai
+    "The Taj Mahal Palace": "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80",
+    "Residency Hotel Fort": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+    "Zostel Mumbai": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+    # Bengaluru
+    "The Leela Palace Bengaluru": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+    "Bloomrooms @ Indiranagar": "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80",
+    # Goa
+    "Taj Fort Aguada Resort & Spa": "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80",
+    "Santana Beach Resort": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
+    "Zostel Goa (Morjim)": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+    # Varanasi
+    "BrijRama Palace": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+    "Stops Hostel Varanasi": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+    # Kochi / Kerala
+    "Brunton Boatyard": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
+    "Zostel Kochi": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+    # Udaipur
+    "Taj Lake Palace": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+    "Zostel Udaipur": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+    # Amritsar
+    "Taj Swarna Amritsar": "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+    "Jugaadus Hostel": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+    # Hyderabad
+    "Taj Falaknuma Palace": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+    # Chennai
+    "Taj Coromandel": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+    # Mysuru
+    "Lalitha Mahal Palace Hotel": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+    # Manali
+    "Johnson Lodge & Spa": "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1200&q=80",
+    "Zostel Manali": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+    # Srinagar / Kashmir
+    "The Lalit Grand Palace Srinagar": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+    "Zostel Srinagar": "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80",
+}
+
+
 def _format_acc_to_hotel_response(acc: Accommodation) -> HotelResponse:
     # Build coordinates
     location_schema = None
@@ -47,7 +98,13 @@ def _format_acc_to_hotel_response(acc: Accommodation) -> HotelResponse:
         sorted_imgs = sorted(acc.accommodation_images, key=lambda x: (not x.is_primary, x.display_order))
         for ai in sorted_imgs:
             if ai.image and ai.image.url:
-                images.append(ai.image.url)
+                url = ai.image.url
+                if "wikimedia.org" in url and acc.name in ACC_IMAGE_MAP:
+                    url = ACC_IMAGE_MAP[acc.name]
+                images.append(url)
+
+    if not images and acc.name in ACC_IMAGE_MAP:
+        images.append(ACC_IMAGE_MAP[acc.name])
 
     cover_image = images[0] if images else "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22800%22%20height%3D%22600%22%20viewBox%3D%220%200%20800%20600%22%20fill%3D%22none%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23f8fafc%22%2F%3E%3Cpath%20d%3D%22M360%20320h80v40h-80zM350%20220h100v180H350z%22%20fill%3D%22%2394a3b8%22%2F%3E%3Ctext%20x%3D%22400%22%20y%3D%22430%22%20fill%3D%22%2364748b%22%20font-family%3D%22system-ui%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%3ETourMate%20Verified%20Accommodation%3C%2Ftext%3E%3C%2Fsvg%3E"
 
