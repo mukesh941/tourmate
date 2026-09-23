@@ -94,15 +94,17 @@ def _format_acc_to_hotel_response(acc: Accommodation) -> HotelResponse:
 
     # Images
     images: List[str] = []
-    if acc.name in ACC_IMAGE_MAP:
-        images.append(ACC_IMAGE_MAP[acc.name])
+    clean_name = acc.name.strip().lower() if acc.name else ""
+    matched_img = next((v for k, v in ACC_IMAGE_MAP.items() if k.strip().lower() == clean_name), None)
+    if matched_img:
+        images.append(matched_img)
 
     if acc.accommodation_images:
         sorted_imgs = sorted(acc.accommodation_images, key=lambda x: (not x.is_primary, x.display_order))
         for ai in sorted_imgs:
             if ai.image and ai.image.url:
                 url = ai.image.url
-                if "wikimedia.org" not in url and url != "photo-1542314831-c6a4d14ce8a1" and url not in images:
+                if "wikimedia.org" not in url and "photo-1542314831-c6a4d14ce8a1" not in url and url not in images:
                     images.append(url)
 
     cover_image = images[0] if images else "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22800%22%20height%3D%22600%22%20viewBox%3D%220%200%20800%20600%22%20fill%3D%22none%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23f8fafc%22%2F%3E%3Cpath%20d%3D%22M360%20320h80v40h-80zM350%20220h100v180H350z%22%20fill%3D%22%2394a3b8%22%2F%3E%3Ctext%20x%3D%22400%22%20y%3D%22430%22%20fill%3D%22%2364748b%22%20font-family%3D%22system-ui%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%3ETourMate%20Verified%20Accommodation%3C%2Ftext%3E%3C%2Fsvg%3E"
