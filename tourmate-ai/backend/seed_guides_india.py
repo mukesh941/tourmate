@@ -1,10 +1,16 @@
 import asyncio
 import random
+import os
+from dotenv import load_dotenv
+
+# Load env variables before getting the db client so MONGO_URI is picked up
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
 from app.core.database import get_db
 from app.models.guide import GuideInDB
 
 cities = [
-    "New Delhi", "Mumbai", "Bangalore", "Chennai", "Kolkata", 
+    "New Delhi", "Mumbai", "Bengaluru", "Chennai", "Kolkata", 
     "Hyderabad", "Pune", "Ahmedabad", "Jaipur", "Goa", 
     "Agra", "Varanasi", "Amritsar", "Chandigarh", "Srinagar",
     "Leh", "Khajuraho", "Gwalior", "Puri", "Guwahati",
@@ -40,60 +46,41 @@ bios = [
     "Art and museum expert. Prepare to dive deep into local history."
 ]
 
-portraits = [
-    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d",
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-    "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6",
-    "https://images.unsplash.com/photo-1517841905240-472988babdf9",
-    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
-    "https://images.unsplash.com/photo-1544005313-94ddf0286df2",
-    "https://images.unsplash.com/photo-1521119989659-a83eee488004",
-    "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79",
-    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1",
-    "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea",
-    "https://images.unsplash.com/photo-1488161628813-04466f872507",
-    "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e",
-    "https://images.unsplash.com/photo-1531123897727-8f129e1688ce"
-]
-
 async def seed_guides():
     db = get_db()
     
-    print("Clearing existing guides...")
-    await db.guides.delete_many({})
+    print("Fetching existing guides...")
+    existing_guides = await db.guides.find({}).to_list(length=None)
     
-    guides_to_add = []
+    if len(existing_guides) == 0:
+        print("No guides found. Please run the original seed script first.")
+        return
+
+    print(f"Found {len(existing_guides)} existing guides. Updating them...")
     
-    # Generate exactly 1 guide per city
-    for city in cities:
-        name = f"{random.choice(first_names)} {random.choice(last_names)}"
+    # We need to guarantee exactly 197 guides if there are currently 197.
+    # The existing guides already have 'name', 'city', 'location' etc.
+    # We will update them with deterministic images and set is_lgbtq.
+    
+    for idx, guide in enumerate(existing_guides):
+        i = idx + 1
         
-        # Everyone speaks English, plus 1-2 local languages
-        langs = ["English"]
-        extra_langs = random.sample(languages_pool[1:], random.randint(1, 2))
-        langs.extend(extra_langs)
+        # Every 6th person is LGBTQ, ensuring a reasonable number
+        is_lgbtq = (i % 6 == 0)
         
-        guide = {
-            "name": name,
-            "languages": list(set(langs)),
-            "rating": round(random.uniform(4.5, 5.0), 1),
-            "reviews_count": random.randint(50, 500),
-            "hourly_rate": round(random.uniform(500.0, 3000.0), 0),
-            "bio": random.choice(bios),
-            "verified": True, # All verified
-            "image_url": random.choice(portraits),
-            "location": f"{city}, India"
+        image_path = f"/images/guides/guide-{i:03d}.webp"
+        
+        update_fields = {
+            "image_url": image_path,
+            "is_lgbtq": is_lgbtq
         }
-        guides_to_add.append(GuideInDB(**guide).dict())
-            
-    print(f"Adding {len(guides_to_add)} guides across India to the database...")
-    
-    if guides_to_add:
-        await db.guides.insert_many(guides_to_add)
         
-    print("Successfully seeded guides!")
+        await db.guides.update_one(
+            {"_id": guide["_id"]},
+            {"$set": update_fields}
+        )
+            
+    print(f"Successfully updated {len(existing_guides)} guides!")
 
 if __name__ == "__main__":
     asyncio.run(seed_guides())

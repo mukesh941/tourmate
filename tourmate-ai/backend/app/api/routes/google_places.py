@@ -51,10 +51,11 @@ class EnrichRequest(BaseModel):
 
 def _check_api_key():
     if not settings.google_maps_api_key:
-        raise HTTPException(
-            status_code=503,
-            detail="Google Maps API key is not configured. Please add GOOGLE_MAPS_API_KEY to your backend .env file."
-        )
+        # Instead of 503, we just warn. The services will handle graceful fallbacks
+        import logging
+        logging.getLogger(__name__).warning("Google Maps API key is not configured.")
+        return False
+    return True
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -84,6 +85,18 @@ async def get_nearby_places(
         included_types=included_types,
         max_results=max_results,
     )
+    
+    if not places:
+        # Fallback to Postgres
+        from app.db.session import async_session
+        from app.services.poi_service import get_all_pois
+        async with async_session() as db:
+            poi_results = await get_all_pois(
+                lat=lat, lng=lng, radius_km=radius_km, category_id=category if category and category != "all" else None, db=db
+            )
+            # convert TouristPlaceResponse to dict format expected
+            places = [p.dict() for p in poi_results[:max_results]]
+            
     places = deduplicate_places(places)
 
     return Envelope(success=True, data={"places": places, "count": len(places)})
@@ -114,6 +127,14 @@ async def search_places_by_text(
         radius_m=int(payload.radius_km * 1000),
         max_results=min(payload.max_results, 20),
     )
+    
+    if not places:
+        # Fallback to TourMate Database
+        from app.db.session import async_session
+        from app.services.location_service import search_postgres_locations
+        async with async_session() as db:
+            places = await search_postgres_locations(payload.query, db, limit=payload.max_results)
+
     places = deduplicate_places(places)
 
     return Envelope(success=True, data={"places": places, "count": len(places)})

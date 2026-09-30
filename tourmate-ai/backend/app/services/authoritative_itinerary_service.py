@@ -89,6 +89,19 @@ async def generate_authoritative_itinerary(
             detail="Available daily time window is too short (minimum 90 minutes required to visit attractions).",
         )
 
+    # Sanitize and strictly format destination name
+    if payload.destination_name:
+        dest_clean = payload.destination_name.strip()
+        typomap = {
+            "dehli": "delhi",
+            "banglore": "bangalore",
+            "bengaluru": "bangalore",
+            "bombay": "mumbai",
+            "calcutta": "kolkata",
+            "madras": "chennai"
+        }
+        payload.destination_name = typomap.get(dest_clean.lower(), dest_clean).title()
+
     # 2. Resolve POI Candidates from Canonical Database
     pois_pool: List[POI] = []
     
@@ -114,7 +127,7 @@ async def generate_authoritative_itinerary(
             pois_pool = list(res.scalars().all())
 
     if not pois_pool and payload.destination_name:
-        dest_clean = payload.destination_name.strip()
+        dest_clean = payload.destination_name.lower()
         stmt = (
             select(POI)
             .join(Location, POI.location_id == Location.id)
@@ -177,6 +190,23 @@ async def generate_authoritative_itinerary(
     dest_meta = CANONICAL_DESTINATION_METADATA.get((payload.destination_name or "").lower(), {})
     dest_cover_image = dest_meta.get("cover_image", "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80")
 
+    # Hotel Selection from MongoDB
+    from app.core.database import get_db
+    mongo_db = get_db()
+    hotel_query = {"city": {"$regex": f"^{payload.destination_name}$", "$options": "i"}}
+    hotels_cursor = mongo_db.hotels.find(hotel_query)
+    hotels_list = await hotels_cursor.to_list(length=20)
+    
+    selected_hotel = None
+    if hotels_list:
+        if budget_lower == "budget":
+            hotels_list.sort(key=lambda x: x.get('price_per_night_start', 99999))
+        elif budget_lower == "luxury":
+            hotels_list.sort(key=lambda x: x.get('price_per_night_start', 0), reverse=True)
+        else:
+            hotels_list.sort(key=lambda x: abs(x.get('price_per_night_start', 4000) - 4000))
+        selected_hotel = hotels_list[0]
+        
     def build_option_schedule(option_name: str, max_stops_per_day: int, pacing_mult: float = 1.0) -> Dict[str, Any]:
         schedule = []
         used_poi_ids = set()
@@ -316,6 +346,56 @@ async def generate_authoritative_itinerary(
                 "activities": day_activities
             })
 
+        # Accurately calculate total budget tracking matching frontend rules
+        final_total_cost = 0
+        accommodation_cost = 0
+        
+        # In a real itinerary, an N day trip implies N-1 nights (minimum 1)
+        accommodation_nights = max(1, payload.days - 1)
+        if payload.days == 1:
+            accommodation_nights = 1
+
+        if selected_hotel:
+            accommodation_cost = selected_hotel.get("price_per_night_start", 0) * accommodation_nights
+
+        for day_plan in schedule:
+            f_cost = 0
+            t_cost = 0
+            o_cost = 0
+            for act in day_plan["activities"]:
+                cost = act["estimated_cost"]
+                type_ = (act.get("activity_type") or "").lower()
+                cat_ = (act.get("category") or "").lower()
+                if "transit" in type_ or "transport" in type_:
+                    t_cost += cost
+                elif "meal" in type_ or "food" in type_ or "food" in cat_ or "restaurant" in type_:
+                    f_cost += cost
+                else:
+                    o_cost += cost
+            
+            if f_cost == 0:
+                f_cost = 800
+            if t_cost == 0:
+                t_cost = 300
+                
+            final_total_cost += (f_cost + t_cost + o_cost)
+            
+            # Attach accommodation to the day
+            if selected_hotel:
+                day_plan["accommodation"] = {
+                    "name": selected_hotel.get("name"),
+                    "location": selected_hotel.get("address", selected_hotel.get("city", payload.destination_name)),
+                    "room_type": selected_hotel.get("rooms", [{"name": "Standard Room"}])[0].get("name", "Standard Room") if selected_hotel.get("rooms") else "Standard Room",
+                    "price_per_night": selected_hotel.get("price_per_night_start", 0),
+                    "check_in": f"Day {day_plan['day']}",
+                    "check_out": f"Day {day_plan['day'] + 1}",
+                    "rating": float(selected_hotel.get("rating", 4.0)),
+                    "image": selected_hotel.get("images", ["https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80"])[0] if selected_hotel.get("images") else "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80",
+                    "hotel_id": str(selected_hotel.get("_id", ""))
+                }
+                
+        final_total_cost += accommodation_cost
+
         # Inter-city transportation summary
         transport_mode = payload.transportation_mode or "car"
         est_distance = 220.0 if payload.origin and payload.origin.lower() != payload.destination_name.lower() else 0.0
@@ -323,7 +403,7 @@ async def generate_authoritative_itinerary(
         return {
             "route_name": option_name,
             "description": f"{option_name} itinerary curated for {payload.destination_name} with verified visits and authoritative opening hours.",
-            "total_estimated_cost": total_estimated_cost,
+            "total_estimated_cost": final_total_cost,
             "transportation": {
                 "mode": transport_mode,
                 "origin": payload.origin or payload.destination_name,

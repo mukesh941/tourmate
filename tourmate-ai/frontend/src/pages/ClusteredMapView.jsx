@@ -359,8 +359,8 @@ export default function ClusteredMapView() {
           });
 
           const mapsLink =
-            place.google_maps_url ||
-            `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+            place.maps_url || place.google_maps_url ||
+            `https://www.openstreetmap.org/search?query=${encodeURIComponent(
               `${place.name} ${place.address || ""}`
             )}`;
 
@@ -386,7 +386,7 @@ export default function ClusteredMapView() {
               </div>
               <div style="display:flex;flex-direction:column;gap:6px">
                 <a href="${mapsLink}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#2563eb;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:3px">
-                  View on Google Maps ↗
+                  View on Map ↗
                 </a>
                 <button
                   onclick="window.__tourmate_select_cluster_by_id(${clusterId})"
@@ -993,8 +993,8 @@ export default function ClusteredMapView() {
                 <div className="space-y-1">
                   {selectedCluster.places.slice(0, 6).map((p, i) => {
                     const placeMapsUrl =
-                      p.google_maps_url ||
-                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                      p.maps_url || p.google_maps_url ||
+                      `https://www.openstreetmap.org/search?query=${encodeURIComponent(
                         `${p.name} ${p.address || ""}`
                       )}`;
                     return (

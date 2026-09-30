@@ -1,0 +1,379 @@
+{
+  "success": true,
+  "data": [
+    {
+      "route_name": "Balanced",
+      "description": "Balanced itinerary curated for Delhi with verified visits and authoritative opening hours.",
+      "total_estimated_cost": 3000,
+      "transportation": {
+        "mode": "flight",
+        "origin": "Delhi",
+        "destination": "Delhi",
+        "estimated_distance_km": 0.0,
+        "estimated_duration_minutes": 0,
+        "estimated_cost_min": 200,
+        "estimated_cost_max": 500,
+        "fuel_cost_estimate": 0,
+        "toll_estimate": 0,
+        "recommendation_note": "Recommended flight transit for comfort and scenic regional travel."
+      },
+      "schedule": [
+        {
+          "day": 1,
+          "aiSummary": "Day 1 in Delhi: Explore Qutub Minar, Red Fort with curated visits and local culture.",
+          "activities": [
+            {
+              "start_time": "09:15",
+              "end_time": "10:45",
+              "place_id": "b0000000-0000-0000-0000-000000000004",
+              "name": "Qutub Minar",
+              "description": "A 72.5-meter fluted red sandstone minaret erected in 1192 by Qutb-ud-din Aibak. A UNESCO World Heritage site surrounded by medieval architectural monuments including the Iron Pillar of Delhi.",
+              "activity_type": "History",
+              "estimated_cost": 250,
+              "travel_time_minutes": 15,
+              "rating": 4.6,
+              "reviewCount": 552,
+              "location": "Qutub Minar, New Delhi",
+              "latitude": 28.5245,
+              "longitude": 77.1855,
+              "distance": "2.5 km away",
+              "openingHours": "07:00 AM - 09:00 PM",
+              "entryFee": "\u20b9250",
+              "aiReason": "Verified canonical history highlighting the heritage of Delhi.",
+              "aiTips": [
+                "Book tickets in advance during peak visiting hours",
+                "Wear comfortable footwear and carry water"
+              ],
+              "crowdLevel": "Moderate",
+              "weatherSuitability": "Good",
+              "isOptional": false,
+              "image": "https://images.unsplash.com/photo-1574768399557-4fb8e95fa6f1?auto=format&fit=crop&w=1200&q=80",
+              "bookingUrl": "/places/b0000000-0000-0000-0000-000000000004"
+            },
+            {
+              "start_time": "11:22",
+              "end_time": "13:22",
+              "place_id": "b0000000-0000-0000-0000-000000000005",
+              "name": "Red Fort",
+              "description": "Historic fortified palace complex constructed in 1639 by Emperor Shah Jahan. Built of red sandstone, it represents the zenith of Mughal creativity and has served as a primary national landmark of India.",
+              "activity_type": "History",
+              "estimated_cost": 250,
+              "travel_time_minutes": 37,
+              "rating": 4.6,
+              "reviewCount": 552,
+              "location": "Red Fort, New Delhi",
+              "latitude": 28.6562,
+              "longitude": 77.241,
+              "distance": "15.6 km away",
+              "openingHours": "09:30 AM - 04:30 PM",
+              "entryFee": "\u20b9250",
+              "aiReason": "Verified canonical history highlighting the heritage of Delhi.",
+              "aiTips": [
+                "Book tickets in advance during peak visiting hours",
+                "Wear comfortable footwear and carry water"
+              ],
+              "crowdLevel": "Moderate",
+              "weatherSuitability": "Good",
+              "isOptional": false,
+              "image": "https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=1200&q=80",
+              "bookingUrl": "/places/b0000000-0000-0000-0000-000000000005"
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "aiSummary": "Day 2 in Delhi: Explore Humayun's Tomb, Lodhi Garden with curated visits and local culture.",
+          "activities": [
+            {
+              "start_time": "09:15",
+              "end_time": "10:45",
+              "place_id": "b0000000-0000-0000-0000-000000000006",
+              "name": "Humayun's Tomb",
+              "description": "The tomb of the Mughal Emperor Humayun, commissioned by his first wife Empress Bega Begum in 1558. It was the first garden-tomb on the Indian subcontinent, inspiring the architectural design of the Taj Mahal.",
+              "activity_type": "Architecture",
+              "estimated_cost": 250,
+              "travel_time_minutes": 15,
+              "rating": 4.7,
+              "reviewCount": 564,
+              "location": "Humayun's Tomb, New Delhi",
+              "latitude": 28.5933,
+              "longitude": 77.2507,
+              "distance": "2.5 km away",
+              "openingHours": "06:00 AM - 06:00 PM",
+              "entryFee": "\u20b9250",
+              "aiReason": "Verified canonical architecture highlighting the heritage of Delhi.",
+              "aiTips": [
+                "Book tickets in advance during peak visiting hours",
+                "Wear comfortable footwear and carry water"
+              ],
+              "crowdLevel": "Moderate",
+              "weatherSuitability": "Good",
+              "isOptional": false,
+              "image": "https://images.unsplash.com/photo-1574169208507-84376144848b?auto=format&fit=crop&w=1200&q=80",
+              "bookingUrl": "/places/b0000000-0000-0000-0000-000000000006"
+            },
+            {
+              "start_time": "10:55",
+              "end_time": "12:25",
+              "place_id": "b0000000-0000-0000-0000-000000000007",
+              "name": "Lodhi Garden",
+              "description": "A city park situated in New Delhi covering 90 acres. Contains the architectural tombs of Mohammed Shah and Sikandar Lodi, surrounded by landscaped lawns, manicured trees, and serene walking tracks.",
+              "activity_type": "Nature",
+              "estimated_cost": 50,
+              "travel_time_minutes": 10,
+              "rating": 4.7,
+              "reviewCount": 564,
+              "location": "Lodhi Garden, New Delhi",
+              "latitude": 28.5931,
+              "longitude": 77.2197,
+              "distance": "3.0 km away",
+              "openingHours": "06:00 AM - 08:00 PM",
+              "entryFee": "\u20b950",
+              "aiReason": "Verified canonical nature highlighting the heritage of Delhi.",
+              "aiTips": [
+                "Book tickets in advance during peak visiting hours",
+                "Wear comfortable footwear and carry water"
+              ],
+              "crowdLevel": "Moderate",
+              "weatherSuitability": "Good",
+              "isOptional": false,
+              "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Bara_Gumbad_Lodhi_Garden.jpg/1280px-Bara_Gumbad_Lodhi_Garden.jpg",
+              "bookingUrl": "/places/b0000000-0000-0000-0000-000000000007"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route_name": "Explorer",
+      "description": "Explorer itinerary curated for Delhi with verified visits and authoritative opening hours.",
+      "total_estimated_cost": 3000,
+      "transportation": {
+        "mode": "flight",
+        "origin": "Delhi",
+        "destination": "Delhi",
+        "estimated_distance_km": 0.0,
+        "estimated_duration_minutes": 0,
+        "estimated_cost_min": 200,
+        "estimated_cost_max": 500,
+        "fuel_cost_estimate": 0,
+        "toll_estimate": 0,
+        "recommendation_note": "Recommended flight transit for comfort and scenic regional travel."
+      },
+      "schedule": [
+        {
+          "day": 1,
+          "aiSummary": "Day 1 in Delhi: Explore Qutub Minar, Red Fort, Humayun's Tomb with curated visits and local culture.",
+          "activities": [
+            {
+              "start_time": "09:15",
+              "end_time": "10:31",
+              "place_id": "b0000000-0000-0000-0000-000000000004",
+              "name": "Qutub Minar",
+              "description": "A 72.5-meter fluted red sandstone minaret erected in 1192 by Qutb-ud-din Aibak. A UNESCO World Heritage site surrounded by medieval architectural monuments including the Iron Pillar of Delhi.",
+              "activity_type": "History",
+              "estimated_cost": 250,
+              "travel_time_minutes": 15,
+              "rating": 4.6,
+              "reviewCount": 552,
+              "location": "Qutub Minar, New Delhi",
+              "latitude": 28.5245,
+              "longitude": 77.1855,
+              "distance": "2.5 km away",
+              "openingHours": "07:00 AM - 09:00 PM",
+              "entryFee": "\u20b9250",
+              "aiReason": "Verified canonical history highlighting the heritage of Delhi.",
+              "aiTips": [
+                "Book tickets in advance during peak visiting hours",
+                "Wear comfortable footwear and carry water"
+              ],
+              "crowdLevel": "Moderate",
+              "weatherSuitability": "Good",
+              "isOptional": false,
+              "image": "https://images.unsplash.com/photo-1574768399557-4fb8e95fa6f1?auto=format&fit=crop&w=1200&q=80",
+              "bookingUrl": "/places/b0000000-0000-0000-0000-000000000004"
+            },
+            {
+              "start_time": "11:08",
+              "end_time": "12:50",
+              "place_id": "b0000000-0000-0000-0000-000000000005",
+              "name": "Red Fort",
+              "description": "Historic fortified palace complex constructed in 1639 by Emperor Shah Jahan. Built of red sandstone, it represents the zenith of Mughal creativity and has served as a primary national landmark of India.",
+              "activity_type": "History",
+              "estimated_cost": 250,
+              "travel_time_minutes": 37,
+              "rating": 4.6,
+              "reviewCount": 552,
+              "location": "Red Fort, New Delhi",
+              "latitude": 28.6562,
+              "longitude": 77.241,
+              "distance": "15.6 km away",
+              "openingHours": "09:30 AM - 04:30 PM",
+              "entryFee": "\u20b9250",
+              "aiReason": "Verified canonical history highlighting the heritage of Delhi.",
+              "aiTips": [
+                "Book tickets in advance during peak visiting hours",
+                "Wear comfortable footwear and carry water"
+              ],
+              "crowdLevel": "Moderate",
+              "weatherSuitability": "Good",
+              "isOptional": false,
+              "image": "https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=1200&q=80",
+              "bookingUrl": "/places/b0000000-0000-0000-0000-000000000005"
+            },
+            {
+              "start_time": "13:06",
+              "end_time": "14:22",
+              "place_id": "b0000000-0000-0000-0000-000000000006",
+              "name": "Humayun's Tomb",
+              "description": "The tomb of the Mughal Emperor Humayun, commissioned by his first wife Empress Bega Begum in 1558. It was the first garden-tomb on the Indian subcontinent, inspiring the architectural design of the Taj Mahal.",
+              "activity_type": "Architecture",
+              "estimated_cost": 250,
+              "travel_time_minutes": 16,
+              "rating": 4.7,
+              "reviewCount": 564,
+              "location": "Humayun's Tomb, New Delhi",
+              "latitude": 28.5933,
+              "longitude": 77.2507,
+              "distance": "7.1 km away",
+              "openingHours": "06:00 AM - 06:00 PM",
+              "entryFee": "\u20b9250",
+              "aiReason": "Verified canonical architecture highlighting the heritage of Delhi.",
+              "aiTips": [
+                "Book tickets in advance during peak visiting hours",
+                "Wear comfortable footwear and carry water"
+              ],
+              "crowdLevel": "Moderate",
+              "weatherSuitability": "Good",
+              "isOptional": false,
+              "image": "https://images.unsplash.com/photo-1574169208507-84376144848b?auto=format&fit=crop&w=1200&q=80",
+              "bookingUrl": "/places/b0000000-0000-0000-0000-000000000006"
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "aiSummary": "Day 2 in Delhi: Explore Lodhi Garden with curated visits and local culture.",
+          "activities": [
+            {
+              "start_time": "09:15",
+              "end_time": "10:31",
+              "place_id": "b0000000-0000-0000-0000-000000000007",
+              "name": "Lodhi Garden",
+              "description": "A city park situated in New Delhi covering 90 acres. Contains the architectural tombs of Mohammed Shah and Sikandar Lodi, surrounded by landscaped lawns, manicured trees, and serene walking tracks.",
+              "activity_type": "Nature",
+              "estimated_cost": 50,
+              "travel_time_minutes": 15,
+              "rating": 4.7,
+              "reviewCount": 564,
+              "location": "Lodhi Garden, New Delhi",
+              "latitude": 28.5931,
+              "longitude": 77.2197,
+              "distance": "2.5 km away",
+              "openingHours": "06:00 AM - 08:00 PM",
+              "entryFee": "\u20b950",
+              "aiReason": "Verified canonical nature highlighting the heritage of Delhi.",
+              "aiTips": [
+                "Book tickets in advance during peak visiting hours",
+                "Wear comfortable footwear and carry water"
+              ],
+              "crowdLevel": "Moderate",
+              "weatherSuitability": "Good",
+              "isOptional": false,
+              "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Bara_Gumbad_Lodhi_Garden.jpg/1280px-Bara_Gumbad_Lodhi_Garden.jpg",
+              "bookingUrl": "/places/b0000000-0000-0000-0000-000000000007"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "route_name": "Relaxed",
+      "description": "Relaxed itinerary curated for Delhi with verified visits and authoritative opening hours.",
+      "total_estimated_cost": 2700,
+      "transportation": {
+        "mode": "flight",
+        "origin": "Delhi",
+        "destination": "Delhi",
+        "estimated_distance_km": 0.0,
+        "estimated_duration_minutes": 0,
+        "estimated_cost_min": 200,
+        "estimated_cost_max": 500,
+        "fuel_cost_estimate": 0,
+        "toll_estimate": 0,
+        "recommendation_note": "Recommended flight transit for comfort and scenic regional travel."
+      },
+      "schedule": [
+        {
+          "day": 1,
+          "aiSummary": "Day 1 in Delhi: Explore Qutub Minar with curated visits and local culture.",
+          "activities": [
+            {
+              "start_time": "09:15",
+              "end_time": "11:12",
+              "place_id": "b0000000-0000-0000-0000-000000000004",
+              "name": "Qutub Minar",
+              "description": "A 72.5-meter fluted red sandstone minaret erected in 1192 by Qutb-ud-din Aibak. A UNESCO World Heritage site surrounded by medieval architectural monuments including the Iron Pillar of Delhi.",
+              "activity_type": "History",
+              "estimated_cost": 250,
+              "travel_time_minutes": 15,
+              "rating": 4.6,
+              "reviewCount": 552,
+              "location": "Qutub Minar, New Delhi",
+              "latitude": 28.5245,
+              "longitude": 77.1855,
+              "distance": "2.5 km away",
+              "openingHours": "07:00 AM - 09:00 PM",
+              "entryFee": "\u20b9250",
+              "aiReason": "Verified canonical history highlighting the heritage of Delhi.",
+              "aiTips": [
+                "Book tickets in advance during peak visiting hours",
+                "Wear comfortable footwear and carry water"
+              ],
+              "crowdLevel": "Moderate",
+              "weatherSuitability": "Good",
+              "isOptional": false,
+              "image": "https://images.unsplash.com/photo-1574768399557-4fb8e95fa6f1?auto=format&fit=crop&w=1200&q=80",
+              "bookingUrl": "/places/b0000000-0000-0000-0000-000000000004"
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "aiSummary": "Day 2 in Delhi: Explore Red Fort with curated visits and local culture.",
+          "activities": [
+            {
+              "start_time": "09:15",
+              "end_time": "11:51",
+              "place_id": "b0000000-0000-0000-0000-000000000005",
+              "name": "Red Fort",
+              "description": "Historic fortified palace complex constructed in 1639 by Emperor Shah Jahan. Built of red sandstone, it represents the zenith of Mughal creativity and has served as a primary national landmark of India.",
+              "activity_type": "History",
+              "estimated_cost": 250,
+              "travel_time_minutes": 15,
+              "rating": 4.6,
+              "reviewCount": 552,
+              "location": "Red Fort, New Delhi",
+              "latitude": 28.6562,
+              "longitude": 77.241,
+              "distance": "2.5 km away",
+              "openingHours": "09:30 AM - 04:30 PM",
+              "entryFee": "\u20b9250",
+              "aiReason": "Verified canonical history highlighting the heritage of Delhi.",
+              "aiTips": [
+                "Book tickets in advance during peak visiting hours",
+                "Wear comfortable footwear and carry water"
+              ],
+              "crowdLevel": "Moderate",
+              "weatherSuitability": "Good",
+              "isOptional": false,
+              "image": "https://images.unsplash.com/photo-1587595431973-160d0d94add1?auto=format&fit=crop&w=1200&q=80",
+              "bookingUrl": "/places/b0000000-0000-0000-0000-000000000005"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "error": null
+}

@@ -48,10 +48,18 @@ def get_grounded_chat_response(
     retrieved_chunks: List[Dict[str, Any]],
     language: str = "en",
     canonical_extra: Optional[Dict[str, Any]] = None,
+    resolved_loc: Optional[Dict[str, Any]] = None,
+    nearby_places: Optional[List[Dict[str, Any]]] = None,
+    detected_category: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Produces a grounded chat response with strict authority guardrails and source attribution.
     Uses Gemini in online mode if GEMINI_API_KEY is available; otherwise uses deterministic extractive synthesis.
+
+    Args:
+        nearby_places: Real nearby places from Google Places / provider search.
+                       When provided, the AI formats these into a response rather than inventing data.
+        detected_category: The category detected from the user query (cafe, hotel, restaurant, etc.)
     """
     # 1. Authority Guardrail: Prohibit road distance and route calculations
     if is_route_or_distance_query(user_message):
@@ -65,20 +73,6 @@ def get_grounded_chat_response(
             "answer": route_msg,
             "sources": [],
             "is_grounded": True,
-        }
-
-    # 2. Insufficient Evidence Refusal
-    if not retrieved_chunks and not canonical_extra:
-        refusal_msg = (
-            "I do not have verified knowledge about that in my database. "
-            "Please ask about our supported destinations (Agra, New Delhi, Jaipur, Mumbai) "
-            "or specific landmarks such as Taj Mahal, Agra Fort, Qutub Minar, etc."
-        )
-        return {
-            "response": refusal_msg,
-            "answer": refusal_msg,
-            "sources": [],
-            "is_grounded": False,
         }
 
     # Prepare sources metadata
@@ -101,6 +95,91 @@ def get_grounded_chat_response(
             "poi_name": canonical_extra.get("name"),
             "similarity": 1.0,
         })
+        
+    if resolved_loc:
+        sources.append({
+            "id": "resolved-loc",
+            "title": f"Location: {resolved_loc.get('name')}",
+            "source": f"Resolved via {resolved_loc.get('source')}",
+            "poi_name": resolved_loc.get("name"),
+            "similarity": 1.0,
+        })
+
+    # ── Build nearby places context block ────────────────────────────────────
+    nearby_context_block = ""
+    if nearby_places is not None:
+        loc_name = (resolved_loc or {}).get("name", "the location") if resolved_loc else "the location"
+
+        # Human-readable category labels for the response text
+        _CAT_LABELS = {
+            "tourist": "tourist attractions",
+            "history": "historical sites",
+            "heritage": "heritage sites",
+            "culture": "cultural sites",
+            "nature": "nature spots",
+            "adventure": "adventure spots",
+            "architecture": "architectural sites",
+            "museum": "museums",
+            "park": "parks",
+            "beach": "beaches",
+            "cafe": "cafes",
+            "cafes": "cafes",
+            "coffee": "coffee shops",
+            "bakery": "bakeries",
+            "restaurant": "restaurants",
+            "restaurants": "restaurants",
+            "hotel": "hotels",
+            "hotels": "hotels",
+            "bar": "bars",
+            "shopping": "shopping spots",
+            "all": "places",
+        }
+        cat_label = _CAT_LABELS.get(detected_category or "", detected_category or "places")
+
+        if nearby_places:
+            lines = [f"[REAL NEARBY {cat_label.upper()} RESULTS — source: Google Maps]"]
+            lines.append(f"Found {len(nearby_places)} {cat_label}(s) near {loc_name}:")
+            for i, p in enumerate(nearby_places, 1):
+                name = p.get("name", "Unknown")
+                address = p.get("address") or "Address not available"
+                rating = p.get("rating")
+                dist = p.get("distance_km")
+                rating_str = f"  Rating: {rating}/5" if rating is not None else ""
+                dist_str = f"  Distance: {dist} km (straight-line)" if dist is not None else ""
+                lines.append(f"{i}. {name}{rating_str}{dist_str}")
+                lines.append(f"   Address: {address}")
+            lines.append(
+                "\nIMPORTANT: Use ONLY the above real data. Do NOT invent additional "
+                "businesses, addresses, ratings, or distances. "
+                "If a field is missing, omit it or say 'not available'."
+            )
+            nearby_context_block = "\n".join(lines)
+        else:
+            nearby_context_block = (
+                f"[NEARBY SEARCH RESULT]\n"
+                f"Location '{loc_name}' was successfully resolved, but no {cat_label}s "
+                f"were found within the search radius. "
+                f"Do NOT say the location is unknown. Instead tell the user: "
+                f"'I found {loc_name}, but couldn't find {cat_label}s nearby in the available data.'"
+            )
+
+    # Short-circuit if a location was requested/resolved but we have absolutely no data for it.
+    if resolved_loc and not nearby_places and not retrieved_chunks and not canonical_extra:
+        country = (resolved_loc.get("country") or "").lower()
+        loc_name = resolved_loc.get('name') or 'this destination'
+        if country and "india" not in country:
+            fallback_msg = f"I currently focus on travel information within India. I don't have verified TourMate data for {loc_name}."
+        else:
+            fallback_msg = (
+                f"I recognize {loc_name} as a location in India, but I currently have limited "
+                "verified TourMate data for it. I can help you find nearby places or general information if you provide more details!"
+            )
+        return {
+            "response": fallback_msg,
+            "answer": fallback_msg,
+            "sources": [],
+            "is_grounded": True,
+        }
 
     # 3. Online Grounded Mode via Gemini (if GEMINI_API_KEY is configured)
     api_key = settings.gemini_api_key
@@ -111,7 +190,12 @@ def get_grounded_chat_response(
             model = genai.GenerativeModel(model_name)
 
             system_instruction = build_grounded_system_prompt(language)
-            context_block = format_context_block(retrieved_chunks, canonical_extra=canonical_extra)
+            context_block = format_context_block(
+                retrieved_chunks,
+                canonical_extra=canonical_extra,
+                resolved_loc=resolved_loc,
+                nearby_context=nearby_context_block,
+            )
 
             contents = [
                 {"role": "user", "parts": [f"{system_instruction}\n\n{context_block}"]},
@@ -128,17 +212,19 @@ def get_grounded_chat_response(
 
             answer_text = _safe_generate_content(model, contents, timeout_sec=12.0)
             if answer_text:
+                is_grounded = "not have verified knowledge" not in answer_text.lower()
                 logger.info(
-                    "AI request: provider=gemini model=%s rag_candidates=%d accepted_context=%d grounded=true",
+                    "AI request: provider=gemini model=%s rag_candidates=%d accepted_context=%d grounded=%s",
                     model_name,
                     len(retrieved_chunks),
                     len(sources),
+                    is_grounded
                 )
                 return {
                     "response": answer_text,
                     "answer": answer_text,
-                    "sources": sources,
-                    "is_grounded": True,
+                    "sources": sources if is_grounded else [],
+                    "is_grounded": is_grounded,
                 }
         except Exception as e:
             logger.warning("Gemini Grounded RAG Error, falling back to local synthesis: %s", type(e).__name__)
@@ -162,7 +248,62 @@ def get_grounded_chat_response(
                 poi_label = c.get("poi_name") or c.get("title")
                 extractive_lines.append(f"• **{poi_label}**: {c['content']}")
 
+    # Nearby places deterministic fallback
+    if nearby_places is not None:
+        loc_name = (resolved_loc or {}).get("name", "the location") if resolved_loc else "the location"
+        _CAT_LABELS_FALLBACK = {
+            "tourist": "tourist attractions", "history": "historical sites",
+            "heritage": "heritage sites", "culture": "cultural sites",
+            "nature": "nature spots", "museum": "museums", "park": "parks",
+            "beach": "beaches", "cafe": "cafes", "cafes": "cafes",
+            "coffee": "coffee shops", "bakery": "bakeries",
+            "restaurant": "restaurants", "restaurants": "restaurants",
+            "hotel": "hotels", "hotels": "hotels", "bar": "bars",
+            "shopping": "shopping spots", "all": "places",
+        }
+        cat_label = _CAT_LABELS_FALLBACK.get(detected_category or "", detected_category or "places")
+        if nearby_places:
+            extractive_lines.append(f"Here are real {cat_label} near {loc_name}:")
+            for p in nearby_places[:8]:
+                name = p.get("name", "Unknown")
+                address = p.get("address") or ""
+                rating = p.get("rating")
+                dist = p.get("distance_km")
+                parts = [f"• **{name}**"]
+                if rating:
+                    parts.append(f"Rating: {rating}/5")
+                if dist is not None:
+                    parts.append(f"{dist} km away")
+                if address:
+                    parts.append(f"Address: {address}")
+                extractive_lines.append(" | ".join(parts))
+        else:
+            extractive_lines.append(
+                f"I found {loc_name}, but couldn't locate any {cat_label} "
+                f"within the search radius. You may want to try a broader area."
+            )
+
+
+    if resolved_loc and not nearby_places and not retrieved_chunks and not canonical_extra:
+        country = (resolved_loc.get("country") or "").lower()
+        loc_name = resolved_loc.get('name') or 'this destination'
+        if country and "india" not in country:
+            extractive_lines.append(f"I currently focus on travel information within India. I don't have verified TourMate data for {loc_name}.")
+        else:
+            extractive_lines.append(
+                f"I recognize {loc_name} as a location in India, but I currently have limited "
+                "verified TourMate data for it. I can help you find nearby places or general information if you provide more details!"
+            )
+    elif resolved_loc and not nearby_places:
+        extractive_lines.append(
+            f"Resolved Location: {resolved_loc.get('name')} "
+            f"in {resolved_loc.get('city') or 'unknown area'}. "
+            f"(Source: {resolved_loc.get('source')})"
+        )
+
     fallback_response = "\n".join(extractive_lines)
+    if not fallback_response.strip():
+        fallback_response = "I couldn't confidently identify that location. Please provide the city and state/country, and I'll help you plan the trip."
     logger.info(
         "AI request: provider=deterministic_fallback rag_candidates=%d accepted_context=%d grounded=true",
         len(retrieved_chunks),
@@ -174,6 +315,7 @@ def get_grounded_chat_response(
         "sources": sources,
         "is_grounded": True,
     }
+
 
 
 def get_ai_response(user_message: str, history: List[Dict[str, str]], context: str = None, language: str = 'en') -> str:

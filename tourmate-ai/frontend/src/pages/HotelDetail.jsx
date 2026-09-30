@@ -36,6 +36,11 @@ export default function HotelDetail() {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState("");
 
+  const formatCurrency = (amount) => {
+    if (!amount) return "";
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amount);
+  };
+
   // Booking Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -270,7 +275,7 @@ export default function HotelDetail() {
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-200 dark:border-slate-700 shadow-sm sticky top-24">
               <span className="text-xs font-semibold text-gray-400">Nightly starting rate</span>
               <div className="text-3xl font-extrabold text-gray-900 dark:text-white mt-1 mb-4">
-                {hotel.currency}{hotel.price_per_night_start}
+                {formatCurrency(hotel.price_per_night_start)}
                 <span className="text-xs font-normal text-gray-500 dark:text-slate-400"> / night</span>
               </div>
 
@@ -323,7 +328,7 @@ export default function HotelDetail() {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-lg text-xs font-bold text-white">
-                      {hotel.currency}{room.price_per_night} <span className="font-normal text-gray-300">/ night</span>
+                      {formatCurrency(room.price_per_night)} <span className="font-normal text-gray-300">/ night</span>
                     </div>
                   </div>
 
@@ -413,7 +418,7 @@ export default function HotelDetail() {
                   </div>
                   <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-bold text-sm">
                     <span>Total Paid:</span>
-                    <span className="text-brand-600">{hotel?.currency || '₹'}{bookingSuccess.total_price}</span>
+                    <span className="text-brand-600">{formatCurrency(bookingSuccess.total_price)}</span>
                   </div>
                 </div>
 
@@ -497,16 +502,16 @@ export default function HotelDetail() {
                 {/* Price Summary Breakdown */}
                 <div className="p-4 bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-100 dark:border-slate-700/50 space-y-1.5 text-xs text-gray-600 dark:text-slate-300">
                   <div className="flex justify-between">
-                    <span>{hotel?.currency || '₹'}{roomPrice} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
-                    <span>{hotel?.currency || '₹'}{subtotal}</span>
+                    <span>{formatCurrency(roomPrice)} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
+                    <span>{formatCurrency(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Taxes & Hotel Fees (12%)</span>
-                    <span>{hotel?.currency || '₹'}{taxes}</span>
+                    <span>{formatCurrency(taxes)}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-bold text-sm text-gray-900 dark:text-white">
                     <span>Total Amount (Indicative)</span>
-                    <span className="text-brand-600">{hotel?.currency || '₹'}{total}</span>
+                    <span className="text-brand-600">{formatCurrency(total)}</span>
                   </div>
                 </div>
 
@@ -529,7 +534,7 @@ export default function HotelDetail() {
                     disabled={bookingLoading || nights <= 0}
                     className="px-5 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {bookingLoading ? "Confirming..." : (nights <= 0 ? "Select Valid Dates" : `Confirm & Reserve (${hotel?.currency || '₹'}${total})`)}
+                    {bookingLoading ? "Confirming..." : (nights <= 0 ? "Select Valid Dates" : `Confirm & Reserve (${formatCurrency(total)})`)}
                   </button>
                 </div>
               </form>
@@ -544,7 +549,7 @@ export default function HotelDetail() {
           isOpen={shareOpen}
           onClose={() => setShareOpen(false)}
           title={`${hotel.name} — ${hotel.city}, India`}
-          text={`🏨 Check out ${hotel.name} in ${hotel.city} on TourMate! ${hotel.price_per_night_start ? `Rooms from ${hotel.currency}${hotel.price_per_night_start}/night` : 'Authentic verified stay'}${hotel.rating ? ` with ${hotel.rating.toFixed(1)}★ rating` : ''}.`}
+          text={`🏨 Check out ${hotel.name} in ${hotel.city} on TourMate! ${hotel.price_per_night_start ? `Rooms from ${formatCurrency(hotel.price_per_night_start)}/night` : 'Authentic verified stay'}${hotel.rating ? ` with ${hotel.rating.toFixed(1)}★ rating` : ''}.`}
           url={window.location.href}
         />
       )}

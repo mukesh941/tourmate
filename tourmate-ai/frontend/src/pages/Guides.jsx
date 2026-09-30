@@ -69,7 +69,14 @@ export default function Guides() {
       setBookingSuccess(true);
     } catch (err) {
       console.error(err);
-      alert("Failed to book guide. Please try again.");
+      if (err.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        if (typeof detail === 'string') alert(detail);
+        else if (Array.isArray(detail) && detail.length > 0) alert(detail[0].msg || JSON.stringify(detail));
+        else alert("Failed to book guide");
+      } else {
+        alert("Failed to book guide");
+      }
     } finally {
       setBookingLoading(false);
     }
@@ -148,12 +155,22 @@ export default function Guides() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {guides.map(guide => (
               <div key={guide.id} className="glass bg-white/80 dark:bg-slate-800/80 rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-700/50 shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col">
-                <div className="h-48 overflow-hidden relative">
-                  <img 
-                    src={guide.image_url || "https://images.unsplash.com/photo-1544717302-de2939b7ef71"} 
-                    alt={guide.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                <div className="h-48 overflow-hidden relative bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-sm text-gray-500 dark:text-slate-400">
+                  {guide.image_url ? (
+                    <img 
+                      src={guide.image_url} 
+                      alt={guide.name}
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : null}
+                  <span style={{ display: guide.image_url ? 'none' : 'block' }}>Indian guide avatar / default guide image</span>
+                  
+                  {(guide.is_demo || guide.is_lgbtq) && (
+                    <div className="absolute top-3 right-3 bg-brand-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+                      {guide.is_lgbtq ? "LGBTQ+ • Demo Profile" : "Demo Profile"}
+                    </div>
+                  )}
                   {guide.verified && (
                     <div className="absolute top-3 left-3 bg-white/90 backdrop-blur text-brand-700 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
                       <ShieldCheck className="w-3.5 h-3.5" /> Verified
@@ -219,7 +236,7 @@ export default function Guides() {
                 <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
                   <CheckCircle className="w-10 h-10 text-green-500" />
                 </div>
-                <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-white mb-2">Booking Confirmed!</h2>
+                <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-white mb-2">Guide booked successfully</h2>
                 <p className="text-gray-600 dark:text-slate-400 mb-8">
                   Your tour with {selectedGuide.name} is confirmed. They will contact you shortly to arrange the meeting point!
                 </p>

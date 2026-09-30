@@ -8,7 +8,7 @@ this service provides safe, non-blocking fallback responses without MongoDB depe
 """
 from typing import List, Optional
 from app.schemas.guide import GuideResponse, BookingCreate, BookingResponse
-
+from app.core.database import get_db
 
 async def get_all_guides(location: Optional[str] = None) -> List[GuideResponse]:
     """
@@ -73,17 +73,79 @@ async def get_all_guides(location: Optional[str] = None) -> List[GuideResponse]:
 
     return guides
 
-
 async def get_guide(guide_id: str) -> Optional[GuideResponse]:
     """Retrieves a single guide by id."""
+    db = get_db()
+    from bson import ObjectId
+    try:
+        g = await db.guides.find_one({"_id": ObjectId(guide_id)})
+        if g:
+            g["id"] = str(g.pop("_id"))
+            return GuideResponse(**g)
+    except Exception:
+        pass
     return None
 
 
 async def create_booking(user_id: str, payload: BookingCreate) -> BookingResponse:
     """Creates a guide booking."""
-    raise ValueError("Local Expert booking is currently not available in this release.")
+    db = get_db()
+    from datetime import datetime, timezone
+    
+    if payload.hours < 1 or payload.hours > 8:
+        raise ValueError("Hours must be between 1 and 8")
+        
+    try:
+        booking_date = datetime.strptime(payload.date, "%Y-%m-%d").date()
+    except ValueError:
+        raise ValueError("Invalid date format")
+        
+    if booking_date < datetime.now().date():
+        raise ValueError("Date cannot be in the past")
+    
+    guide = await get_guide(payload.guide_id)
+    if not guide:
+        raise ValueError("Guide not found")
+        
+    # Check duplicate
+    existing_booking = await db.guide_bookings.find_one({
+        "guide_id": payload.guide_id,
+        "date": payload.date
+    })
+    if existing_booking:
+        raise ValueError("Guide is already booked for this date")
+        
+    total_price = guide.hourly_rate * payload.hours
+    
+    booking_doc = {
+        "user_id": user_id,
+        "guide_id": payload.guide_id,
+        "date": payload.date,
+        "hours": payload.hours,
+        "hourly_rate": guide.hourly_rate,
+        "total_price": total_price,
+        "status": "confirmed",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    result = await db.guide_bookings.insert_one(booking_doc)
+    booking_doc["id"] = str(result.inserted_id)
+    booking_doc["guide"] = guide
+    
+    return BookingResponse(**booking_doc)
 
 
 async def get_user_bookings(user_id: str) -> List[BookingResponse]:
     """Returns guide bookings for the current user."""
-    return []
+    db = get_db()
+    cursor = db.guide_bookings.find({"user_id": user_id})
+    bookings = await cursor.to_list(length=100)
+    
+    result = []
+    for b in bookings:
+        b["id"] = str(b.pop("_id", ""))
+        guide = await get_guide(b["guide_id"])
+        if guide:
+            b["guide"] = guide
+        result.append(BookingResponse(**b))
+    return result

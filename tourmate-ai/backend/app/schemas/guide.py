@@ -11,6 +11,8 @@ class GuideCreate(BaseModel):
     verified: bool = Field(default=False)
     image_url: Optional[str] = None
     location: str = Field(default="")
+    is_demo: bool = Field(default=True)
+    is_lgbtq: bool = Field(default=False)
 
 class GuideResponse(GuideCreate):
     id: str
@@ -26,6 +28,8 @@ class BookingResponse(BaseModel):
     guide_id: str
     date: str
     hours: int
+    hourly_rate: Optional[float] = None
     total_price: float
     status: str
+    created_at: Optional[str] = None
     guide: Optional[GuideResponse] = None

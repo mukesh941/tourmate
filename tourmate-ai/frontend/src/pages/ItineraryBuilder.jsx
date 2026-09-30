@@ -16,7 +16,8 @@ import FullTripBudgetModal from "../components/itinerary/FullTripBudgetModal";
 import SafeImage from "../components/SafeImage";
 
 function HotelSuggestionCard({ hotel, isSelected, onSelectHotel }) {
-  const hasPrice = typeof hotel.price_per_night === "number" && hotel.price_per_night > 0;
+  const price = hotel.price_per_night_start || hotel.price_per_night;
+  const hasPrice = typeof price === "number" && price > 0;
 
   return (
     <div className={`flex flex-col gap-3 bg-white dark:bg-slate-800 border rounded-2xl p-4 transition-all ${
@@ -47,7 +48,7 @@ function HotelSuggestionCard({ hotel, isSelected, onSelectHotel }) {
             </div>
             {hasPrice ? (
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                From &#8377;{hotel.price_per_night.toLocaleString("en-IN")}/night
+                From {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(price)}/night
               </span>
             ) : (
               <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
@@ -626,12 +627,12 @@ export default function ItineraryBuilder() {
                   Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">Ultimate</span> Journey
                 </h1>
                 <p className="text-lg md:text-xl font-medium text-brand-100 mb-8 max-w-2xl">
-                  We've analyzed your preferences and crafted the perfect itineraries for <strong className="text-white">{destinationName}</strong>.
+                  We've analyzed your preferences and crafted the perfect itineraries for <strong className="text-white">{generatedItinerary[0]?.transportation?.destination || destinationName}</strong>.
                 </p>
                 
                 <div className="flex flex-wrap justify-center md:justify-start gap-3">
                   <span className="px-4 py-2 bg-black/20 backdrop-blur-md border border-white/10 rounded-xl text-sm font-semibold text-white flex items-center gap-2 shadow-inner">
-                    <MapPin className="w-4 h-4 text-brand-300" /> {destinationName}
+                    <MapPin className="w-4 h-4 text-brand-300" /> {generatedItinerary[0]?.transportation?.destination || destinationName}
                   </span>
                   <span className="px-4 py-2 bg-black/20 backdrop-blur-md border border-white/10 rounded-xl text-sm font-semibold text-white flex items-center gap-2 shadow-inner">
                     <Clock className="w-4 h-4 text-brand-300" /> {days} Days
@@ -706,8 +707,9 @@ export default function ItineraryBuilder() {
             const currentOption = generatedItinerary[selectedOptionIndex];
             const activitiesCostSum = currentOption?.total_estimated_cost || 0;
             const hotelNights = Math.max(1, parseInt(days) - 1 || 1);
-            const hotelCostTotal = (selectedHotel?.price_per_night && selectedHotel.price_per_night > 0)
-              ? selectedHotel.price_per_night * hotelNights
+            const selectedHotelPrice = selectedHotel?.price_per_night_start || selectedHotel?.price_per_night;
+            const hotelCostTotal = (selectedHotelPrice && selectedHotelPrice > 0)
+              ? selectedHotelPrice * hotelNights
               : 0;
             const transportCostMax = currentOption?.transportation?.estimated_cost_max || 0;
             const calculatedTotalCost = activitiesCostSum + hotelCostTotal + transportCostMax;
@@ -753,6 +755,44 @@ export default function ItineraryBuilder() {
                         <DailySummary dayPlan={dayPlan} />
                         
                         <div className="mt-8">
+                          {dayPlan.accommodation && (
+                            <div className="mb-8 p-6 bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 shadow-sm animate-fade-in-up">
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <BedDouble className="w-5 h-5 text-indigo-500" /> Where You'll Stay
+                              </h3>
+                              <div className="flex gap-4 items-start sm:items-center flex-col sm:flex-row">
+                                <div className="w-full sm:w-32 h-32 rounded-xl overflow-hidden shrink-0 bg-gray-100">
+                                  <SafeImage src={dayPlan.accommodation.image} alt={dayPlan.accommodation.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-bold text-lg text-gray-900 dark:text-white truncate">{dayPlan.accommodation.name}</h4>
+                                  <p className="text-sm text-gray-500 flex items-center gap-1 mb-2 truncate">
+                                    <MapPin className="w-4 h-4 shrink-0" /> {dayPlan.accommodation.location}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 text-xs font-bold mb-3">
+                                    <span className="bg-amber-50 text-amber-600 px-2 py-1 rounded-lg flex items-center gap-1 border border-amber-100">
+                                      <Star className="w-3.5 h-3.5 fill-amber-500" /> {dayPlan.accommodation.rating}
+                                    </span>
+                                    <span className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg border border-indigo-100">
+                                      {dayPlan.accommodation.room_type}
+                                    </span>
+                                  </div>
+                                  <p className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                                    {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(dayPlan.accommodation.price_per_night)} / night
+                                  </p>
+                                </div>
+                                <div className="w-full sm:w-auto flex sm:flex-col flex-row gap-2 shrink-0">
+                                  <Link to={`/hotels/${dayPlan.accommodation.hotel_id}`} target="_blank" className="flex-1 text-center bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-xl text-sm transition">
+                                    View Hotel
+                                  </Link>
+                                  <Link to={`/hotels/${dayPlan.accommodation.hotel_id}`} target="_blank" className="flex-1 text-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl text-sm transition shadow-sm">
+                                    Book Hotel
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {dayPlan.activities.map((act, i) => (
                             <React.Fragment key={i}>
                               <ActivityCard 

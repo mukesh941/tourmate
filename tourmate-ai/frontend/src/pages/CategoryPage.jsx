@@ -139,7 +139,7 @@ export default function CategoryPage() {
                      <span className="text-brand-600 font-medium text-sm">View Details &rarr;</span>
                      <div className="flex items-center gap-2">
                        <a
-                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
+                         href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(place.name)}`}
                          target="_blank"
                          rel="noopener noreferrer"
                          onClick={e => e.stopPropagation()}

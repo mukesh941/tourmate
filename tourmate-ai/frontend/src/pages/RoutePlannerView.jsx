@@ -258,26 +258,28 @@ export default function RoutePlannerView() {
       return;
     }
 
-    // Map TourMate mode to Google Maps travel mode
-    let gmapsMode = "driving";
+    // Map TourMate mode to OSM routing engine
+    let engine = "osrm_car";
     if (transportMode === "bike") {
-      gmapsMode = "bicycling";
+      engine = "graphhopper_bicycle";
     } else if (transportMode === "walk") {
-      gmapsMode = "walking";
+      engine = "graphhopper_foot";
     }
 
-    const originParam = `${origin.lat},${origin.lng}`;
-    const destParam = `${destination.lat},${destination.lng}`;
-
     const validStops = stops.filter(s => s.lat != null && s.lng != null);
-    const waypointsParam = validStops.length > 0 
-      ? `&waypoints=${encodeURIComponent(validStops.map(s => `${s.lat},${s.lng}`).join('|'))}`
-      : "";
-
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originParam}&destination=${destParam}${waypointsParam}&travelmode=${gmapsMode}`;
     
-    // Launch Google Maps navigation in new window / native app handler
-    window.open(googleMapsUrl, "_blank", "noopener,noreferrer");
+    // Construct route string for OSM: lat,lng;lat,lng...
+    const coords = [];
+    coords.push(`${origin.lat},${origin.lng}`);
+    validStops.forEach(s => coords.push(`${s.lat},${s.lng}`));
+    coords.push(`${destination.lat},${destination.lng}`);
+    
+    const routeParam = coords.join(';');
+
+    const osmUrl = `https://www.openstreetmap.org/directions?engine=${engine}&route=${routeParam}`;
+    
+    // Launch navigation in new window
+    window.open(osmUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleDiscover = async () => {
@@ -331,7 +333,7 @@ export default function RoutePlannerView() {
           <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
             <Compass className="text-brand-500" /> Route Planner
           </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Calculate optimal routes & navigate with Google Maps</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Calculate optimal routes & navigate</p>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6">
@@ -503,7 +505,7 @@ export default function RoutePlannerView() {
                 onClick={handleStartNavigation} 
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all flex justify-center items-center gap-2 text-sm"
               >
-                <Navigation className="w-4 h-4" /> Start Navigation in Google Maps <ExternalLink className="w-3.5 h-3.5 ml-1 opacity-70" />
+                <Navigation className="w-4 h-4" /> Start Navigation <ExternalLink className="w-3.5 h-3.5 ml-1 opacity-70" />
               </button>
 
               <button 

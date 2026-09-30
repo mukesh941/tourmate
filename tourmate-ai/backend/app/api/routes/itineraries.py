@@ -33,7 +33,28 @@ async def generate_itinerary(
     if not payload.destination_name and not payload.place_ids:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Must provide either destination_name or specific places")
 
-    itinerary_options = await generate_authoritative_itinerary(payload, db)
+    try:
+        itinerary_options = await generate_authoritative_itinerary(payload, db)
+    except HTTPException as e:
+        if e.status_code == status.HTTP_404_NOT_FOUND:
+            itinerary_options = generate_itinerary_via_llm(
+                places_info=[],
+                days=payload.days,
+                start_time=payload.start_time,
+                end_time=payload.end_time,
+                accommodation=payload.accommodation,
+                energy_level=payload.energy_level,
+                destination_name=payload.destination_name,
+                budget=payload.budget,
+                travel_type=payload.travel_type,
+                transportation_mode=payload.transportation_mode,
+                local_transportation=payload.local_transportation,
+                interests=payload.interests,
+                origin=payload.origin
+            )
+        else:
+            raise e
+
     return Envelope(success=True, data=itinerary_options)
 
 @router.get("", response_model=Envelope[List[ItineraryResponse]])

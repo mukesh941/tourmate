@@ -22,7 +22,7 @@ export default function RecommendationCard({
   };
 
   const getPriceBadge = () => {
-    if (type === 'hotel') return <span className="font-bold">{item.currency || '₹'}{item.price_per_night_start}/night</span>;
+    if (type === 'hotel') return <span className="font-bold">{item.price_per_night_start ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(item.price_per_night_start) : ''}/night</span>;
     if (type === 'activity') return <span className="font-bold">{item.currency || '₹'}{item.price}</span>;
     if (item.price_level) return <span className="font-bold text-emerald-700">{'₹'.repeat(item.price_level)}</span>;
     return null;

@@ -26,10 +26,23 @@ class ActivitySchema(BaseModel):
     isOptional: Optional[bool] = False
     isCompleted: Optional[bool] = False
 
+class StaySchema(BaseModel):
+    name: str
+    location: str
+    room_type: str
+    price_per_night: int
+    check_in: str
+    check_out: str
+    rating: float
+    image: Optional[str] = None
+    booking_url: Optional[str] = None
+    hotel_id: Optional[str] = None
+
 class DayScheduleSchema(BaseModel):
     day: int
     aiSummary: Optional[str] = None
     activities: List[ActivitySchema]
+    accommodation: Optional[StaySchema] = None
 
 class TransportationSummarySchema(BaseModel):
     mode: str

@@ -17,6 +17,8 @@ export default function ChatbotWidget() {
   const messagesEndRef = useRef(null);
   const { i18n } = useTranslation();
   const location = useLocation();
+  // User GPS coordinates for "near me" queries
+  const [userCoords, setUserCoords] = useState(null);
 
   // Position state: { x, y } in viewport pixels
   const [position, setPosition] = useState(() => {
@@ -96,6 +98,16 @@ export default function ChatbotWidget() {
       window.removeEventListener("orientationchange", handleResize);
     };
   }, [clampPosition]);
+
+  // Silently attempt to get user location for "near me" support
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setUserCoords(null), // Permission denied or unavailable — silently ignore
+      { timeout: 5000, maximumAge: 300000 } // 5s timeout, cache for 5 min
+    );
+  }, []);
 
   // Pointer drag handlers
   const handlePointerDown = (e) => {
@@ -227,7 +239,15 @@ export default function ChatbotWidget() {
 
       const res = await axios.post(
         `${API_BASE_URL}/ai/chat`,
-        { message: userMessage, history, place_id: placeId, language: i18n.language },
+        {
+          message: userMessage,
+          history,
+          place_id: placeId,
+          language: i18n.language,
+          // Send GPS coords if available (enables "near me" queries)
+          user_lat: userCoords?.lat ?? null,
+          user_lng: userCoords?.lng ?? null,
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -235,6 +255,7 @@ export default function ChatbotWidget() {
       const answerContent =
         data.answer || data.response || "I do not have verified knowledge about that in my database.";
       const sources = Array.isArray(data.sources) ? data.sources : [];
+      const results = Array.isArray(data.results) ? data.results : [];
 
       setMessages([
         ...newMessages,
@@ -242,6 +263,10 @@ export default function ChatbotWidget() {
           role: "model",
           content: answerContent,
           sources: sources,
+          results: results,
+          intent: data.intent,
+          category: data.category,
+          location: data.location,
           isGrounded: data.is_grounded !== false,
         },
       ]);
@@ -355,8 +380,53 @@ export default function ChatbotWidget() {
                     </p>
                   ))}
 
+                  {/* Place result cards (from nearby search) */}
+                  {msg.results && msg.results.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {msg.results.slice(0, 6).map((place, pIdx) => (
+                        <div
+                          key={pIdx}
+                          className="bg-gray-50 dark:bg-slate-700/60 border border-gray-200 dark:border-slate-600 rounded-xl p-2.5 text-xs"
+                        >
+                          <div className="flex items-start justify-between gap-1">
+                            <span className="font-semibold text-gray-800 dark:text-slate-100 leading-tight">
+                              {place.name}
+                            </span>
+                            {place.rating && (
+                              <span className="shrink-0 text-amber-500 font-bold text-[11px]">
+                                ★ {place.rating}
+                              </span>
+                            )}
+                          </div>
+                          {place.address && (
+                            <p className="text-gray-500 dark:text-slate-400 mt-0.5 leading-tight truncate">
+                              {place.address}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {place.distance_km != null && (
+                              <span className="text-brand-600 dark:text-brand-400 font-medium">
+                                {place.distance_km} km away
+                              </span>
+                            )}
+                            {place.google_maps_url && (
+                              <a
+                                href={place.google_maps_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:underline"
+                              >
+                                View on Map ↗
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Grounded Source Attribution Metadata */}
-                  {msg.sources && msg.sources.length > 0 && (
+                  {msg.sources && msg.sources.length > 0 && !(msg.results && msg.results.length > 0) && (
                     <div className="mt-2.5 pt-2 border-t border-gray-200/70 dark:border-slate-700 text-[11px]">
                       <p className="font-semibold text-brand-600 dark:text-brand-400 mb-1 flex items-center gap-1">
                         <span>📚</span>

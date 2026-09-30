@@ -17,6 +17,7 @@ from sqlalchemy import (
     Text,
     Time,
     UniqueConstraint,
+    Index,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -38,6 +39,7 @@ class POI(Base):
         CheckConstraint("rating >= 0.0 AND rating <= 5.0", name="ck_pois_rating_range"),
         CheckConstraint("price_tier BETWEEN 1 AND 4", name="ck_pois_price_tier_range"),
         CheckConstraint("typical_visit_duration_minutes > 0", name="ck_pois_visit_duration_positive"),
+        Index("idx_pois_embedding", "embedding", postgresql_using="hnsw", postgresql_with={"m": 16, "ef_construction": 64}, postgresql_ops={"embedding": "vector_cosine_ops"}),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(

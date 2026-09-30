@@ -1,0 +1,65 @@
+=== TOURMATE INDIA GEOGRAPHIC DB VERIFICATION ===
+
+## 1. TOTAL COUNTS
+Total locations: 7030
+States/UTs: 37
+Districts: 0
+Cities: 6801
+Towns: 0
+Tourist destinations: 192
+POIs: 0
+Locations with coords: 7030
+Locations without coords: 0
+
+## 2. STATE/UT COVERAGE
+Found 37 administrative divisions.
+  - Andaman and Nicobar Islands: 0 direct children
+  - Ladakh: 0 direct children
+  - Goa: 14 direct children
+  - Andhra Pradesh: 5 direct children
+  - Arunachal Pradesh: 3 direct children
+  - Assam: 5 direct children
+  - Bihar: 3 direct children
+  - Chandigarh (UT): 0 direct children
+  - Chhattisgarh: 4 direct children
+  - Dadra and Nagar Haveli (UT): 0 direct children
+  - Daman and Diu (UT): 0 direct children
+  - Delhi (NCT): 0 direct children
+  - Gujarat: 6 direct children
+  - Haryana: 4 direct children
+  - Himachal Pradesh: 4 direct children
+  - Jammu and Kashmir: 4 direct children
+  - Jharkhand: 4 direct children
+  - Karnataka: 16 direct children
+  - Kerala: 10 direct children
+  - Lakshadweep (UT): 0 direct children
+  - Madhya Pradesh: 6 direct children
+  - Maharashtra: 8 direct children
+  - Manipur: 3 direct children
+  - Meghalaya: 1 direct children
+  - Mizoram: 2 direct children
+  - Nagaland: 2 direct children
+  - Odisha: 4 direct children
+  - Puducherry (UT): 0 direct children
+  - Punjab: 3 direct children
+  - Rajasthan: 10 direct children
+  - Sikkim: 2 direct children
+  - Tamil Nadu: 9 direct children
+  - Telangana: 2 direct children
+  - Tripura: 1 direct children
+  - Uttarakhand: 4 direct children
+  - Uttar Pradesh: 8 direct children
+  - West Bengal: 3 direct children
+
+## 3. ORPHAN CHECK
+Total invalid parent orphans: 0
+
+## 4. DUPLICATE CHECK
+Duplicate exact names: 8
+Duplicate coordinates (4 decimals): 41
+
+## 5. COORDINATE VALIDATION
+Invalid coordinate count: 0
+
+## 6. INDIA VALIDATION
+Locations with coordinates outside India bounding box: 0

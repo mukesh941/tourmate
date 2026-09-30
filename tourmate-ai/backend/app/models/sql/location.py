@@ -6,8 +6,8 @@ Owns all spatial coordinates for POIs and Accommodations.
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List
-from sqlalchemy import CheckConstraint, DateTime, Float, Index, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import CheckConstraint, DateTime, Float, Index, String, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.sql.base import Base
 
@@ -37,9 +37,20 @@ class Location(Base):
     latitude: Mapped[float] = mapped_column(Float, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, nullable=False)
     city: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
-    state: Mapped[str] = mapped_column(String(128), default="", nullable=False)
+    canonical_name: Mapped[str] = mapped_column(String(128), server_default="", default="", nullable=False, index=True)
+    state: Mapped[str] = mapped_column(String(128), default="", nullable=False, index=True)
+    union_territory: Mapped[str] = mapped_column(String(128), server_default="", default="", nullable=False, index=True)
+    district: Mapped[str] = mapped_column(String(128), server_default="", default="", nullable=False, index=True)
     country: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     postal_code: Mapped[str] = mapped_column(String(32), default="", nullable=False)
+    
+    category: Mapped[str] = mapped_column(String(128), server_default="", default="", nullable=False, index=True)
+    subcategories: Mapped[list] = mapped_column(JSONB, server_default='[]', default=list, nullable=False)
+    aliases: Mapped[list] = mapped_column(JSONB, server_default='[]', default=list, nullable=False)
+    description: Mapped[str] = mapped_column(String, server_default="", default="", nullable=False)
+    best_time_to_visit: Mapped[str] = mapped_column(String(255), server_default="", default="", nullable=False)
+    image: Mapped[str] = mapped_column(String(1024), server_default="", default="", nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, server_default="true", default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -52,7 +63,14 @@ class Location(Base):
         nullable=False,
     )
 
+    # Geographic Hierarchy
+    location_type: Mapped[str] = mapped_column(String(64), server_default="poi", default="poi", nullable=False, index=True)
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("locations.id", ondelete="SET NULL"), nullable=True, index=True)
+    
     # Relationships
+    parent: Mapped["Location | None"] = relationship("Location", remote_side=[id], back_populates="children")
+    children: Mapped[List["Location"]] = relationship("Location", back_populates="parent", cascade="all, delete")
+
     pois: Mapped[List["POI"]] = relationship(
         "POI",
         back_populates="location",

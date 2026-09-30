@@ -68,8 +68,9 @@ export default function FullTripBudgetModal({
   let hotelSubtotal = null;
   let hotelName = selectedHotel?.name || itinerary.accommodation || null;
 
-  if (selectedHotel && typeof selectedHotel.price_per_night === 'number' && selectedHotel.price_per_night > 0) {
-    hotelRatePerNight = selectedHotel.price_per_night;
+  const price = selectedHotel?.price_per_night_start || selectedHotel?.price_per_night;
+  if (selectedHotel && typeof price === 'number' && price > 0) {
+    hotelRatePerNight = price;
     hotelSubtotal = numNights > 0 ? hotelRatePerNight * numNights : hotelRatePerNight;
   }
 
@@ -178,10 +179,10 @@ export default function FullTripBudgetModal({
                   {hotelRatePerNight ? (
                     <>
                       <p className="font-bold text-sm text-gray-900 dark:text-white">
-                        ₹{hotelRatePerNight.toLocaleString('en-IN')}/night × {Math.max(1, numNights)} {numNights === 1 ? 'night' : 'nights'}
+                        {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(hotelRatePerNight)}/night × {Math.max(1, numNights)} {numNights === 1 ? 'night' : 'nights'}
                       </p>
                       <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        = ₹{(hotelSubtotal || 0).toLocaleString('en-IN')}
+                        = {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(hotelSubtotal || 0)}
                       </p>
                     </>
                   ) : (

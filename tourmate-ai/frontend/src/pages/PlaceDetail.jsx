@@ -7,7 +7,8 @@ import { useTranslation } from "react-i18next";
 import ShareModal from "../components/ShareModal";
 import { NEUTRAL_PLACEHOLDER_IMAGE, handleImageError } from "../config/imageConfig";
 import SafeImage from "../components/SafeImage";
-import { openGoogleMapsNavigation } from "../utils/navigation";
+import { openNavigation } from "../utils/navigation";
+import MapComponent from "../components/MapComponent";
 
 export default function PlaceDetail() {
   const { id } = useParams();
@@ -185,7 +186,7 @@ export default function PlaceDetail() {
           {/* Action Buttons Row */}
           <div className="flex flex-wrap gap-3 mb-6">
             <button
-              onClick={() => openGoogleMapsNavigation(place)}
+              onClick={() => openNavigation(place)}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-md hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -202,23 +203,20 @@ export default function PlaceDetail() {
             </button>
           </div>
 
-          {/* Embedded Google Maps */}
+          {/* Embedded Map */}
           {place.location?.coordinates && (
             <div className="rounded-2xl overflow-hidden shadow-lg mb-6 border border-gray-200 dark:border-slate-600">
               <div className="bg-gray-100 dark:bg-slate-700 px-4 py-3 flex items-center gap-2">
                 <span className="text-lg">📍</span>
                 <span className="font-semibold text-gray-800 dark:text-slate-100 text-sm">Location — {place.name}</span>
               </div>
-              <iframe
-                title={`Map of ${place.name}`}
-                width="100%"
-                height="350"
-                style={{ border: 0 }}
-                loading="lazy"
-                allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                src={`https://maps.google.com/maps?q=${place.location.coordinates[1]},${place.location.coordinates[0]}&z=15&output=embed`}
-              />
+              <div className="h-[350px] w-full">
+                <MapComponent 
+                  center={[place.location.coordinates[1], place.location.coordinates[0]]} 
+                  zoom={15} 
+                  places={[place]} 
+                />
+              </div>
             </div>
           )}
 

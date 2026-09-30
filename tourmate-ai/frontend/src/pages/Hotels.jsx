@@ -76,12 +76,15 @@ export default function Hotels() {
       if (selectedAmenity) params.append("amenity", selectedAmenity);
 
       if (priceFilter === "budget") {
-        params.append("max_price", "8500");
+        params.append("max_price", "1000");
       } else if (priceFilter === "mid") {
-        params.append("min_price", "8500");
-        params.append("max_price", "15000");
+        params.append("min_price", "1000");
+        params.append("max_price", "2000");
+      } else if (priceFilter === "premium") {
+        params.append("min_price", "2000");
+        params.append("max_price", "4000");
       } else if (priceFilter === "luxury") {
-        params.append("min_price", "15000");
+        params.append("min_price", "4000");
       }
 
       const res = await axios.get(`${API_BASE_URL}/hotels?${params.toString()}`);
@@ -153,9 +156,10 @@ export default function Hotels() {
               className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 text-gray-900 dark:text-slate-100"
             >
               <option value="all">Any Price</option>
-              <option value="budget">Under ₹8,500 / night</option>
-              <option value="mid">₹8,500 - ₹15,000 / night</option>
-              <option value="luxury">₹15,000+ / night (Luxury)</option>
+              <option value="budget">₹0 – ₹1,000</option>
+              <option value="mid">₹1,000 – ₹2,000</option>
+              <option value="premium">₹2,000 – ₹4,000</option>
+              <option value="luxury">₹4,000+</option>
             </select>
           </div>
 
@@ -289,7 +293,7 @@ export default function Hotels() {
                     <div className="text-lg font-extrabold text-gray-900 dark:text-white">
                       {hotel.price_per_night_start ? (
                         <>
-                          {hotel.currency}{hotel.price_per_night_start}
+                          {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(hotel.price_per_night_start)}
                           <span className="text-xs font-normal text-gray-500 dark:text-slate-400"> / night</span>
                         </>
                       ) : (

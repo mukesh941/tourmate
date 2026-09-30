@@ -11,6 +11,8 @@ class GuideInDB(BaseModel):
     verified: bool = Field(default=False)
     image_url: Optional[str] = None
     location: str = Field(default="")
+    is_demo: bool = Field(default=True)
+    is_lgbtq: bool = Field(default=False)
 
 class BookingInDB(BaseModel):
     user_id: str

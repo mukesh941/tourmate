@@ -30,6 +30,7 @@ from app.api.routes.restaurants import router as restaurants_router
 from app.api.routes.activities import router as activities_router
 from app.api.routes.locations import router as locations_router
 from app.api.routes.google_places import router as google_places_router
+from app.api.routes.images import router as images_router
 from app.core.config import settings
 from app.core.database import ensure_indexes
 from app.core.limiter import limiter
@@ -145,6 +146,7 @@ app.include_router(restaurants_router, prefix="/api")
 app.include_router(activities_router, prefix="/api")
 app.include_router(locations_router, prefix="/api")
 app.include_router(google_places_router, prefix="/api")
+app.include_router(images_router, prefix="/api/images")
 
 @app.get("/")
 async def root():

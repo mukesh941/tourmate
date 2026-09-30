@@ -1,30 +1,31 @@
 /**
  * Navigation utility for TourMate AI.
- * Generates reliable, standards-compliant Google Maps directions URLs
+ * Generates reliable, standards-compliant OpenStreetMap directions URLs
  * and opens them safely in external tabs/apps for desktop and mobile web.
  */
 
-export function buildGoogleMapsUrl({ lat, lng, name, address, city }) {
+export function buildNavigationUrl({ lat, lng, name, address, city }) {
   // Validate coordinates
   const validLat = typeof lat === 'number' && !isNaN(lat) && lat >= -90 && lat <= 90;
   const validLng = typeof lng === 'number' && !isNaN(lng) && lng >= -180 && lng <= 180;
 
   if (validLat && validLng) {
     // Exact coordinate destination
-    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+    // Using OSM routing with OSRM car profile. Empty origin lets user set it or uses GPS if supported by OSM
+    return `https://www.openstreetmap.org/directions?engine=osrm_car&route=%3B${lat}%2C${lng}`;
   }
 
   // Safe fallback if coordinates missing but unambiguous name/city exists
   const queryParts = [name, address, city].filter(Boolean);
   if (queryParts.length > 0) {
     const destinationQuery = encodeURIComponent(queryParts.join(', '));
-    return `https://www.google.com/maps/dir/?api=1&destination=${destinationQuery}&travelmode=driving`;
+    return `https://www.openstreetmap.org/search?query=${destinationQuery}`;
   }
 
   return null;
 }
 
-export function openGoogleMapsNavigation(target) {
+export function openNavigation(target) {
   if (!target) return false;
 
   // Extract coordinates and metadata supporting various data structures
@@ -45,7 +46,7 @@ export function openGoogleMapsNavigation(target) {
   const address = target.address || (target.location && target.location.address) || "";
   const city = target.city || (target.location && target.location.city) || "";
 
-  const url = buildGoogleMapsUrl({ lat, lng, name, address, city });
+  const url = buildNavigationUrl({ lat, lng, name, address, city });
 
   if (!url) {
     console.warn("Navigation unavailable: no valid coordinates or destination query for place:", target);
@@ -53,7 +54,7 @@ export function openGoogleMapsNavigation(target) {
     return false;
   }
 
-  // Open securely in new window/tab or mobile Google Maps app
+  // Open securely in new window/tab
   const opened = window.open(url, '_blank', 'noopener,noreferrer');
   if (!opened || opened.closed || typeof opened.closed === 'undefined') {
     // Popup was blocked by browser; navigate directly as safe fallback
@@ -61,3 +62,7 @@ export function openGoogleMapsNavigation(target) {
   }
   return true;
 }
+
+// Keep a backward compatible alias if needed, but we will search and replace usage
+export const openGoogleMapsNavigation = openNavigation;
+

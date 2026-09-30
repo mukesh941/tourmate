@@ -125,6 +125,7 @@ GOOGLE_TYPE_TO_CATEGORY: Dict[str, str] = {
 
 # TourMate categories → Google Places includedTypes for Nearby Search
 CATEGORY_TO_GOOGLE_TYPES: Dict[str, List[str]] = {
+    # --- Core categories ---
     "history": ["tourist_attraction", "historical_landmark", "monument", "national_monument", "archaeological_site"],
     "heritage": ["tourist_attraction", "historical_landmark", "monument", "national_monument", "archaeological_site"],
     "nature": ["park", "national_park", "beach", "botanical_garden", "nature_reserve", "wildlife_refuge", "waterfall"],
@@ -134,6 +135,46 @@ CATEGORY_TO_GOOGLE_TYPES: Dict[str, List[str]] = {
     "adventure": ["amusement_park", "adventure_sports_center", "water_park"],
     "architecture": ["tourist_attraction", "historical_landmark"],
     "all": ["tourist_attraction", "historical_landmark", "museum", "park", "beach", "restaurant", "hindu_temple", "place_of_worship", "art_gallery", "shopping_mall"],
+    # --- User-facing aliases ---
+    "cafe": ["cafe", "coffee_shop", "bakery"],
+    "cafes": ["cafe", "coffee_shop", "bakery"],
+    "café": ["cafe", "coffee_shop", "bakery"],
+    "coffee": ["cafe", "coffee_shop"],
+    "restaurant": ["restaurant", "food", "meal_takeaway", "indian_restaurant", "fast_food_restaurant"],
+    "restaurants": ["restaurant", "food", "meal_takeaway", "indian_restaurant", "fast_food_restaurant"],
+    "hotel": ["lodging"],
+    "hotels": ["lodging"],
+    "resort": ["lodging"],
+    "hostel": ["lodging"],
+    "homestay": ["lodging"],
+    "accommodation": ["lodging"],
+    "stay": ["lodging"],
+    "tourist": ["tourist_attraction", "historical_landmark", "museum", "park", "hindu_temple", "place_of_worship", "art_gallery"],
+    "tourist_places": ["tourist_attraction", "historical_landmark", "museum", "park", "hindu_temple", "place_of_worship", "art_gallery"],
+    "tourist places": ["tourist_attraction", "historical_landmark", "museum", "park", "hindu_temple", "place_of_worship", "art_gallery"],
+    "attractions": ["tourist_attraction", "historical_landmark", "museum"],
+    "sightseeing": ["tourist_attraction", "historical_landmark", "museum", "park"],
+    "monument": ["historical_landmark", "monument", "national_monument"],
+    "monuments": ["historical_landmark", "monument", "national_monument"],
+    "temple": ["hindu_temple", "place_of_worship"],
+    "temples": ["hindu_temple", "place_of_worship"],
+    "fort": ["historical_landmark", "tourist_attraction"],
+    "forts": ["historical_landmark", "tourist_attraction"],
+    "museum": ["museum", "art_museum", "history_museum"],
+    "museums": ["museum", "art_museum", "history_museum"],
+    "park": ["park", "national_park", "botanical_garden"],
+    "parks": ["park", "national_park", "botanical_garden"],
+    "beach": ["beach"],
+    "beaches": ["beach"],
+    "bakery": ["bakery"],
+    "bakeries": ["bakery"],
+    "bar": ["bar"],
+    "bars": ["bar"],
+    "biryani": ["restaurant", "indian_restaurant"],
+    "breakfast": ["cafe", "bakery", "restaurant"],
+    "lunch": ["restaurant", "food"],
+    "dinner": ["restaurant", "food"],
+    "fast food": ["fast_food_restaurant"],
 }
 
 # Default types to use when no category filter is applied
@@ -146,6 +187,24 @@ DEFAULT_PLACE_TYPES = [
     "place_of_worship",
     "beach",
     "national_park",
+]
+
+# ─── Nearby Category Keywords → canonical category string ──────────────────────
+# Used by detect_category_from_query()
+_CATEGORY_KEYWORD_MAP: List[tuple] = [
+    # (list_of_keywords, canonical_category_key)
+    (["cafe", "cafes", "café", "cafés", "coffee", "cappuccino", "latte", "espresso"], "cafe"),
+    (["restaurant", "restaurants", "food", "eat", "eating", "dining", "biryani", "pizza", "burger", "breakfast", "lunch", "dinner", "fast food", "vegetarian", "veg ", "non veg", "nonveg"], "restaurant"),
+    (["bakery", "bakeries", "bread", "pastry"], "bakery"),
+    (["hotel", "hotels", "resort", "resorts", "hostel", "homestay", "stay", "accommodation", "lodge", "lodging", "motel", "inn"], "hotel"),
+    (["tourist", "sightseeing", "attractions", "visit", "places to visit", "things to see", "what to see", "places near"], "tourist"),
+    (["monument", "monuments", "fort", "forts", "palace", "palaces", "heritage", "historical", "history"], "history"),
+    (["temple", "temples", "church", "mosque", "shrine", "place of worship"], "culture"),
+    (["museum", "museums", "gallery", "galleries", "art"], "museum"),
+    (["park", "parks", "garden", "gardens", "nature", "greenery"], "park"),
+    (["beach", "beaches", "sea", "ocean", "lake", "waterfall", "waterfalls"], "nature"),
+    (["bar", "bars", "pub", "nightclub", "cocktail"], "bar"),
+    (["shopping", "mall", "market", "bazaar", "store", "shop"], "shopping"),
 ]
 
 
@@ -513,3 +572,127 @@ def deduplicate_places(places: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def get_types_for_category(category: str) -> List[str]:
     """Return Google Places types for a given TourMate category."""
     return CATEGORY_TO_GOOGLE_TYPES.get(category.lower(), DEFAULT_PLACE_TYPES)
+
+
+def detect_category_from_query(query: str) -> Optional[str]:
+    """
+    Detect the place category (cafe, restaurant, hotel, tourist, etc.)
+    from a natural-language user query.
+    Returns a canonical category string or None if no match found.
+    """
+    lower = query.lower()
+    for keywords, category in _CATEGORY_KEYWORD_MAP:
+        for kw in keywords:
+            if kw in lower:
+                return category
+    return None
+
+
+def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculate straight-line (air) distance in km between two coordinates.
+    Uses the Haversine formula. NOT driving distance.
+    """
+    import math
+    R = 6371.0  # Earth radius in km
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return round(R * c, 2)
+
+
+def deduplicate_places_for_chat(places: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Deduplicate places using:
+    1. provider place ID (external_id)
+    2. normalized name + rounded coordinates
+    3. normalized name + address
+    """
+    seen_ids: set = set()
+    seen_name_coords: set = set()
+    seen_name_addr: set = set()
+    result = []
+    for p in places:
+        # Strategy 1: external_id
+        ext_id = p.get("external_id") or ""
+        if ext_id and ext_id in seen_ids:
+            continue
+        # Strategy 2: name + rounded lat/lng
+        name = (p.get("name") or "").lower().strip()
+        lat = p.get("latitude")
+        lng = p.get("longitude")
+        coord_key = None
+        if lat is not None and lng is not None:
+            coord_key = (name, round(float(lat), 4), round(float(lng), 4))
+            if coord_key in seen_name_coords:
+                continue
+        # Strategy 3: name + address
+        addr = (p.get("address") or "").lower().strip()[:60]
+        addr_key = (name, addr) if addr else None
+        if addr_key and addr_key in seen_name_addr:
+            continue
+
+        # Not a duplicate — add to result
+        if ext_id:
+            seen_ids.add(ext_id)
+        if coord_key:
+            seen_name_coords.add(coord_key)
+        if addr_key:
+            seen_name_addr.add(addr_key)
+        result.append(p)
+    return result
+
+
+async def search_nearby_for_chat(
+    lat: float,
+    lng: float,
+    category: str,
+    radius_m: int = 5000,
+    max_results: int = 10,
+) -> List[Dict[str, Any]]:
+    """
+    Perform a nearby search for the chat flow.
+    Returns normalized, distance-annotated, deduplicated results.
+    Automatically expands the search radius if no results found.
+
+    Args:
+        lat: Resolved location latitude
+        lng: Resolved location longitude
+        category: User-facing category string (cafe, hotel, restaurant, tourist, etc.)
+        radius_m: Starting search radius in metres
+        max_results: Maximum number of results to return
+
+    Returns:
+        List of normalized place dicts with 'distance_km' added.
+    """
+    included_types = CATEGORY_TO_GOOGLE_TYPES.get(category.lower(), DEFAULT_PLACE_TYPES)
+
+    places: List[Dict[str, Any]] = []
+    search_radii = [radius_m, radius_m * 2, min(radius_m * 4, 50000)]
+
+    for r in search_radii:
+        places = await nearby_search(
+            lat=lat,
+            lng=lng,
+            radius_m=r,
+            included_types=included_types,
+            max_results=max_results,
+        )
+        if places:
+            break
+
+    # Annotate with straight-line distance from resolved location
+    for p in places:
+        p_lat = p.get("latitude")
+        p_lng = p.get("longitude")
+        if p_lat is not None and p_lng is not None:
+            p["distance_km"] = haversine_distance_km(lat, lng, float(p_lat), float(p_lng))
+        else:
+            p["distance_km"] = None
+
+    places = deduplicate_places_for_chat(places)
+    # Sort by distance if available
+    places.sort(key=lambda x: x.get("distance_km") or 9999)
+    return places[:max_results]
+

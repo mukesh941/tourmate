@@ -235,7 +235,7 @@ export default function ExploreDestination() {
                       <Marker key={`h_${h.id}`} position={pos} icon={icons.hotel}>
                         <Popup>
                           <strong className="text-blue-700">{h.name}</strong><br/>
-                          {h.price_per_night_start && `₹${h.price_per_night_start}/night`}<br/>
+                          {h.price_per_night_start && `${new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(h.price_per_night_start)}/night`}<br/>
                           <button 
                             onClick={() => openGoogleMapsNavigation(h)} 
                             className="inline-block mt-2 text-xs font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200 transition cursor-pointer"
