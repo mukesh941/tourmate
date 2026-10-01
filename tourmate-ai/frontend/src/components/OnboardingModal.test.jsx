@@ -34,10 +34,10 @@ describe('OnboardingModal Component', () => {
       <OnboardingModal isOpen={true} onClose={() => {}} onComplete={() => {}} />
     );
 
-    const historyBtn = screen.getByText('History');
+    const historyBtn = screen.getAllByText('History')[0];
     fireEvent.click(historyBtn);
 
-    const nextBtn = screen.getByText('Next Step →');
+    const nextBtn = screen.getAllByText('Next Step →')[0];
     fireEvent.click(nextBtn);
 
     // Step 2 should now be visible

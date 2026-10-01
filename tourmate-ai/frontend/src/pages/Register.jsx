@@ -17,7 +17,7 @@ export default function Register() {
     setSubmitting(true);
     try {
       await register(form.name, form.email, form.password);
-      navigate("/login");
+      navigate("/login", { state: { message: "Registration successful. Please check your email to verify your account." } });
     } catch (err) {
       const detail = err.response?.data?.detail;
       const errorMsg =

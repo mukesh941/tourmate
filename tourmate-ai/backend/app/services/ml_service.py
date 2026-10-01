@@ -12,11 +12,14 @@ async def generate_place_clusters(places: list[TouristPlaceResponse], k: int) ->
     
     for place in places:
         if place.location and place.location.coordinates and len(place.location.coordinates) >= 2:
-            lng, lat = place.location.coordinates[0], place.location.coordinates[1]
-            if -90 <= lat <= 90 and -180 <= lng <= 180:
-                valid_places.append(place)
-                coords.append([lat, lng])
-            else:
+            try:
+                lng, lat = float(place.location.coordinates[0]), float(place.location.coordinates[1])
+                if -90 <= lat <= 90 and -180 <= lng <= 180:
+                    valid_places.append(place)
+                    coords.append([lat, lng])
+                else:
+                    skipped += 1
+            except (ValueError, TypeError):
                 skipped += 1
         else:
             skipped += 1

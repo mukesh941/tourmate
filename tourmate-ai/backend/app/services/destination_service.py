@@ -1,6 +1,6 @@
 import uuid
 from typing import List, Optional
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -97,10 +97,18 @@ async def get_all_destinations(db: Optional[AsyncSession] = None) -> List[Destin
     Queries distinct canonical destinations (cities) from PostgreSQL locations.
     """
     async def _query(session: AsyncSession) -> List[DestinationResponse]:
-        # Query distinct locations that have POIs
+        # Query distinct locations that have active POIs or are explicitly marked as city/destination
         stmt = (
             select(Location)
-            .where(Location.pois.any())
+            .where(
+                and_(
+                    Location.is_active == True,
+                    or_(
+                        Location.pois.any(POI.is_active == True),
+                        Location.location_type.in_(["city", "destination"]),
+                    )
+                )
+            )
             .options(
                 selectinload(Location.pois).selectinload(POI.poi_images).selectinload(POIImage.image)
             )
@@ -121,7 +129,8 @@ async def get_all_destinations(db: Optional[AsyncSession] = None) -> List[Destin
                     "city": city,
                     "state": loc.state or meta.get("state", ""),
                     "country": loc.country or "India",
-                    "cover_image": meta.get("cover_image", "")
+                    "cover_image": loc.image or meta.get("cover_image", ""),
+                    "description": loc.description or meta.get("description", "")
                 }
             if not city_dict[city_key]["cover_image"]:
                 for poi in loc.pois:
@@ -139,7 +148,7 @@ async def get_all_destinations(db: Optional[AsyncSession] = None) -> List[Destin
             city_name = city_info["city"]
             meta = CANONICAL_DESTINATION_METADATA.get(city_key, {})
             cover_img = city_info["cover_image"] or meta.get("cover_image") or NEUTRAL_PLACEHOLDER_COVER
-            description = meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {city_name}.")
+            description = city_info["description"] or meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {city_name}.")
             destinations.append(
                 DestinationResponse(
                     id=city_name,
@@ -169,7 +178,7 @@ async def get_destination(destination_id: str, db: Optional[AsyncSession] = None
         loc = None
         try:
             loc_uuid = uuid.UUID(destination_id)
-            stmt = select(Location).where(Location.id == loc_uuid).options(
+            stmt = select(Location).where(Location.id == loc_uuid, Location.is_active == True).options(
                 selectinload(Location.pois).selectinload(POI.poi_images).selectinload(POIImage.image)
             )
             res = await session.execute(stmt)
@@ -181,13 +190,16 @@ async def get_destination(destination_id: str, db: Optional[AsyncSession] = None
             clean_name = destination_id.strip().lower()
             clean_norm = clean_name.replace("-", " ").replace("_", " ").strip()
             stmt = select(Location).where(
-                or_(
-                    func.lower(Location.city) == clean_name,
-                    func.lower(Location.city) == clean_norm,
-                    func.lower(Location.state) == clean_name,
-                    func.lower(Location.state) == clean_norm,
-                    func.replace(func.lower(Location.city), " ", "-") == clean_name,
-                    func.replace(func.lower(Location.city), " ", "_") == clean_name,
+                and_(
+                    Location.is_active == True,
+                    or_(
+                        func.lower(Location.city) == clean_name,
+                        func.lower(Location.city) == clean_norm,
+                        func.lower(Location.state) == clean_name,
+                        func.lower(Location.state) == clean_norm,
+                        func.replace(func.lower(Location.city), " ", "-") == clean_name,
+                        func.replace(func.lower(Location.city), " ", "_") == clean_name,
+                    )
                 )
             ).options(
                 selectinload(Location.pois).selectinload(POI.poi_images).selectinload(POIImage.image)
@@ -198,20 +210,21 @@ async def get_destination(destination_id: str, db: Optional[AsyncSession] = None
         if loc is None:
             return None
 
-        cover_image = ""
-        for poi in loc.pois:
-            if poi.poi_images:
-                for pi in poi.poi_images:
-                    if pi.image and pi.image.url:
-                        cover_image = pi.image.url
-                        break
-            if cover_image:
-                break
+        cover_image = loc.image or ""
+        if not cover_image:
+            for poi in loc.pois:
+                if poi.poi_images:
+                    for pi in poi.poi_images:
+                        if pi.image and pi.image.url:
+                            cover_image = pi.image.url
+                            break
+                if cover_image:
+                    break
 
         city_key = loc.city.strip().lower()
         meta = CANONICAL_DESTINATION_METADATA.get(city_key, {})
         final_cover = cover_image or meta.get("cover_image") or NEUTRAL_PLACEHOLDER_COVER
-        description = meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {loc.city}.")
+        description = loc.description or meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {loc.city}.")
         state_val = loc.state or meta.get("state", "")
 
         return DestinationResponse(
@@ -232,24 +245,182 @@ async def get_destination(destination_id: str, db: Optional[AsyncSession] = None
 
 
 async def create_destination(payload: DestinationCreate, db: Optional[AsyncSession] = None) -> DestinationResponse:
-    # Convenience create - maps to response
-    return DestinationResponse(
-        id=payload.name,
-        name=payload.name,
-        state=payload.state,
-        country=payload.country,
-        description=payload.description,
-        cover_image=payload.cover_image,
-        popularity_score=payload.popularity_score
-    )
+    """
+    Creates or activates a Destination in PostgreSQL.
+    """
+    async def _execute(session: AsyncSession) -> DestinationResponse:
+        city_name = payload.name.strip()
+        city_key = city_name.lower()
+
+        stmt = select(Location).where(
+            or_(
+                func.lower(Location.city) == city_key,
+                func.lower(Location.name) == city_key,
+                func.lower(Location.canonical_name) == city_key,
+            )
+        )
+        res = await session.execute(stmt)
+        loc = res.scalars().first()
+
+        if loc:
+            loc.is_active = True
+            if payload.state:
+                loc.state = payload.state.strip()
+            if payload.country:
+                loc.country = payload.country.strip()
+            if payload.description:
+                loc.description = payload.description.strip()
+            if payload.cover_image:
+                loc.image = payload.cover_image.strip()
+        else:
+            loc = Location(
+                name=city_name,
+                city=city_name,
+                canonical_name=city_name,
+                state=payload.state.strip() if payload.state else "",
+                country=payload.country.strip() if payload.country else "India",
+                description=payload.description.strip() if payload.description else "",
+                image=payload.cover_image.strip() if payload.cover_image else "",
+                location_type="city",
+                latitude=20.5937,
+                longitude=78.9629,
+                is_active=True,
+            )
+            session.add(loc)
+
+        await session.commit()
+        await session.refresh(loc)
+
+        meta = CANONICAL_DESTINATION_METADATA.get(city_key, {})
+        cover_img = loc.image or payload.cover_image or meta.get("cover_image") or NEUTRAL_PLACEHOLDER_COVER
+        desc = loc.description or payload.description or meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {loc.city}.")
+
+        return DestinationResponse(
+            id=loc.city,
+            name=loc.city,
+            state=loc.state or meta.get("state", ""),
+            country=loc.country or "India",
+            description=desc,
+            cover_image=cover_img,
+            popularity_score=payload.popularity_score or 4.9,
+        )
+
+    if db is not None:
+        return await _execute(db)
+    async with AsyncSessionLocal() as session:
+        return await _execute(session)
 
 
 async def update_destination(destination_id: str, payload: DestinationUpdate, db: Optional[AsyncSession] = None) -> Optional[DestinationResponse]:
-    dest = await get_destination(destination_id, db=db)
-    if not dest:
-        return None
-    return dest
+    """
+    Updates an existing Destination in PostgreSQL.
+    """
+    async def _execute(session: AsyncSession) -> Optional[DestinationResponse]:
+        loc = None
+        try:
+            loc_uuid = uuid.UUID(destination_id)
+            stmt = select(Location).where(Location.id == loc_uuid)
+            res = await session.execute(stmt)
+            loc = res.scalar_one_or_none()
+        except (ValueError, TypeError):
+            pass
+
+        if loc is None:
+            clean_name = destination_id.strip().lower()
+            clean_norm = clean_name.replace("-", " ").replace("_", " ").strip()
+            stmt = select(Location).where(
+                or_(
+                    func.lower(Location.city) == clean_name,
+                    func.lower(Location.city) == clean_norm,
+                    func.lower(Location.name) == clean_name,
+                    func.lower(Location.name) == clean_norm,
+                    func.lower(Location.canonical_name) == clean_name,
+                )
+            )
+            res = await session.execute(stmt)
+            loc = res.scalars().first()
+
+        if loc is None:
+            return None
+
+        if payload.name is not None:
+            loc.name = payload.name.strip()
+            loc.city = payload.name.strip()
+            loc.canonical_name = payload.name.strip()
+        if payload.state is not None:
+            loc.state = payload.state.strip()
+        if payload.country is not None:
+            loc.country = payload.country.strip()
+        if payload.description is not None:
+            loc.description = payload.description.strip()
+        if payload.cover_image is not None:
+            loc.image = payload.cover_image.strip()
+
+        await session.commit()
+        await session.refresh(loc)
+
+        city_key = loc.city.strip().lower()
+        meta = CANONICAL_DESTINATION_METADATA.get(city_key, {})
+        cover_img = loc.image or meta.get("cover_image") or NEUTRAL_PLACEHOLDER_COVER
+        desc = loc.description or meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {loc.city}.")
+
+        return DestinationResponse(
+            id=loc.city,
+            name=loc.city,
+            state=loc.state or meta.get("state", ""),
+            country=loc.country or "India",
+            description=desc,
+            cover_image=cover_img,
+            popularity_score=payload.popularity_score or 4.9,
+        )
+
+    if db is not None:
+        return await _execute(db)
+    async with AsyncSessionLocal() as session:
+        return await _execute(session)
 
 
 async def delete_destination(destination_id: str, db: Optional[AsyncSession] = None) -> bool:
-    return True
+    """
+    Deactivates a Destination in PostgreSQL.
+    """
+    async def _execute(session: AsyncSession) -> bool:
+        locs = []
+        try:
+            loc_uuid = uuid.UUID(destination_id)
+            stmt = select(Location).where(Location.id == loc_uuid)
+            res = await session.execute(stmt)
+            loc = res.scalar_one_or_none()
+            if loc:
+                locs.append(loc)
+        except (ValueError, TypeError):
+            pass
+
+        if not locs:
+            clean_name = destination_id.strip().lower()
+            clean_norm = clean_name.replace("-", " ").replace("_", " ").strip()
+            stmt = select(Location).where(
+                or_(
+                    func.lower(Location.city) == clean_name,
+                    func.lower(Location.city) == clean_norm,
+                    func.lower(Location.name) == clean_name,
+                    func.lower(Location.name) == clean_norm,
+                    func.lower(Location.canonical_name) == clean_name,
+                )
+            )
+            res = await session.execute(stmt)
+            locs = list(res.scalars().all())
+
+        if not locs:
+            return False
+
+        for loc in locs:
+            loc.is_active = False
+
+        await session.commit()
+        return True
+
+    if db is not None:
+        return await _execute(db)
+    async with AsyncSessionLocal() as session:
+        return await _execute(session)

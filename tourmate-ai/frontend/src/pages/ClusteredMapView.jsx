@@ -86,15 +86,15 @@ const DISTANCE_OPTIONS = [
 // ─── Coordinate Validator ──────────────────────────────────────────────────────
 
 function isValidCoord(lat, lng) {
+  const numLat = Number(lat);
+  const numLng = Number(lng);
   return (
-    typeof lat === "number" &&
-    typeof lng === "number" &&
-    !isNaN(lat) &&
-    !isNaN(lng) &&
-    lat >= -90 &&
-    lat <= 90 &&
-    lng >= -180 &&
-    lng <= 180
+    !isNaN(numLat) &&
+    !isNaN(numLng) &&
+    numLat >= -90 &&
+    numLat <= 90 &&
+    numLng >= -180 &&
+    numLng <= 180
   );
 }
 
@@ -346,8 +346,8 @@ export default function ClusteredMapView() {
 
         // 2. Individual Place POI Markers
         cluster.places.forEach((place) => {
-          const lat = place.latitude ?? place.location?.coordinates?.[1];
-          const lng = place.longitude ?? place.location?.coordinates?.[0];
+          const lat = place.latitude ?? place.lat ?? place.location?.coordinates?.[1];
+          const lng = place.longitude ?? place.lng ?? place.location?.coordinates?.[0];
           if (!isValidCoord(lat, lng)) return;
 
           validPoints.push([lat, lng]);
@@ -421,27 +421,31 @@ export default function ClusteredMapView() {
   );
 
   // ── Place search logic ────────────────────────────────────────────────────
+  // ── Place search logic ────────────────────────────────────────────────────
   const triggerPlaceSearch = useCallback(
-    async ({ lat, lng }) => {
+    async ({ lat, lng, isGps = false }) => {
       if (!token) return;
       setLoading(true);
       setApiError(null);
 
       try {
         let foundPlaces = [];
+        const isDestinationMode = searchQuery.trim().length > 0;
 
-        if (distanceFilter !== "all" && lat && lng) {
-          // Nearby search with GPS radius
-          const radiusKm = parseInt(distanceFilter);
-          foundPlaces = await searchNearby({ lat, lng, radiusKm, category, token });
+        if (!isDestinationMode && (isGps || userLocation)) {
+          // GPS mode (no search query, using current location)
+          const targetLat = isGps ? lat : userLocation.lat;
+          const targetLng = isGps ? lng : userLocation.lng;
+          const radiusKm = distanceFilter !== "all" ? parseInt(distanceFilter) : 50;
+          foundPlaces = await searchNearby({ lat: targetLat, lng: targetLng, radiusKm, category, token });
         } else {
-          // Text search for city/destination context
+          // Destination mode
           const query = searchQuery.trim() || "India";
           foundPlaces = await searchByText({
             query,
-            lat: lat || undefined,
-            lng: lng || undefined,
-            radiusKm: 30,
+            lat: undefined, // Do not bias with GPS
+            lng: undefined,
+            radiusKm: distanceFilter !== "all" ? parseInt(distanceFilter) : 50,
             category,
             token,
           });
@@ -461,17 +465,18 @@ export default function ClusteredMapView() {
         const k = Math.min(kValue, foundPlaces.length);
         const clustered = await clusterPlaces({ places: foundPlaces, k, interests, token });
         setClustersData(clustered);
+        // We'll rely on fitBounds in renderMarkersFromClusters to center the map.
         renderMarkersFromClusters(clustered, lat || INDIA_CENTER[0], lng || INDIA_CENTER[1]);
       } catch (err) {
         console.error("Place search error:", err);
         const msg =
-          err?.response?.data?.detail || "Unable to load the cluster map. Please try again.";
+          err?.response?.data?.detail || "Unable to load map places. Please try again.";
         setApiError(msg);
       } finally {
         setLoading(false);
       }
     },
-    [token, category, distanceFilter, kValue, interests, searchQuery, clearMarkers, renderMarkersFromClusters]
+    [token, category, distanceFilter, kValue, interests, searchQuery, userLocation, clearMarkers, renderMarkersFromClusters]
   );
 
   // ── GPS Locate ────────────────────────────────────────────────────────────
@@ -492,17 +497,19 @@ export default function ClusteredMapView() {
 
         setUserLocation({ lat, lng });
         setCurrentSearchCenter({ lat, lng });
+        setSearchQuery(""); // Clear search to switch to GPS mode
 
         if (mapInstanceRef.current) {
           mapInstanceRef.current.setView([lat, lng], CITY_ZOOM);
         }
 
-        triggerPlaceSearch({ lat, lng });
+        triggerPlaceSearch({ lat, lng, isGps: true });
       },
       (err) => {
         setLoading(false);
         console.error("GPS error:", err);
-        alert("Could not retrieve your location. Please allow location access and try again.");
+        // Do not use alert, handle gracefully as requested
+        setApiError("Current location is unavailable. You can still explore the destination map.");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -514,8 +521,8 @@ export default function ClusteredMapView() {
     const normalized = selectedCluster.places.map((p) => ({
       id: p.id || p.external_id,
       name: p.name,
-      latitude: p.latitude ?? p.location?.coordinates?.[1],
-      longitude: p.longitude ?? p.location?.coordinates?.[0],
+      latitude: p.latitude ?? p.lat ?? p.location?.coordinates?.[1],
+      longitude: p.longitude ?? p.lng ?? p.location?.coordinates?.[0],
       category: p.category_name || p.category?.name || "heritage",
       address: p.address || "",
       google_maps_url: p.google_maps_url || "",
@@ -795,7 +802,7 @@ export default function ClusteredMapView() {
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3">
               <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
               <p className="text-sm font-bold text-gray-700 dark:text-slate-200">
-                {places.length === 0 ? "Finding places..." : "Building travel clusters..."}
+                Loading places...
               </p>
             </div>
           </div>
@@ -834,7 +841,7 @@ export default function ClusteredMapView() {
           <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 p-5 max-w-xs w-full mx-4 text-center">
             <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
             <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1">
-              No clustered places available
+              No places found for this destination.
             </h3>
             <p className="text-xs text-gray-500 dark:text-slate-400">
               Try searching a different city or destination, or adjust distance/category filters.

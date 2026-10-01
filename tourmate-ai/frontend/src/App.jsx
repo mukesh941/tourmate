@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Destinations from "./pages/Destinations";
 import Places from "./pages/Places";
+import VerifyEmail from "./pages/VerifyEmail";
 
 // Lazily loaded secondary and heavy route components for code-splitting
 const DestinationDetail = lazy(() => import("./pages/DestinationDetail"));
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           
           <Route path="/destinations" element={<Destinations />} />
           <Route path="/destinations/:id" element={<DestinationDetail />} />

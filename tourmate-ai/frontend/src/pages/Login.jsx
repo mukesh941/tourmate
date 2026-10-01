@@ -1,33 +1,41 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(location.state?.message || "");
   const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setSubmitting(true);
     try {
       await login(email, password);
       navigate("/dashboard");
     } catch (err) {
       const detail = err.response?.data?.detail;
-      const errorMsg =
-        err.response?.data?.error ||
-        (Array.isArray(detail)
-          ? detail.map((d) => d.msg || JSON.stringify(d)).join(", ")
-          : detail) ||
-        (err.code === "ERR_NETWORK" || !err.response
-          ? "Cannot connect to server. The backend may be temporarily unavailable, please try again."
-          : "Login failed. Check your credentials.");
-      setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
+      if (detail && detail.code === "email_unverified") {
+        setError("Please verify your email before logging in. You can request a new link at the verification page.");
+        setTimeout(() => navigate("/verify-email"), 3000);
+      } else {
+        const errorMsg =
+          err.response?.data?.error ||
+          (Array.isArray(detail)
+            ? detail.map((d) => d.msg || JSON.stringify(d)).join(", ")
+            : detail) ||
+          (err.code === "ERR_NETWORK" || !err.response
+            ? "Cannot connect to server. The backend may be temporarily unavailable, please try again."
+            : "Login failed. Check your credentials.");
+        setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -54,6 +62,15 @@ export default function Login() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-5">
+          {success && (
+            <div className="bg-green-500/20 backdrop-blur-sm border border-green-500/50 text-green-100 px-4 py-3 rounded-xl text-sm flex items-center animate-fade-in-up">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              {success}
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-500/20 backdrop-blur-sm border border-red-500/50 text-red-100 px-4 py-3 rounded-xl text-sm flex items-center animate-fade-in-up">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0 text-red-400" viewBox="0 0 20 20" fill="currentColor">

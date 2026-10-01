@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import { vi, afterEach } from 'vitest';
+import { cleanup } from '@testing-library/react';
+
+afterEach(() => {
+  cleanup();
+});
 
 // Global localStorage mock for jsdom
 const localStorageMock = (() => {

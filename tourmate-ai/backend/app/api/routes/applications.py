@@ -6,6 +6,7 @@ from bson import ObjectId
 
 from app.core.database import get_db
 from app.api.deps import get_current_user_dependency
+from app.schemas.auth import UserPublic
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -289,16 +290,17 @@ async def get_application_by_type(app_type: str):
 @router.post("/book")
 async def create_booking(
     booking: BookingRequest,
-    user: dict = Depends(get_current_user_dependency),
+    user: UserPublic = Depends(get_current_user_dependency),
     db = Depends(get_db)
 ):
     """
     Saves a user booking (hotel room, dining reservation, campus tour) to MongoDB.
     """
+    user_name = getattr(user, "name", None) or getattr(user, "full_name", None) or getattr(user, "username", None) or "Traveler"
     booking_doc = {
-        "user_id": str(user["_id"]),
-        "user_email": user.get("email"),
-        "user_name": user.get("name", "Traveler"),
+        "user_id": str(user.id),
+        "user_email": str(user.email) if user.email else None,
+        "user_name": user_name,
         "application_type": booking.application_type,
         "item_id": booking.item_id,
         "item_name": booking.item_name,
@@ -327,13 +329,13 @@ async def create_booking(
 
 @router.get("/user/my-bookings")
 async def get_my_bookings(
-    user: dict = Depends(get_current_user_dependency),
+    user: UserPublic = Depends(get_current_user_dependency),
     db = Depends(get_db)
 ):
     """
     Fetches all application bookings confirmed by the current authenticated user.
     """
-    cursor = db["application_bookings"].find({"user_id": str(user["_id"])}).sort("created_at", -1)
+    cursor = db["application_bookings"].find({"user_id": str(user.id)}).sort("created_at", -1)
     bookings = await cursor.to_list(length=100)
     
     for b in bookings:
@@ -346,3 +348,4 @@ async def get_my_bookings(
         "data": bookings,
         "error": None
     }
+

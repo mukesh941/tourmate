@@ -9,6 +9,8 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
 from app.api.deps import get_current_user_dependency
+from app.core.db import get_async_db
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.auth import UserPublic
 from app.schemas.common import Envelope
 from app.services.google_places_service import (
@@ -20,6 +22,8 @@ from app.services.google_places_service import (
 )
 from app.services.ml_service import generate_place_clusters
 from app.services.ai_service import enrich_cluster_with_ai
+from app.services.poi_service import get_all_pois
+from app.services.location_service import search_postgres_locations
 from app.core.config import settings
 
 router = APIRouter(prefix="/google", tags=["google-places"])
@@ -68,6 +72,7 @@ async def get_nearby_places(
     category: Optional[str] = Query(None, description="TourMate category filter"),
     max_results: int = Query(20, le=20),
     current_user: UserPublic = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """
     Nearby Search via Google Places API (New).
@@ -88,14 +93,11 @@ async def get_nearby_places(
     
     if not places:
         # Fallback to Postgres
-        from app.db.session import async_session
-        from app.services.poi_service import get_all_pois
-        async with async_session() as db:
-            poi_results = await get_all_pois(
-                lat=lat, lng=lng, radius_km=radius_km, category_id=category if category and category != "all" else None, db=db
-            )
-            # convert TouristPlaceResponse to dict format expected
-            places = [p.dict() for p in poi_results[:max_results]]
+        poi_results = await get_all_pois(
+            lat=lat, lng=lng, radius_km=radius_km, category_id=category if category and category != "all" else None, db=db
+        )
+        # convert TouristPlaceResponse to dict format expected
+        places = [p.model_dump() for p in poi_results[:max_results]]
             
     places = deduplicate_places(places)
 
@@ -106,6 +108,7 @@ async def get_nearby_places(
 async def search_places_by_text(
     payload: TextSearchRequest,
     current_user: UserPublic = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """
     Text Search via Google Places API (New).
@@ -130,10 +133,7 @@ async def search_places_by_text(
     
     if not places:
         # Fallback to TourMate Database
-        from app.db.session import async_session
-        from app.services.location_service import search_postgres_locations
-        async with async_session() as db:
-            places = await search_postgres_locations(payload.query, db, limit=payload.max_results)
+        places = await search_postgres_locations(payload.query, db, limit=payload.max_results)
 
     places = deduplicate_places(places)
 
@@ -178,8 +178,8 @@ async def cluster_google_places(
         def __init__(self, p):
             self.id = p.get("id", "")
             self.name = p.get("name", "")
-            lng = p.get("longitude") or (p.get("location") or {}).get("coordinates", [None, None])[0]
-            lat = p.get("latitude") or (p.get("location") or {}).get("coordinates", [None, None])[1]
+            lng = p.get("longitude") or p.get("lng") or (p.get("location") or {}).get("coordinates", [None, None])[0]
+            lat = p.get("latitude") or p.get("lat") or (p.get("location") or {}).get("coordinates", [None, None])[1]
             self.location = _FakeLocation(lng, lat) if lng and lat else None
             self.category = type("Cat", (), {"name": p.get("category_name", p.get("category", {}).get("name", ""))})()
             # Keep all original fields accessible

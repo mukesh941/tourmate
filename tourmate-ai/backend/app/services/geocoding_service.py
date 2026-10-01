@@ -25,41 +25,36 @@ class TourmateGeocodingProvider(GeocodingProvider):
         if not loc_name or loc_name.lower().strip() == "me":
             return None
 
-        corrected = _apply_typomap(loc_name)
-
-        # 1. Try PostgreSQL TourMate DB
-        db_locs = await search_postgres_locations(corrected, db, exact_only=True)
-        if not db_locs and corrected != loc_name:
-            db_locs = await search_postgres_locations(loc_name, db, exact_only=True)
-
-        if db_locs:
-            loc = db_locs[0]
-            canonical = loc.get("canonical_name") or loc.get("name") if isinstance(loc, dict) else (getattr(loc, 'canonical_name', None) or getattr(loc, 'name', None))
+        from app.services.destination_resolver import resolve_destination
+        resolved = await resolve_destination(loc_name, db)
+        
+        if resolved and resolved.get("latitude") and resolved.get("longitude"):
             return {
                 "query": loc_name,
                 "resolved": True,
                 "source": "tourmate_database",
-                "name": canonical,
-                "location_type": loc.get("location_type", "poi") if isinstance(loc, dict) else getattr(loc, "location_type", "poi"),
-                "city": loc.get("city") if isinstance(loc, dict) else getattr(loc, 'city', None),
-                "state": loc.get("state") if isinstance(loc, dict) else getattr(loc, 'state', None),
-                "country": loc.get("country") if isinstance(loc, dict) else getattr(loc, 'country', None),
-                "latitude": loc.get("lat") if isinstance(loc, dict) else getattr(loc, 'latitude', None),
-                "longitude": loc.get("lng") if isinstance(loc, dict) else getattr(loc, 'longitude', None),
-                "location_id": str(loc.get("id")) if isinstance(loc, dict) else str(getattr(loc, 'id', None))
+                "name": resolved.get("name"),
+                "display_name": f"{resolved.get('name')}, {resolved.get('state', '')}".strip(', '),
+                "location_type": resolved.get("location_type", "poi"),
+                "city": resolved.get("city"),
+                "state": resolved.get("state"),
+                "country": resolved.get("country"),
+                "latitude": resolved.get("latitude"),
+                "longitude": resolved.get("longitude"),
+                "location_id": str(resolved.get("id")) if resolved.get("id") else None,
             }
 
         # 2. Try Nominatim Fallback
-        osm_result = await self.geocode(corrected)
+        osm_result = await self.geocode(loc_name)
         if osm_result:
             return {
                 "query": loc_name,
                 "resolved": True,
                 "source": "openstreetmap",
-                "name": osm_result["name"] or corrected,
+                "name": osm_result.get("name") or loc_name,
                 "display_name": osm_result.get("display_name"),
-                "latitude": osm_result["lat"],
-                "longitude": osm_result["lng"],
+                "latitude": osm_result.get("lat"),
+                "longitude": osm_result.get("lng"),
                 "city": osm_result.get("city"),
                 "state": osm_result.get("state"),
                 "country": osm_result.get("country"),

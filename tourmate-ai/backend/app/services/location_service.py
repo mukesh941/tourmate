@@ -243,8 +243,44 @@ async def resolve_location_name(
 
     This is called AFTER the location name is extracted from the user query.
     """
-    from app.services.geocoding_service import resolve_location as geocoder_resolve
-    return await geocoder_resolve(loc_name, db)
+    from app.services.destination_resolver import resolve_destination
+    from app.services.geocoding_service import geocode
+    
+    # 1. Authoritative resolution via destination_resolver
+    resolved = await resolve_destination(loc_name, db)
+    if resolved and resolved.get("latitude") and resolved.get("longitude"):
+        # Map to expected format for older callers if needed, or return canonical
+        return {
+            "name": resolved.get("name"),
+            "display_name": f"{resolved.get('name')}, {resolved.get('state', '')}".strip(', '),
+            "lat": resolved.get("latitude"),
+            "lng": resolved.get("longitude"),
+            "latitude": resolved.get("latitude"),
+            "longitude": resolved.get("longitude"),
+            "city": resolved.get("city"),
+            "state": resolved.get("state"),
+            "country": resolved.get("country"),
+            "location_id": resolved.get("id"),
+            "source": "tourmate_database",
+        }
+        
+    # 2. Fallback to Nominatim if not found in TourMate DB
+    osm_result = await geocode(loc_name)
+    if osm_result:
+        return {
+            "name": osm_result.get("name") or loc_name,
+            "display_name": osm_result.get("display_name"),
+            "lat": osm_result.get("lat"),
+            "lng": osm_result.get("lng"),
+            "latitude": osm_result.get("lat"),
+            "longitude": osm_result.get("lng"),
+            "city": osm_result.get("city"),
+            "state": osm_result.get("state"),
+            "country": osm_result.get("country"),
+            "source": "openstreetmap",
+        }
+        
+    return None
 
 
 async def resolve_location(user_message: str, db: AsyncSession) -> Optional[Dict[str, Any]]:

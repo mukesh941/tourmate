@@ -25,20 +25,20 @@ async def read_destination(destination_id: str, db: AsyncSession = Depends(get_a
     return Envelope(success=True, data=dest)
 
 @router.post("", response_model=Envelope[DestinationResponse], dependencies=[Depends(require_admin)])
-async def add_destination(payload: DestinationCreate):
-    dest = await create_destination(payload)
+async def add_destination(payload: DestinationCreate, db: AsyncSession = Depends(get_async_db)):
+    dest = await create_destination(payload, db=db)
     return Envelope(success=True, data=dest)
 
 @router.put("/{destination_id}", response_model=Envelope[DestinationResponse], dependencies=[Depends(require_admin)])
-async def edit_destination(destination_id: str, payload: DestinationUpdate):
-    dest = await update_destination(destination_id, payload)
+async def edit_destination(destination_id: str, payload: DestinationUpdate, db: AsyncSession = Depends(get_async_db)):
+    dest = await update_destination(destination_id, payload, db=db)
     if not dest:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Destination not found")
     return Envelope(success=True, data=dest)
 
 @router.delete("/{destination_id}", response_model=Envelope[bool], dependencies=[Depends(require_admin)])
-async def remove_destination(destination_id: str):
-    success = await delete_destination(destination_id)
+async def remove_destination(destination_id: str, db: AsyncSession = Depends(get_async_db)):
+    success = await delete_destination(destination_id, db=db)
     if not success:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Destination not found")
     return Envelope(success=True, data=True)

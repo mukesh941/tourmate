@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import require_admin, get_current_user_dependency
+from app.api.deps import require_admin, get_current_user_dependency, get_optional_current_user
 from app.core.db import get_async_db
 from app.schemas.auth import UserPublic
 from app.schemas.common import Envelope
@@ -91,7 +91,7 @@ async def enrich_cluster_endpoint(payload: ClusterEnrichRequest):
 async def get_recommendations(
     destination: Optional[str] = Query(None, description="Optional destination city filter"),
     limit: int = Query(10, ge=1, le=50, description="Max recommendations to return"),
-    current_user: UserPublic = Depends(get_current_user_dependency),
+    current_user: Optional[UserPublic] = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_async_db),
 ):
     # Primary: PostgreSQL pgvector recommendation engine
@@ -106,7 +106,8 @@ async def get_recommendations(
 
     # Fallback to legacy MongoDB places recommendations if PostgreSQL yields none
     try:
-        legacy_places = await get_recommended_places(current_user.id)
+        user_id_val = str(current_user.id) if current_user else None
+        legacy_places = await get_recommended_places(user_id_val)
         return Envelope(success=True, data=legacy_places)
     except Exception:
         return Envelope(success=True, data=[])
@@ -155,20 +156,20 @@ async def read_place(place_id: str, db: AsyncSession = Depends(get_async_db)):
     raise HTTPException(status.HTTP_404_NOT_FOUND, "Place not found")
 
 @router.post("", response_model=Envelope[TouristPlaceResponse], dependencies=[Depends(require_admin)])
-async def add_place(payload: TouristPlaceCreate):
-    place = await create_place(payload)
+async def add_place(payload: TouristPlaceCreate, db: AsyncSession = Depends(get_async_db)):
+    place = await create_place(payload, db=db)
     return Envelope(success=True, data=place)
 
 @router.put("/{place_id}", response_model=Envelope[TouristPlaceResponse], dependencies=[Depends(require_admin)])
-async def edit_place(place_id: str, payload: TouristPlaceUpdate):
-    place = await update_place(place_id, payload)
+async def edit_place(place_id: str, payload: TouristPlaceUpdate, db: AsyncSession = Depends(get_async_db)):
+    place = await update_place(place_id, payload, db=db)
     if not place:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Place not found")
     return Envelope(success=True, data=place)
 
 @router.delete("/{place_id}", response_model=Envelope[bool], dependencies=[Depends(require_admin)])
-async def remove_place(place_id: str):
-    success = await delete_place(place_id)
+async def remove_place(place_id: str, db: AsyncSession = Depends(get_async_db)):
+    success = await delete_place(place_id, db=db)
     if not success:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Place not found")
     return Envelope(success=True, data=True)

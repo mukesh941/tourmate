@@ -97,9 +97,9 @@ describe("ClusteredMapView (Bug #10)", () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText(/Travel Clusters/i)).toBeTruthy();
-    expect(screen.getByText(/Distance/i)).toBeTruthy();
-    expect(screen.getByText(/Category/i)).toBeTruthy();
+    expect(screen.getAllByText(/Travel Clusters/i)[0]).toBeTruthy();
+    expect(screen.getAllByText(/Distance/i)[0]).toBeTruthy();
+    expect(screen.getAllByText(/Category/i)[0]).toBeTruthy();
   });
 
   it("initializes Leaflet and renders welcome state", () => {
@@ -166,5 +166,93 @@ describe("ClusteredMapView (Bug #10)", () => {
         expect.objectContaining({ places: mockPlaces })
       );
     });
+  });
+  it("safely ignores POIs with invalid coordinates", async () => {
+    const mockPlaces = [
+      { id: "p1", name: "Valid Place", latitude: 18.92, longitude: 72.83, category_name: "heritage" },
+      { id: "p2", name: "Invalid Str", latitude: "invalid", longitude: "invalid", category_name: "nature" },
+      { id: "p3", name: "Missing Lat", longitude: 72.83, category_name: "food" }
+    ];
+    const mockClusters = { k: 1, clusters: [{ cluster_id: 0, centroid: [18.92, 72.83], places: mockPlaces }] };
+    vi.spyOn(googlePlacesApi, "searchByText").mockResolvedValueOnce(mockPlaces);
+    vi.spyOn(googlePlacesApi, "clusterPlaces").mockResolvedValueOnce(mockClusters);
+
+    render(
+      <BrowserRouter>
+        <ClusteredMapView />
+      </BrowserRouter>
+    );
+    const input = screen.getByPlaceholderText(/Search city or destination/i);
+    fireEvent.change(input, { target: { value: "Mumbai" } });
+    const submitButtons = screen.getAllByRole("button", { type: "submit" });
+    fireEvent.click(submitButtons[0]);
+
+    await waitFor(() => {
+      expect(googlePlacesApi.clusterPlaces).toHaveBeenCalled();
+    });
+  });
+
+  it("shows empty state when no places are found", async () => {
+    vi.spyOn(googlePlacesApi, "searchByText").mockResolvedValueOnce([]);
+    
+    render(
+      <BrowserRouter>
+        <ClusteredMapView />
+      </BrowserRouter>
+    );
+    const input = screen.getByPlaceholderText(/Search city or destination/i);
+    fireEvent.change(input, { target: { value: "EmptyCity" } });
+    const submitButtons = screen.getAllByRole("button", { type: "submit" });
+    fireEvent.click(submitButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/No places found for this destination/i)).toBeTruthy();
+    });
+  });
+
+  it("shows error state on API failure", async () => {
+    vi.spyOn(googlePlacesApi, "searchByText").mockRejectedValueOnce({ response: { data: { detail: "Test error" } } });
+    
+    render(
+      <BrowserRouter>
+        <ClusteredMapView />
+      </BrowserRouter>
+    );
+    const input = screen.getByPlaceholderText(/Search city or destination/i);
+    fireEvent.change(input, { target: { value: "ErrorCity" } });
+    const submitButtons = screen.getAllByRole("button", { type: "submit" });
+    fireEvent.click(submitButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Test error/i)).toBeTruthy();
+    });
+  });
+
+  it("GPS denial does not break the map", async () => {
+    const originalGeolocation = global.navigator.geolocation;
+    global.navigator.geolocation = {
+      getCurrentPosition: vi.fn().mockImplementationOnce((success, error) => 
+        error({ code: 1, message: "User denied Geolocation" })
+      )
+    };
+
+    render(
+      <BrowserRouter>
+        <ClusteredMapView />
+      </BrowserRouter>
+    );
+
+    // GPS button only appears when distance filter is set
+    const distanceSelect = screen.getAllByDisplayValue(/Anywhere/i)[0];
+    fireEvent.change(distanceSelect, { target: { value: "5" } });
+
+    const locateBtn = await screen.findByText(/Enable GPS to use distance filter/i);
+    fireEvent.click(locateBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Current location is unavailable/i)).toBeTruthy();
+    });
+
+    global.navigator.geolocation = originalGeolocation;
   });
 });

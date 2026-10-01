@@ -233,7 +233,7 @@ async def generate_authoritative_itinerary(
             hotels_list.sort(key=lambda x: abs(x.get('price_per_night_start', 4000) - 4000))
         selected_hotel = hotels_list[0]
         
-    def build_option_schedule(option_name: str, max_stops_per_day: int, pacing_mult: float = 1.0) -> Dict[str, Any]:
+    async def build_option_schedule(option_name: str, max_stops_per_day: int, pacing_mult: float = 1.0) -> Dict[str, Any]:
         schedule = []
         used_poi_ids = set()
         total_estimated_cost = 0
@@ -424,7 +424,36 @@ async def generate_authoritative_itinerary(
 
         # Inter-city transportation summary
         transport_mode = payload.transportation_mode or "car"
-        est_distance = 220.0 if payload.origin and payload.origin.lower() != payload.destination_name.lower() else 0.0
+        est_distance = 0.0
+        est_duration = 0
+        
+        # Calculate real inter-city distance
+        if payload.origin and payload.origin.lower() != payload.destination_name.lower():
+            from app.services.destination_resolver import resolve_destination
+            from app.services.routing_service import routing_service
+            origin_loc = await resolve_destination(payload.origin, db)
+            dest_loc = await resolve_destination(payload.destination_name, db)
+            if origin_loc and dest_loc and origin_loc.get("latitude") and dest_loc.get("latitude"):
+                route = await routing_service.get_route(
+                    origin_lat=origin_loc["latitude"],
+                    origin_lng=origin_loc["longitude"],
+                    dest_lat=dest_loc["latitude"],
+                    dest_lng=dest_loc["longitude"],
+                    mode="DRIVE" if transport_mode == "car" else transport_mode
+                )
+                if route and "distance_km" in route:
+                    est_distance = float(route["distance_km"])
+                    est_duration = int(route.get("duration_minutes", 0))
+
+        if est_distance > 0 and est_duration == 0:
+            est_duration = int(est_distance / 50.0 * 60) # fallback 50 km/h
+
+        # Dynamic inter-city cost estimation
+        # roughly ₹8-12 per km for a taxi, or ₹2-4 per km for bus
+        cost_min = int(est_distance * 3) if est_distance > 0 else 200
+        cost_max = int(est_distance * 10) if est_distance > 0 else 500
+        fuel_est = int(est_distance * 5) if transport_mode == "car" and est_distance > 0 else 0
+        toll_est = int(est_distance * 1.5) if transport_mode == "car" and est_distance > 0 else 0
 
         return {
             "route_name": option_name,
@@ -435,12 +464,12 @@ async def generate_authoritative_itinerary(
                 "mode": transport_mode,
                 "origin": payload.origin or payload.destination_name,
                 "destination": payload.destination_name,
-                "estimated_distance_km": est_distance,
-                "estimated_duration_minutes": 180 if est_distance > 0 else 0,
-                "estimated_cost_min": 1500 if est_distance > 0 else 200,
-                "estimated_cost_max": 3500 if est_distance > 0 else 500,
-                "fuel_cost_estimate": 1200 if transport_mode == "car" and est_distance > 0 else 0,
-                "toll_estimate": 350 if transport_mode == "car" and est_distance > 0 else 0,
+                "estimated_distance_km": round(est_distance, 1),
+                "estimated_duration_minutes": est_duration,
+                "estimated_cost_min": cost_min,
+                "estimated_cost_max": cost_max,
+                "fuel_cost_estimate": fuel_est,
+                "toll_estimate": toll_est,
                 "recommendation_note": f"Recommended {transport_mode} transit for comfort and scenic regional travel."
             },
             "schedule": schedule
@@ -448,11 +477,11 @@ async def generate_authoritative_itinerary(
 
     # Generate the 3 authoritative options
     # Balanced: up to 2 stops/day, standard visit duration
-    balanced_option = build_option_schedule("Balanced", max_stops_per_day=2, pacing_mult=1.0)
+    balanced_option = await build_option_schedule("Balanced", max_stops_per_day=2, pacing_mult=1.0)
     # Explorer: up to 3 stops/day, slightly crisper visit duration
-    explorer_option = build_option_schedule("Explorer", max_stops_per_day=3, pacing_mult=0.85)
+    explorer_option = await build_option_schedule("Explorer", max_stops_per_day=3, pacing_mult=0.85)
     # Relaxed: 1 stop/day, leisurely extended visit
-    relaxed_option = build_option_schedule("Relaxed", max_stops_per_day=1, pacing_mult=1.3)
+    relaxed_option = await build_option_schedule("Relaxed", max_stops_per_day=1, pacing_mult=1.3)
 
     raw_options = [balanced_option, explorer_option, relaxed_option]
 

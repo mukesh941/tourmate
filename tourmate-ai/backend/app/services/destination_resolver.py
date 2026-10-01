@@ -252,7 +252,27 @@ def extract_destination_from_message(message: str) -> Optional[str]:
 
 
 def _location_to_dict(loc: Location) -> Dict[str, Any]:
-    """Convert a Location ORM object to a standardized dict."""
+    """Convert a Location ORM object to a standardized dict with strict coordinate validation."""
+    lat = loc.latitude
+    lng = loc.longitude
+    
+    # Strict coordinate validation (-90/90, -180/180)
+    if lat is not None:
+        try:
+            lat_f = float(lat)
+            if not (-90.0 <= lat_f <= 90.0):
+                lat = None
+        except (ValueError, TypeError):
+            lat = None
+            
+    if lng is not None:
+        try:
+            lng_f = float(lng)
+            if not (-180.0 <= lng_f <= 180.0):
+                lng = None
+        except (ValueError, TypeError):
+            lng = None
+            
     return {
         "id": str(loc.id),
         "name": loc.name,
@@ -262,8 +282,8 @@ def _location_to_dict(loc: Location) -> Dict[str, Any]:
         "state": loc.state,
         "district": loc.district,
         "country": loc.country,
-        "latitude": loc.latitude,
-        "longitude": loc.longitude,
+        "latitude": lat,
+        "longitude": lng,
         "parent_id": str(loc.parent_id) if loc.parent_id else None,
         "source": "tourmate_database",
         "resolved": True,

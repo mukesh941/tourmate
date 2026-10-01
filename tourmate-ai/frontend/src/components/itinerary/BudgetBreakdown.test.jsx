@@ -29,7 +29,7 @@ describe('BudgetBreakdown Component', () => {
     const handleViewFullBudget = vi.fn();
     render(<BudgetBreakdown dayPlan={sampleDayPlan} onViewFullBudget={handleViewFullBudget} />);
 
-    const button = screen.getByRole('button', { name: /View Full Trip Budget/i });
+    const button = screen.getAllByRole('button', { name: /View Full Trip Budget/i })[0];
     expect(button).toBeInTheDocument();
     fireEvent.click(button);
 

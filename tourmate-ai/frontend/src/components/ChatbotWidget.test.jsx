@@ -56,14 +56,14 @@ describe('ChatbotWidget Component', () => {
 
   it('renders the floating open chat button with accessibility attributes', () => {
     render(<ChatbotWidget />);
-    const openBtn = screen.getByRole('button', { name: /Open TourMate AI Guide/i });
+    const openBtn = screen.getAllByRole('button', { name: /Open TourMate AI Guide/i })[0];
     expect(openBtn).toBeTruthy();
     expect(openBtn.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('opens and closes chat window when tapped/clicked', () => {
     render(<ChatbotWidget />);
-    const openBtn = screen.getByRole('button', { name: /Open TourMate AI Guide/i });
+    const openBtn = screen.getAllByRole('button', { name: /Open TourMate AI Guide/i })[0];
     
     // Tap to open
     fireEvent.click(openBtn);
@@ -78,7 +78,7 @@ describe('ChatbotWidget Component', () => {
 
   it('allows user to type into the message input', () => {
     render(<ChatbotWidget />);
-    const openBtn = screen.getByRole('button', { name: /Open TourMate AI Guide/i });
+    const openBtn = screen.getAllByRole('button', { name: /Open TourMate AI Guide/i })[0];
     fireEvent.click(openBtn);
 
     const input = screen.getByPlaceholderText('Ask about places, tips...');
@@ -106,7 +106,7 @@ describe('ChatbotWidget Component', () => {
     window.innerHeight = 844;
 
     const { container } = render(<ChatbotWidget />);
-    const openBtn = screen.getByRole('button', { name: /Open TourMate AI Guide/i });
+    const openBtn = screen.getAllByRole('button', { name: /Open TourMate AI Guide/i })[0];
     const wrapper = container.querySelector('.z-\\[50\\]');
 
     // Initial position: 318, 708
@@ -154,7 +154,7 @@ describe('ChatbotWidget Component', () => {
 
   it('supports keyboard navigation (Enter/Space)', () => {
     render(<ChatbotWidget />);
-    const openBtn = screen.getByRole('button', { name: /Open TourMate AI Guide/i });
+    const openBtn = screen.getAllByRole('button', { name: /Open TourMate AI Guide/i })[0];
 
     // Press Enter to open
     fireEvent.keyDown(openBtn, { key: 'Enter', code: 'Enter' });

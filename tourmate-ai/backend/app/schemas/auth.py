@@ -34,3 +34,4 @@ class UserPublic(BaseModel):
     email: EmailStr
     role: str
     preferred_language: str
+    is_email_verified: bool
