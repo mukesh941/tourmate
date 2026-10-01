@@ -99,16 +99,49 @@ async def get_all_pois(
         except (ValueError, TypeError):
             clean_lower = clean_dest.lower()
             clean_norm = clean_lower.replace("-", " ").replace("_", " ").strip()
-            filters.append(
-                or_(
-                    func.lower(Location.city) == clean_lower,
-                    func.lower(Location.city) == clean_norm,
-                    func.lower(Location.state) == clean_lower,
-                    func.lower(Location.state) == clean_norm,
-                    func.replace(func.lower(Location.city), " ", "-") == clean_lower,
-                    func.replace(func.lower(Location.city), " ", "_") == clean_lower,
-                )
-            )
+            
+            from app.services.destination_resolver import normalize_location_name
+            canonical_name = normalize_location_name(clean_dest).lower()
+            
+            variants = {clean_lower, clean_norm, canonical_name}
+            if "delhi" in variants:
+                variants.add("new delhi")
+            if "new delhi" in variants:
+                variants.add("delhi")
+            if "bengaluru" in variants:
+                variants.add("bangalore")
+            if "bangalore" in variants:
+                variants.add("bengaluru")
+            if "mumbai" in variants:
+                variants.add("bombay")
+            if "bombay" in variants:
+                variants.add("mumbai")
+            if "kolkata" in variants:
+                variants.add("calcutta")
+            if "chennai" in variants:
+                variants.add("madras")
+            if "kochi" in variants:
+                variants.add("cochin")
+            if "mysuru" in variants:
+                variants.add("mysore")
+            if "varanasi" in variants:
+                variants.add("banaras")
+                variants.add("benaras")
+            if "puducherry" in variants:
+                variants.add("pondicherry")
+
+            dest_conditions = []
+            for v in variants:
+                if v:
+                    dest_conditions.extend([
+                        func.lower(Location.city) == v,
+                        func.lower(Location.name) == v,
+                        func.lower(Location.state) == v,
+                        func.lower(Location.canonical_name) == v,
+                        func.replace(func.lower(Location.city), " ", "-") == v,
+                        func.replace(func.lower(Location.city), " ", "_") == v,
+                    ])
+            filters.append(or_(*dest_conditions))
 
     if category_id:
         clean_cat = str(category_id).strip()

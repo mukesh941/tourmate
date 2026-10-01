@@ -89,18 +89,38 @@ async def generate_authoritative_itinerary(
             detail="Available daily time window is too short (minimum 90 minutes required to visit attractions).",
         )
 
-    # Sanitize and strictly format destination name
+    # Sanitize and canonicalize destination name using authoritative resolver
+    search_terms = []
     if payload.destination_name:
         dest_clean = payload.destination_name.strip()
-        typomap = {
-            "dehli": "delhi",
-            "banglore": "bangalore",
-            "bengaluru": "bangalore",
-            "bombay": "mumbai",
-            "calcutta": "kolkata",
-            "madras": "chennai"
-        }
-        payload.destination_name = typomap.get(dest_clean.lower(), dest_clean).title()
+        from app.services.destination_resolver import normalize_location_name
+        canonical_dest = normalize_location_name(dest_clean)
+        payload.destination_name = canonical_dest if canonical_dest else dest_clean
+        
+        # Build search variants (e.g. Bengaluru, Bangalore; Delhi, New Delhi)
+        terms = {dest_clean.lower(), payload.destination_name.lower()}
+        if "delhi" in terms:
+            terms.add("new delhi")
+        if "new delhi" in terms:
+            terms.add("delhi")
+        if "bengaluru" in terms:
+            terms.add("bangalore")
+        if "bangalore" in terms:
+            terms.add("bengaluru")
+        if "mumbai" in terms:
+            terms.add("bombay")
+        if "kolkata" in terms:
+            terms.add("calcutta")
+        if "chennai" in terms:
+            terms.add("madras")
+        if "kochi" in terms:
+            terms.add("cochin")
+        if "mysuru" in terms:
+            terms.add("mysore")
+        if "varanasi" in terms:
+            terms.add("banaras")
+            terms.add("benaras")
+        search_terms = list(terms)
 
     # 2. Resolve POI Candidates from Canonical Database
     pois_pool: List[POI] = []
@@ -126,17 +146,19 @@ async def generate_authoritative_itinerary(
             res = await db.execute(stmt)
             pois_pool = list(res.scalars().all())
 
-    if not pois_pool and payload.destination_name:
-        dest_clean = payload.destination_name.lower()
+    if not pois_pool and search_terms:
+        poi_conditions = []
+        for term in search_terms:
+            poi_conditions.extend([
+                Location.city.ilike(f"%{term}%"),
+                Location.name.ilike(f"%{term}%"),
+                POI.name.ilike(f"%{term}%"),
+            ])
         stmt = (
             select(POI)
             .join(Location, POI.location_id == Location.id)
             .where(
-                or_(
-                    Location.city.ilike(f"%{dest_clean}%"),
-                    Location.name.ilike(f"%{dest_clean}%"),
-                    POI.name.ilike(f"%{dest_clean}%"),
-                ),
+                or_(*poi_conditions),
                 POI.is_active == True,
             )
             .options(
@@ -190,12 +212,16 @@ async def generate_authoritative_itinerary(
     dest_meta = CANONICAL_DESTINATION_METADATA.get((payload.destination_name or "").lower(), {})
     dest_cover_image = dest_meta.get("cover_image", "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80")
 
-    # Hotel Selection from MongoDB
-    from app.core.database import get_db
-    mongo_db = get_db()
-    hotel_query = {"city": {"$regex": f"^{payload.destination_name}$", "$options": "i"}}
-    hotels_cursor = mongo_db.hotels.find(hotel_query)
-    hotels_list = await hotels_cursor.to_list(length=20)
+    # Hotel Selection from MongoDB (safe non-blocking lookup)
+    hotels_list = []
+    try:
+        from app.core.database import get_db
+        mongo_db = get_db()
+        hotel_query = {"city": {"$regex": f"^{payload.destination_name}$", "$options": "i"}}
+        hotels_cursor = mongo_db.hotels.find(hotel_query)
+        hotels_list = await hotels_cursor.to_list(length=20)
+    except Exception as e:
+        logger.warning(f"MongoDB hotel fetch during itinerary generation failed gracefully: {e}")
     
     selected_hotel = None
     if hotels_list:
@@ -403,7 +429,8 @@ async def generate_authoritative_itinerary(
         return {
             "route_name": option_name,
             "description": f"{option_name} itinerary curated for {payload.destination_name} with verified visits and authoritative opening hours.",
-            "total_estimated_cost": final_total_cost,
+            "total_estimated_cost": total_estimated_cost,
+            "total_budget": final_total_cost,
             "transportation": {
                 "mode": transport_mode,
                 "origin": payload.origin or payload.destination_name,

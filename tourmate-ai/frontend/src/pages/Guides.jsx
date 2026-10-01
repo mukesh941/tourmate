@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../api/axios';
-import { Star, ShieldCheck, MapPin, Clock, CheckCircle, Sparkles, Compass, AlertCircle } from 'lucide-react';
+import { Star, ShieldCheck, MapPin, Clock, CheckCircle, Sparkles, Compass, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function Guides() {
   const { token } = useAuth();
@@ -30,13 +30,14 @@ export default function Guides() {
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const url = searchLocation 
-        ? `${API_BASE_URL}/guides?location=${searchLocation}`
+        ? `${API_BASE_URL}/guides?location=${encodeURIComponent(searchLocation)}`
         : `${API_BASE_URL}/guides`;
         
       const res = await axios.get(url, { headers, timeout: 6000 });
       setGuides(res.data?.data || []);
     } catch (err) {
-      console.warn("Guides fetch completed:", err.message);
+      console.error("Guides fetch error:", err);
+      setErrorMsg("Failed to load local experts. Please try again later.");
       setGuides([]);
     } finally {
       setLoading(false);
@@ -62,13 +63,13 @@ export default function Guides() {
         {
           guide_id: selectedGuide.id,
           date: bookingDate,
-          hours: parseInt(bookingHours)
+          hours: parseInt(bookingHours, 10)
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setBookingSuccess(true);
     } catch (err) {
-      console.error(err);
+      console.error("Booking error:", err);
       if (err.response?.data?.detail) {
         const detail = err.response.data.detail;
         if (typeof detail === 'string') alert(detail);
@@ -103,19 +104,45 @@ export default function Guides() {
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input 
               type="text" 
-              placeholder="Filter by city (e.g. New Delhi)" 
+              placeholder="Filter by city (e.g. New Delhi, Mumbai, Kochi)" 
               value={searchLocation}
               onChange={(e) => setSearchLocation(e.target.value)}
               className="w-full pl-10 pr-4 py-3 glass rounded-xl border border-gray-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 outline-none text-gray-800 dark:text-white"
             />
           </div>
+          {searchLocation && (
+            <button
+              onClick={() => setSearchLocation("")}
+              className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 px-3 py-2"
+            >
+              Clear Filter
+            </button>
+          )}
         </div>
 
-        {/* Grid */}
+        {/* Content */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-gray-500 dark:text-slate-400 font-medium">Checking available local experts...</p>
+          </div>
+        ) : errorMsg ? (
+          <div className="glass rounded-3xl p-8 md:p-12 border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 max-w-2xl mx-auto text-center shadow-lg">
+            <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto mb-5">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-display font-extrabold text-gray-900 dark:text-white mb-3">
+              Unable to Load Guides
+            </h3>
+            <p className="text-gray-600 dark:text-slate-300 leading-relaxed mb-6">
+              {errorMsg}
+            </p>
+            <button 
+              onClick={fetchGuides}
+              className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-sm"
+            >
+              <RefreshCw className="w-4 h-4" /> Try Again
+            </button>
           </div>
         ) : guides.length === 0 ? (
           <div className="glass rounded-3xl p-8 md:p-12 border border-gray-200 dark:border-slate-700/80 bg-white/60 dark:bg-slate-800/60 max-w-2xl mx-auto text-center shadow-lg">
@@ -123,33 +150,36 @@ export default function Guides() {
               <Compass className="w-8 h-8" />
             </div>
             <h3 className="text-2xl font-display font-extrabold text-gray-900 dark:text-white mb-3">
-              Local Expert Network — Coming Soon
+              {searchLocation ? `No Guides Found for "${searchLocation}"` : "No Guides Available"}
             </h3>
             <p className="text-gray-600 dark:text-slate-300 leading-relaxed mb-6">
-              Direct booking of licensed, certified local human guides is part of our planned partner network expansion. To guarantee safety and authentic expertise, TourMate only lists officially accredited tour professionals once vetted.
+              {searchLocation 
+                ? `We currently don't have local experts listed in "${searchLocation}". Try searching for major cities like New Delhi, Mumbai, Jaipur, Varanasi, Kochi, or Goa.`
+                : "No local experts are currently listed. Please check back shortly."}
             </p>
-            <div className="bg-brand-50 dark:bg-brand-900/20 rounded-2xl p-4 mb-8 text-left border border-brand-100 dark:border-brand-800/40">
-              <div className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
-                <p className="text-sm text-brand-900 dark:text-brand-200">
-                  <strong>Available Now:</strong> You can explore verified canonical attractions, build optimized multi-day itineraries, and chat with our 24/7 Grounded AI Tour Guide for instant historical context and visiting guidelines.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link 
-                to="/places"
+            {searchLocation ? (
+              <button 
+                onClick={() => setSearchLocation("")}
                 className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-sm"
               >
-                <Compass className="w-4 h-4" /> Explore Verified Places
-              </Link>
-              <Link 
-                to="/itinerary-builder"
-                className="inline-flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-3 px-6 rounded-xl transition"
-              >
-                <Sparkles className="w-4 h-4 text-brand-500" /> Plan Itinerary
-              </Link>
-            </div>
+                View All Guides
+              </button>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link 
+                  to="/places"
+                  className="inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-6 rounded-xl transition shadow-sm"
+                >
+                  <Compass className="w-4 h-4" /> Explore Verified Places
+                </Link>
+                <Link 
+                  to="/itinerary-builder"
+                  className="inline-flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-3 px-6 rounded-xl transition"
+                >
+                  <Sparkles className="w-4 h-4 text-brand-500" /> Plan Itinerary
+                </Link>
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

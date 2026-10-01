@@ -97,9 +97,10 @@ async def get_all_destinations(db: Optional[AsyncSession] = None) -> List[Destin
     Queries distinct canonical destinations (cities) from PostgreSQL locations.
     """
     async def _query(session: AsyncSession) -> List[DestinationResponse]:
-        # Query distinct locations with their POIs to extract images
+        # Query distinct locations that have POIs
         stmt = (
             select(Location)
+            .where(Location.pois.any())
             .options(
                 selectinload(Location.pois).selectinload(POI.poi_images).selectinload(POIImage.image)
             )

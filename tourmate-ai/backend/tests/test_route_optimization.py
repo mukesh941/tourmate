@@ -455,7 +455,7 @@ def test_heuristic_admissibility():
 async def test_missing_accommodation_raises_400(db_session: AsyncSession):
     # Create user & location
     user = User(email=f"no_acc_{uuid.uuid4().hex[:6]}@test.com", hashed_password="pw", full_name="Tester")
-    loc = Location(name="City Center", latitude=27.17, longitude=78.04, city="Agra", country="India")
+    loc = Location(name="City Center", latitude=27.17, longitude=78.04, city="Agra", state="Uttar Pradesh", country="India")
     db_session.add_all([user, loc])
     await db_session.flush()
 
@@ -494,8 +494,8 @@ async def test_closed_poi_handling(db_session: AsyncSession):
     assert target_date.weekday() == 4  # Friday
 
     user = User(email=f"friday_{uuid.uuid4().hex[:6]}@test.com", hashed_password="pw", full_name="Friday Tester")
-    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", country="India")
-    loc_poi = Location(name="Monument Loc", latitude=27.18, longitude=78.02, city="Agra", country="India")
+    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", state="Uttar Pradesh", country="India")
+    loc_poi = Location(name="Monument Loc", latitude=27.18, longitude=78.02, city="Agra", state="Uttar Pradesh", country="India")
     cat = Category(name=f"Heritage_{uuid.uuid4().hex[:4]}", slug=f"heritage-{uuid.uuid4().hex[:6]}")
     db_session.add_all([user, loc, loc_poi, cat])
     await db_session.flush()
@@ -557,7 +557,7 @@ async def test_closed_poi_handling(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_zero_poi_day(db_session: AsyncSession):
     user = User(email=f"zero_poi_{uuid.uuid4().hex[:6]}@test.com", hashed_password="pw", full_name="Zero Tester")
-    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", country="India")
+    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", state="Uttar Pradesh", country="India")
     db_session.add_all([user, loc])
     await db_session.flush()
 
@@ -600,8 +600,8 @@ async def test_zero_poi_day(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_one_poi_day(db_session: AsyncSession):
     user = User(email=f"one_poi_{uuid.uuid4().hex[:6]}@test.com", hashed_password="pw", full_name="One Tester")
-    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", country="India")
-    loc_poi = Location(name="Fort Loc", latitude=27.18, longitude=78.02, city="Agra", country="India")
+    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", state="Uttar Pradesh", country="India")
+    loc_poi = Location(name="Fort Loc", latitude=27.18, longitude=78.02, city="Agra", state="Uttar Pradesh", country="India")
     cat = Category(name=f"Fort_{uuid.uuid4().hex[:4]}", slug=f"fort-{uuid.uuid4().hex[:6]}")
     db_session.add_all([user, loc, loc_poi, cat])
     await db_session.flush()
@@ -651,9 +651,9 @@ async def test_one_poi_day(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_multi_day_isolation(db_session: AsyncSession):
     user = User(email=f"multi_{uuid.uuid4().hex[:6]}@test.com", hashed_password="pw", full_name="Multi Tester")
-    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", country="India")
-    loc_p1 = Location(name="P1 Loc", latitude=27.18, longitude=78.02, city="Agra", country="India")
-    loc_p2 = Location(name="P2 Loc", latitude=27.19, longitude=78.01, city="Agra", country="India")
+    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", state="Uttar Pradesh", country="India")
+    loc_p1 = Location(name="P1 Loc", latitude=27.18, longitude=78.02, city="Agra", state="Uttar Pradesh", country="India")
+    loc_p2 = Location(name="P2 Loc", latitude=27.19, longitude=78.01, city="Agra", state="Uttar Pradesh", country="India")
     cat = Category(name=f"Cat_{uuid.uuid4().hex[:4]}", slug=f"cat-{uuid.uuid4().hex[:6]}")
     db_session.add_all([user, loc, loc_p1, loc_p2, cat])
     await db_session.flush()
@@ -741,9 +741,9 @@ def test_alternative_tour_validity():
 @pytest.mark.asyncio
 async def test_postgresql_persistence_and_route_anchor_semantics(db_session: AsyncSession):
     user = User(email=f"persist_{uuid.uuid4().hex[:6]}@test.com", hashed_password="pw", full_name="Persist Tester")
-    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", country="India")
-    loc_p1 = Location(name="P1 Loc", latitude=27.18, longitude=78.02, city="Agra", country="India")
-    loc_p2 = Location(name="P2 Loc", latitude=27.19, longitude=78.01, city="Agra", country="India")
+    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", state="Uttar Pradesh", country="India")
+    loc_p1 = Location(name="P1 Loc", latitude=27.18, longitude=78.02, city="Agra", state="Uttar Pradesh", country="India")
+    loc_p2 = Location(name="P2 Loc", latitude=27.19, longitude=78.01, city="Agra", state="Uttar Pradesh", country="India")
     cat = Category(name=f"Persist_{uuid.uuid4().hex[:4]}", slug=f"persist-{uuid.uuid4().hex[:6]}")
     db_session.add_all([user, loc, loc_p1, loc_p2, cat])
     await db_session.flush()
@@ -861,8 +861,8 @@ async def test_preserved_locations_route_endpoint(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_api_itineraries_optimize_plan_endpoint(client: AsyncClient, db_session: AsyncSession):
     user = User(email=f"api_test_{uuid.uuid4().hex[:6]}@test.com", hashed_password="pw", full_name="API Tester")
-    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", country="India")
-    loc_poi = Location(name="POI Loc", latitude=27.18, longitude=78.02, city="Agra", country="India")
+    loc = Location(name="Hotel Loc", latitude=27.17, longitude=78.04, city="Agra", state="Uttar Pradesh", country="India")
+    loc_poi = Location(name="POI Loc", latitude=27.18, longitude=78.02, city="Agra", state="Uttar Pradesh", country="India")
     cat = Category(name=f"Cat_{uuid.uuid4().hex[:4]}", slug=f"cat-{uuid.uuid4().hex[:6]}")
     db_session.add_all([user, loc, loc_poi, cat])
     await db_session.flush()

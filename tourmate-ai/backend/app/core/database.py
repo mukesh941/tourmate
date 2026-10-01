@@ -5,6 +5,8 @@ Import `get_db()` in services/routes - never open a new connection per-request.
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
 
+import asyncio
+
 _client: AsyncIOMotorClient | None = None
 
 
@@ -13,13 +15,14 @@ def get_client() -> AsyncIOMotorClient:
     uri = settings.mongo_uri or "mongodb://localhost:27017"
     if _client is not None:
         try:
-            if _client.get_io_loop().is_closed():
+            current_loop = asyncio.get_running_loop()
+            if _client.get_io_loop().is_closed() or _client.get_io_loop() is not current_loop:
                 _client = None
         except Exception:
             _client = None
 
     if _client is None:
-        _client = AsyncIOMotorClient(uri, serverSelectionTimeoutMS=1500)
+        _client = AsyncIOMotorClient(uri, serverSelectionTimeoutMS=5000)
     return _client
 
 
