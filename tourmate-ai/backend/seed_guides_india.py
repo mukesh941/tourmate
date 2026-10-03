@@ -1,86 +1,131 @@
 import asyncio
-import random
 import os
+import random
 from dotenv import load_dotenv
 
 # Load env variables before getting the db client so MONGO_URI is picked up
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
-from app.core.database import get_db
-from app.models.guide import GuideInDB
+from app.core.database import get_db, close_client
 
-cities = [
-    "New Delhi", "Mumbai", "Bengaluru", "Chennai", "Kolkata", 
-    "Hyderabad", "Pune", "Ahmedabad", "Jaipur", "Goa", 
-    "Agra", "Varanasi", "Amritsar", "Chandigarh", "Srinagar",
-    "Leh", "Khajuraho", "Gwalior", "Puri", "Guwahati",
-    "Manali", "Nainital", "Aurangabad", "Port Blair", "Rishikesh",
-    "Kochi", "Mysuru", "Udaipur", "Jodhpur", "Jaisalmer"
+STATES_AND_CITIES = {
+    "Andhra Pradesh": ["Amaravati", "Visakhapatnam", "Vijayawada", "Tirupati"],
+    "Arunachal Pradesh": ["Itanagar", "Tawang", "Ziro", "Bomdila"],
+    "Assam": ["Guwahati", "Kaziranga", "Jorhat", "Majuli"],
+    "Bihar": ["Patna", "Bodh Gaya", "Gaya", "Rajgir", "Nalanda"],
+    "Chhattisgarh": ["Raipur", "Jagdalpur", "Bilaspur"],
+    "Goa": ["Panaji", "Calangute", "Candolim", "Old Goa", "Margao"],
+    "Gujarat": ["Ahmedabad", "Vadodara", "Surat", "Dwarka", "Somnath", "Rann of Kutch", "Bhuj"],
+    "Haryana": ["Gurugram", "Faridabad", "Kurukshetra"],
+    "Himachal Pradesh": ["Shimla", "Manali", "Dharamshala", "Dalhousie", "Kasol", "Kullu", "Spiti"],
+    "Jharkhand": ["Ranchi", "Jamshedpur", "Deoghar"],
+    "Karnataka": ["Bengaluru", "Mysuru", "Hampi", "Coorg", "Mangaluru", "Hubballi", "Gokarna", "Badami"],
+    "Kerala": ["Thiruvananthapuram", "Kochi", "Munnar", "Alappuzha", "Kozhikode", "Kovalam", "Varkala", "Thekkady", "Wayanad"],
+    "Madhya Pradesh": ["Bhopal", "Indore", "Ujjain", "Gwalior", "Khajuraho", "Jabalpur", "Sanchi"],
+    "Maharashtra": ["Mumbai", "Pune", "Nashik", "Nagpur", "Aurangabad", "Mahabaleshwar", "Lonavala", "Shirdi", "Alibaug"],
+    "Manipur": ["Imphal", "Loktak Lake"],
+    "Meghalaya": ["Shillong", "Cherrapunji", "Dawki", "Mawlynnong"],
+    "Mizoram": ["Aizawl", "Champhai"],
+    "Nagaland": ["Kohima", "Dimapur"],
+    "Odisha": ["Bhubaneswar", "Puri", "Konark", "Cuttack", "Chilika"],
+    "Punjab": ["Amritsar", "Ludhiana", "Patiala", "Jalandhar"],
+    "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Jaisalmer", "Pushkar", "Mount Abu", "Ajmer", "Bikaner"],
+    "Sikkim": ["Gangtok", "Pelling", "Lachung", "Namchi"],
+    "Tamil Nadu": ["Chennai", "Madurai", "Ooty", "Coimbatore", "Rameswaram", "Kanyakumari", "Thanjavur", "Mahabalipuram"],
+    "Telangana": ["Hyderabad", "Warangal", "Karimnagar"],
+    "Tripura": ["Agartala", "Udaipur"],
+    "Uttar Pradesh": ["Lucknow", "Agra", "Varanasi", "Ayodhya", "Prayagraj", "Mathura", "Vrindavan", "Sarnath", "Jhansi"],
+    "Uttarakhand": ["Dehradun", "Rishikesh", "Haridwar", "Nainital", "Mussoorie", "Almora", "Auli", "Kedarnath", "Badrinath"],
+    "West Bengal": ["Kolkata", "Darjeeling", "Siliguri", "Kalimpong", "Digha", "Sundarbans"],
+    "Jammu and Kashmir": ["Srinagar", "Gulmarg", "Pahalgam", "Jammu", "Sonamarg"],
+    "Ladakh": ["Leh", "Nubra Valley", "Pangong Lake", "Kargil"],
+    "Delhi": ["New Delhi", "Delhi"],
+    "Andaman and Nicobar Islands": ["Port Blair", "Havelock Island", "Neil Island"],
+    "Chandigarh": ["Chandigarh"],
+    "Lakshadweep": ["Kavaratti", "Agatti"],
+    "Puducherry": ["Puducherry", "Auroville"],
+    "Dadra and Nagar Haveli and Daman and Diu": ["Daman", "Diu", "Silvassa"]
+}
+
+LANGUAGES_BY_STATE = {
+    "Andhra Pradesh": ["Telugu"], "Arunachal Pradesh": ["Nyishi", "Adi"], "Assam": ["Assamese"],
+    "Bihar": ["Bhojpuri", "Maithili"], "Chhattisgarh": ["Chhattisgarhi"], "Goa": ["Konkani"],
+    "Gujarat": ["Gujarati"], "Haryana": ["Haryanvi"], "Himachal Pradesh": ["Pahari"],
+    "Jharkhand": ["Santali"], "Karnataka": ["Kannada"], "Kerala": ["Malayalam"],
+    "Madhya Pradesh": ["Hindi"], "Maharashtra": ["Marathi"], "Manipur": ["Meiteilon"],
+    "Meghalaya": ["Khasi", "Garo"], "Mizoram": ["Mizo"], "Nagaland": ["Nagamese"],
+    "Odisha": ["Odia"], "Punjab": ["Punjabi"], "Rajasthan": ["Rajasthani", "Marwari"],
+    "Sikkim": ["Nepali", "Sikkimese"], "Tamil Nadu": ["Tamil"], "Telangana": ["Telugu"],
+    "Tripura": ["Kokborok", "Bengali"], "Uttar Pradesh": ["Hindi"], "Uttarakhand": ["Garhwali", "Kumaoni"],
+    "West Bengal": ["Bengali"], "Jammu and Kashmir": ["Kashmiri", "Dogri"], "Ladakh": ["Ladakhi"],
+    "Delhi": ["Hindi", "Punjabi"], "Andaman and Nicobar Islands": ["Bengali", "Tamil"],
+    "Chandigarh": ["Punjabi"], "Lakshadweep": ["Malayalam", "Mahl"], "Puducherry": ["Tamil", "French"],
+    "Dadra and Nagar Haveli and Daman and Diu": ["Gujarati", "Marathi"]
+}
+
+FIRST_NAMES = ["Amit", "Priya", "Rahul", "Anjali", "Vikram", "Sneha", "Karthik", "Divya", "Suresh", "Pooja"]
+LAST_NAMES = ["Kumar", "Sharma", "Singh", "Patil", "Reddy", "Nair", "Das", "Gupta", "Joshi", "Iyer"]
+IMAGES = [
+    "/images/guides/guide_1.jpg",
+    "/images/guides/guide_2.jpg",
+    "/images/guides/guide_3.jpg",
+    "/images/guides/guide_4.jpg",
+    "/images/guides/guide_5.jpg"
 ]
 
-first_names = [
-    "Aarav", "Vihaan", "Aditya", "Arjun", "Sai", "Rahul", "Amit", "Vikram", "Raj", "Ravi",
-    "Diya", "Aanya", "Priya", "Neha", "Pooja", "Anjali", "Sneha", "Kavya", "Riya", "Meera",
-    "Mohammed", "Ali", "Hassan", "Fatima", "Aisha", "Zoya", "Ibrahim", "Tariq", "Omar", "Sara",
-    "Gurpreet", "Manpreet", "Harpreet", "Amandeep", "Sandeep", "Navdeep"
-]
+def generate_guides():
+    random.seed(20260924)  # Deterministic
+    guides = []
+    
+    for state, cities_list in STATES_AND_CITIES.items():
+        for city in cities_list:
+            num_guides = random.randint(1, 3)
+            for _ in range(num_guides):
+                name = f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}"
+                
+                langs = ["English", "Hindi"]
+                local_langs = LANGUAGES_BY_STATE.get(state, [])
+                if local_langs:
+                    langs.append(random.choice(local_langs))
+                
+                # Make them unique
+                langs = list(dict.fromkeys(langs))
+                
+                guide = {
+                    "name": name,
+                    "languages": langs,
+                    "rating": round(random.uniform(4.0, 5.0), 1),
+                    "reviews_count": random.randint(10, 500),
+                    "hourly_rate": random.choice([400, 500, 600, 750, 800, 1000]),
+                    "bio": f"Local Expert for {city}. Passionate about showing the best of {state}'s culture and heritage.",
+                    "verified": False,
+                    "is_demo": True,
+                    "is_lgbtq": random.random() < 0.15,
+                    "image_url": random.choice(IMAGES),
+                    "location": f"{city}, {state}, India",
+                    "country": "India",
+                    "state_or_ut": state,
+                    "city": city
+                }
+                guides.append(guide)
+                
+    return guides
 
-last_names = [
-    "Sharma", "Patel", "Kumar", "Singh", "Das", "Bose", "Chatterjee", "Sengupta", "Nair", 
-    "Menon", "Reddy", "Rao", "Gowda", "Iyer", "Khan", "Ahmed", "Syed", "Sheikh",
-    "Kaur", "Gill", "Sandhu", "Joshi", "Desai", "Mehta", "Chauhan", "Rajput"
-]
 
-languages_pool = ["English", "Hindi", "Marathi", "Gujarati", "Tamil", "Telugu", "Kannada", "Malayalam", "Bengali", "Punjabi", "French", "Spanish", "German", "Japanese"]
-
-bios = [
-    "Certified local historian with a passion for uncovering hidden gems.",
-    "Food lover and culture enthusiast. I will take you to the best culinary spots!",
-    "Expert in nature and wildlife. Let's explore the beautiful outdoors together.",
-    "Specializes in ancient architecture and heritage walks.",
-    "Professional photographer who knows all the most photogenic locations.",
-    "Born and raised here, I know the streets like the back of my hand.",
-    "Adventurer at heart, I lead exciting and off-the-beaten-path tours.",
-    "Friendly and accommodating, perfect for families and senior travelers.",
-    "Fluent in multiple languages to make you feel right at home.",
-    "Art and museum expert. Prepare to dive deep into local history."
-]
-
-async def seed_guides():
+async def seed():
     db = get_db()
     
-    print("Fetching existing guides...")
-    existing_guides = await db.guides.find({}).to_list(length=None)
+    # clear only the guides collection
+    await db.guides.delete_many({})
     
-    if len(existing_guides) == 0:
-        print("No guides found. Please run the original seed script first.")
-        return
+    # generate and insert
+    guides = generate_guides()
+    if guides:
+        await db.guides.insert_many(guides)
+        
+    print(f"Inserted {len(guides)} demo guide profiles across India.")
+    close_client()
 
-    print(f"Found {len(existing_guides)} existing guides. Updating them...")
-    
-    # We need to guarantee exactly 197 guides if there are currently 197.
-    # The existing guides already have 'name', 'city', 'location' etc.
-    # We will update them with deterministic images and set is_lgbtq.
-    
-    for idx, guide in enumerate(existing_guides):
-        i = idx + 1
-        
-        # Every 6th person is LGBTQ, ensuring a reasonable number
-        is_lgbtq = (i % 6 == 0)
-        
-        image_path = f"/images/guides/guide-{i:03d}.webp"
-        
-        update_fields = {
-            "image_url": image_path,
-            "is_lgbtq": is_lgbtq
-        }
-        
-        await db.guides.update_one(
-            {"_id": guide["_id"]},
-            {"$set": update_fields}
-        )
-            
-    print(f"Successfully updated {len(existing_guides)} guides!")
 
 if __name__ == "__main__":
-    asyncio.run(seed_guides())
+    asyncio.run(seed())

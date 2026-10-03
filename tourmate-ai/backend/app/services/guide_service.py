@@ -2,7 +2,7 @@
 Guide Service for TourMate AI.
 
 Manages Local Expert profiles and bookings stored in MongoDB ('guides' and 'guide_bookings' collections).
-Provides MongoDB ObjectId lookups, case-insensitive location filtering, server-side pricing,
+Provides MongoDB ObjectId lookups, case-insensitive multi-field location filtering, server-side pricing,
 and booking duplicate & boundary validations.
 """
 import re
@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 from bson import ObjectId
+from bson.errors import InvalidId
 
 from app.schemas.guide import GuideResponse, BookingCreate, BookingResponse
 from app.core.database import get_db
@@ -29,16 +30,25 @@ def _doc_to_guide_response(doc: dict) -> GuideResponse:
 
 async def get_all_guides(location: Optional[str] = None) -> List[GuideResponse]:
     """
-    Retrieves all guide profiles from the MongoDB 'guides' collection.
-    Supports case-insensitive substring search on the 'location' field.
+    Returns local guides from the database, optionally filtered by location, city, or state.
     """
     db = get_db()
     query = {}
-    if location and location.strip():
-        escaped_loc = re.escape(location.strip())
-        query["location"] = {"$regex": escaped_loc, "$options": "i"}
 
-    cursor = db.guides.find(query)
+    if location and location.strip():
+        loc_term = location.strip()
+        query["$or"] = [
+            {"location": {"$regex": re.escape(loc_term), "$options": "i"}},
+            {"city": {"$regex": re.escape(loc_term), "$options": "i"}},
+            {"state_or_ut": {"$regex": re.escape(loc_term), "$options": "i"}}
+        ]
+
+    cursor = db.guides.find(query).sort([
+        ("verified", -1),
+        ("rating", -1),
+        ("reviews_count", -1)
+    ])
+
     docs = await cursor.to_list(length=500)
     return [_doc_to_guide_response(doc) for doc in docs]
 
@@ -46,7 +56,7 @@ async def get_all_guides(location: Optional[str] = None) -> List[GuideResponse]:
 async def get_guide(guide_id: str) -> Optional[GuideResponse]:
     """
     Retrieves a single guide profile by MongoDB ObjectId string.
-    Safely handles invalid ObjectId strings (e.g. 'g1') by returning None.
+    Safely handles invalid ObjectId strings by returning None.
     """
     if not guide_id or not ObjectId.is_valid(guide_id):
         return None

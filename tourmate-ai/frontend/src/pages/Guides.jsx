@@ -29,8 +29,13 @@ export default function Guides() {
     setErrorMsg("");
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const url = searchLocation 
-        ? `${API_BASE_URL}/guides?location=${encodeURIComponent(searchLocation)}`
+      const queryParams = new URLSearchParams();
+      if (searchLocation.trim()) {
+        queryParams.append('location', searchLocation.trim());
+      }
+      
+      const url = queryParams.toString() 
+        ? `${API_BASE_URL}/guides?${queryParams.toString()}`
         : `${API_BASE_URL}/guides`;
         
       const res = await axios.get(url, { headers, timeout: 6000 });
@@ -104,7 +109,7 @@ export default function Guides() {
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input 
               type="text" 
-              placeholder="Filter by city (e.g. New Delhi, Mumbai, Kochi)" 
+              placeholder="Filter by city, state, or destination..." 
               value={searchLocation}
               onChange={(e) => setSearchLocation(e.target.value)}
               className="w-full pl-10 pr-4 py-3 glass rounded-xl border border-gray-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 focus:ring-2 focus:ring-brand-500 outline-none text-gray-800 dark:text-white"
@@ -118,6 +123,21 @@ export default function Guides() {
               Clear Filter
             </button>
           )}
+          <div className="flex flex-wrap gap-2">
+            {['All India', 'Karnataka', 'Kerala', 'Rajasthan', 'Goa', 'Delhi', 'Maharashtra'].map(filter => (
+               <button 
+                 key={filter}
+                 onClick={() => setSearchLocation(filter === 'All India' ? '' : filter)}
+                 className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${
+                   (filter === 'All India' && !searchLocation) || searchLocation === filter
+                     ? 'bg-brand-600 text-white border-brand-600'
+                     : 'bg-white/50 dark:bg-slate-800/50 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-brand-50 dark:hover:bg-slate-700'
+                 }`}
+               >
+                 {filter}
+               </button>
+            ))}
+          </div>
         </div>
 
         {/* Content */}
@@ -154,7 +174,7 @@ export default function Guides() {
             </h3>
             <p className="text-gray-600 dark:text-slate-300 leading-relaxed mb-6">
               {searchLocation 
-                ? `We currently don't have local experts listed in "${searchLocation}". Try searching for major cities like New Delhi, Mumbai, Jaipur, Varanasi, Kochi, or Goa.`
+                ? `We couldn't find any local experts for "${searchLocation.trim()}". Try searching for major cities like New Delhi, Mumbai, Jaipur, Varanasi, Kochi, or Goa.`
                 : "No local experts are currently listed. Please check back shortly."}
             </p>
             {searchLocation ? (
@@ -186,26 +206,29 @@ export default function Guides() {
             {guides.map(guide => (
               <div key={guide.id} className="glass bg-white/80 dark:bg-slate-800/80 rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-700/50 shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col">
                 <div className="h-48 overflow-hidden relative bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-sm text-gray-500 dark:text-slate-400">
-                  {guide.image_url ? (
-                    <img 
-                      src={guide.image_url} 
-                      alt={guide.name}
-                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : null}
-                  <span style={{ display: guide.image_url ? 'none' : 'block' }}>Indian guide avatar / default guide image</span>
-                  
+                  <img 
+                    src={guide.image_url || "/images/guides/guide_1.jpg"} 
+                    alt={guide.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://images.unsplash.com/photo-1544717302-de2939b7ef71?auto=format&fit=crop&w=500&q=60";
+                    }}
+                  />
                   {(guide.is_demo || guide.is_lgbtq) && (
                     <div className="absolute top-3 right-3 bg-brand-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
                       {guide.is_lgbtq ? "LGBTQ+ • Demo Profile" : "Demo Profile"}
                     </div>
                   )}
-                  {guide.verified && (
+                  {guide.verified ? (
                     <div className="absolute top-3 left-3 bg-white/90 backdrop-blur text-brand-700 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
                       <ShieldCheck className="w-3.5 h-3.5" /> Verified
                     </div>
-                  )}
+                  ) : guide.is_demo ? (
+                    <div className="absolute top-3 left-3 bg-amber-100/90 backdrop-blur text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm border border-amber-200">
+                      <AlertCircle className="w-3.5 h-3.5" /> Demo Profile
+                    </div>
+                  ) : null}
                   <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur text-gray-900 text-sm font-bold px-3 py-1 rounded-lg shadow-sm">
                     ₹{guide.hourly_rate}/hr
                   </div>
@@ -280,7 +303,15 @@ export default function Guides() {
             ) : (
               <div>
                 <div className="h-32 relative">
-                  <img src={selectedGuide.image_url} alt={selectedGuide.name} className="w-full h-full object-cover" />
+                  <img 
+                    src={selectedGuide.image_url || "/images/guides/guide_1.jpg"} 
+                    alt={selectedGuide.name} 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://images.unsplash.com/photo-1544717302-de2939b7ef71?auto=format&fit=crop&w=500&q=60";
+                    }}
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
                   <h2 className="absolute bottom-4 left-6 text-2xl font-bold text-white font-display">Book {selectedGuide.name}</h2>
                 </div>

@@ -9,10 +9,13 @@ class GuideCreate(BaseModel):
     hourly_rate: float = Field(default=0.0)
     bio: str = Field(default="")
     verified: bool = Field(default=False)
+    is_demo: bool = Field(default=False)
+    is_lgbtq: bool = Field(default=False)
     image_url: Optional[str] = None
     location: str = Field(default="")
-    is_demo: bool = Field(default=True)
-    is_lgbtq: bool = Field(default=False)
+    country: str = Field(default="")
+    state_or_ut: str = Field(default="")
+    city: str = Field(default="")
 
 class GuideResponse(GuideCreate):
     id: str
