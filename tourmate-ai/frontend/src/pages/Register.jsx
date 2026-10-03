@@ -68,11 +68,23 @@ export default function Register() {
 
         <form onSubmit={onSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-500/20 backdrop-blur-sm border border-red-500/50 text-red-100 px-4 py-3 rounded-xl text-sm flex items-center animate-fade-in-up">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              {error}
+            <div className="bg-red-500/20 backdrop-blur-sm border border-red-500/50 text-red-100 px-4 py-3 rounded-xl text-sm flex flex-col gap-2 animate-fade-in-up">
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 flex-shrink-0 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span>{error}</span>
+              </div>
+              {error.toLowerCase().includes("already exists") && (
+                <div className="pl-7">
+                  <Link
+                    to="/login"
+                    className="inline-block px-3 py-1 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-lg text-xs transition-colors"
+                  >
+                    👉 Click here to Log In
+                  </Link>
+                </div>
+              )}
             </div>
           )}
 

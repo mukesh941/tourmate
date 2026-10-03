@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Navigation } from "lucide-react";
 import api from "../api/axios";
 import { openGoogleMapsNavigation } from "../utils/navigation";
 
@@ -193,7 +192,10 @@ export default function LandmarkRecognition() {
                       onClick={() => openGoogleMapsNavigation(result)}
                       className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl text-xs flex items-center gap-2 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors cursor-pointer"
                     >
-                      <Navigation className="w-3.5 h-3.5" /> Get Directions
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                      </svg>
+                      Get Directions
                     </button>
                     {result.poi_id && (
                       <Link
