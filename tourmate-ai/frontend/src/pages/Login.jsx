@@ -21,19 +21,30 @@ export default function Login() {
       await login(email, password);
       navigate("/dashboard");
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      if (detail && detail.code === "email_unverified") {
+      const resData = err.response?.data;
+      const detail = resData?.detail;
+      const errorObj = resData?.error;
+
+      if ((detail && detail.code === "email_unverified") || (typeof detail === "string" && detail.includes("verify your email"))) {
         setError("Please verify your email before logging in. You can request a new link at the verification page.");
         setTimeout(() => navigate("/verify-email"), 3000);
       } else {
-        const errorMsg =
-          err.response?.data?.error ||
-          (Array.isArray(detail)
-            ? detail.map((d) => d.msg || JSON.stringify(d)).join(", ")
-            : detail) ||
-          (err.code === "ERR_NETWORK" || !err.response
-            ? "Cannot connect to server. The backend may be temporarily unavailable, please try again."
-            : "Login failed. Check your credentials.");
+        let errorMsg = "";
+        if (typeof errorObj === "string") {
+          errorMsg = errorObj;
+        } else if (errorObj?.message || errorObj?.detail) {
+          errorMsg = errorObj.detail || errorObj.message;
+        } else if (Array.isArray(detail)) {
+          errorMsg = detail.map((d) => d.msg || JSON.stringify(d)).join(", ");
+        } else if (typeof detail === "string") {
+          errorMsg = detail;
+        } else if (detail?.message || detail?.detail) {
+          errorMsg = detail.message || detail.detail;
+        } else if (err.code === "ERR_NETWORK" || !err.response) {
+          errorMsg = "Cannot connect to server. The server may be waking up (Render free tier takes ~30s), please try again.";
+        } else {
+          errorMsg = "Login failed. Please check your email and password.";
+        }
         setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
       }
     } finally {

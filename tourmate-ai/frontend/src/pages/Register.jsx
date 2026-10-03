@@ -17,17 +17,29 @@ export default function Register() {
     setSubmitting(true);
     try {
       await register(form.name, form.email, form.password);
-      navigate("/login", { state: { message: "Registration successful. Please check your email to verify your account." } });
+      navigate("/login", { state: { message: "Account created successfully! Please log in." } });
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      const errorMsg =
-        err.response?.data?.error ||
-        (Array.isArray(detail)
-          ? detail.map((d) => d.msg || JSON.stringify(d)).join(", ")
-          : detail) ||
-        (err.code === "ERR_NETWORK" || !err.response
-          ? "Cannot connect to server. The backend may be temporarily unavailable, please try again."
-          : "Registration failed.");
+      const resData = err.response?.data;
+      const detail = resData?.detail;
+      const errorObj = resData?.error;
+
+      let errorMsg = "";
+      if (typeof errorObj === "string") {
+        errorMsg = errorObj;
+      } else if (errorObj?.message || errorObj?.detail) {
+        errorMsg = errorObj.detail || errorObj.message;
+      } else if (Array.isArray(detail)) {
+        errorMsg = detail.map((d) => d.msg || JSON.stringify(d)).join(", ");
+      } else if (typeof detail === "string") {
+        errorMsg = detail;
+      } else if (detail?.message || detail?.detail) {
+        errorMsg = detail.message || detail.detail;
+      } else if (err.code === "ERR_NETWORK" || !err.response) {
+        errorMsg = "Cannot connect to server. The server may be starting up (Render free tier wakes in ~30s), please try again.";
+      } else {
+        errorMsg = "Registration failed. Please check your details and try again.";
+      }
+
       setError(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
     } finally {
       setSubmitting(false);

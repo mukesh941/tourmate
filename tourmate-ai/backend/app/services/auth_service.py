@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.db import AsyncSessionLocal
 from app.core.security import (
     create_access_token,
@@ -47,14 +48,16 @@ async def _execute_register(payload: RegisterRequest, db: AsyncSession) -> UserP
     if existing:
         raise AuthError("An account with this email already exists.")
 
+    auto_verify = not bool(settings.smtp_host and settings.smtp_user and settings.smtp_password)
     user = User(
         name=payload.name,
         email=payload.email,
         password_hash=hash_password(payload.password),
-        role="user",  # Public registration MUST ALWAYS assign 'user' role. Never trust client-supplied role or is_admin fields.
+        role="user",  # Public registration MUST ALWAYS assign 'user' role.
         preferred_language="en",
         is_active=True,
-        is_email_verified=False,
+        is_email_verified=auto_verify,
+        email_verified_at=datetime.now(timezone.utc) if auto_verify else None,
     )
     db.add(user)
     await db.commit()

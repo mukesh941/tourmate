@@ -39,11 +39,26 @@ import asyncio
 from app.core.db import async_engine, AsyncSessionLocal
 from app.core.database import close_client
 
+def _run_migrations_sync():
+    """Run Alembic migrations automatically on startup to keep schema in sync."""
+    try:
+        import os
+        from alembic.config import Config
+        from alembic import command
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ini_path = os.path.join(base_dir, "alembic.ini")
+        if os.path.exists(ini_path):
+            alembic_cfg = Config(ini_path)
+            command.upgrade(alembic_cfg, "head")
+            logging.info("Alembic database migrations applied successfully.")
+    except Exception as exc:
+        logging.warning("Auto-migration during startup encountered: %s", exc)
+
+
 async def _run_startup_tasks_safely():
     """
     Optional background startup tasks.
-    Alembic migrations are executed during Render preDeployCommand.
-    This background task only checks MongoDB indexes if explicitly configured.
+    This background task checks MongoDB indexes if explicitly configured.
     """
     if settings.mongo_uri and ("mongodb+srv" in settings.mongo_uri or settings.environment == "development"):
         try:
@@ -55,6 +70,12 @@ async def _run_startup_tasks_safely():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Apply database migrations on startup so schema is always ready
+    try:
+        await asyncio.to_thread(_run_migrations_sync)
+    except Exception as exc:
+        logging.warning("Startup migration thread error: %s", exc)
+
     # Startup: Non-blocking background verification
     bg_task = asyncio.create_task(_run_startup_tasks_safely())
     yield
