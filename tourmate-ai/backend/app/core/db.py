@@ -11,6 +11,11 @@ from sqlalchemy.ext.asyncio import (
 )
 from app.core.config import settings
 
+# Prepare connection arguments (disable statement cache for connection poolers like Neon, PgBouncer, Supabase)
+connect_args = {}
+if any(keyword in settings.database_url.lower() for keyword in ["neon.tech", "pooler", "pgbouncer", "supabase"]):
+    connect_args["statement_cache_size"] = 0
+
 # Create Async Engine with production-hardened connection pool settings
 async_engine: AsyncEngine = create_async_engine(
     settings.async_database_url,
@@ -21,6 +26,7 @@ async_engine: AsyncEngine = create_async_engine(
     pool_timeout=10.0,
     pool_recycle=300,
     pool_pre_ping=True,
+    connect_args=connect_args,
 )
 
 # Async Session Factory

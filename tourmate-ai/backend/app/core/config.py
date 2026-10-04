@@ -62,11 +62,12 @@ class Settings(BaseSettings):
         elif url.startswith("postgresql://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-        # Normalize query params for asyncpg (asyncpg does not accept sslmode query param)
+        # Normalize query params for asyncpg (asyncpg does not accept sslmode or channel_binding query params)
         try:
             from sqlalchemy.engine.url import make_url
             parsed = make_url(url)
             query = dict(parsed.query)
+            query.pop("channel_binding", None)
             sslmode = query.pop("sslmode", None)
             if sslmode:
                 if sslmode.lower() not in ("disable", "allow"):
