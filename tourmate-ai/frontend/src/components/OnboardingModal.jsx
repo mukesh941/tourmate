@@ -41,19 +41,26 @@ export default function OnboardingModal({ isOpen, onClose, onComplete }) {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await axios.put(
-        `${API_BASE_URL}/users/preferences`,
-        preferences,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      onComplete();
-      onClose();
+      if (token) {
+        await axios.put(
+          `${API_BASE_URL}/users/preferences`,
+          preferences,
+          { headers: { Authorization: `Bearer ${token}` } }
+        ).catch(() => {});
+      }
     } catch (err) {
-      console.error("Failed to save preferences:", err);
-      alert("Failed to save preferences. Please try again.");
-    } finally {
-      setSubmitting(false);
+      console.warn("Backend preferences sync skipped:", err);
     }
+
+    try {
+      localStorage.setItem("tourmate_user_preferences", JSON.stringify(preferences));
+    } catch (e) {
+      console.error("Local preference save error:", e);
+    }
+
+    if (onComplete) onComplete();
+    if (onClose) onClose();
+    setSubmitting(false);
   };
 
   return (

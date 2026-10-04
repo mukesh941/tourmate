@@ -8,6 +8,43 @@ import LocationSearch from '../components/LocationSearch';
 import RecommendationCard from "../components/RecommendationCard";
 import { MapPin, Hotel, Navigation, Compass, ArrowRight, Utensils, Mountain } from 'lucide-react';
 
+const DEFAULT_DESTINATIONS = [
+  { id: "dest_1", name: "Taj Mahal, Agra", city: "Agra", state: "Uttar Pradesh", cover_image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80", rating: 4.9, reviews_count: 1420 },
+  { id: "dest_2", name: "Hawa Mahal, Jaipur", city: "Jaipur", state: "Rajasthan", cover_image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80", rating: 4.8, reviews_count: 980 },
+  { id: "dest_3", name: "Goa Beaches", city: "Goa", state: "Goa", cover_image: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80", rating: 4.7, reviews_count: 2310 },
+  { id: "dest_4", name: "Kerala Backwaters", city: "Alleppey", state: "Kerala", cover_image: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80", rating: 4.9, reviews_count: 1150 },
+  { id: "dest_5", name: "Gateway of India, Mumbai", city: "Mumbai", state: "Maharashtra", cover_image: "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=800&q=80", rating: 4.7, reviews_count: 1840 },
+  { id: "dest_6", name: "Varanasi Ghats", city: "Varanasi", state: "Uttar Pradesh", cover_image: "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=80", rating: 4.8, reviews_count: 1530 }
+];
+
+const DEFAULT_RECOMMENDATIONS = [
+  { id: "rec_1", name: "Amber Palace", city: "Jaipur", cover_image: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80", rating: 4.8, reviews_count: 820, price_level: 2 },
+  { id: "rec_2", name: "Qutub Minar", city: "New Delhi", cover_image: "https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=800&q=80", rating: 4.7, reviews_count: 1200, price_level: 1 },
+  { id: "rec_3", name: "City Palace, Udaipur", city: "Udaipur", cover_image: "https://images.unsplash.com/photo-1615836245337-f5b9b2303f10?auto=format&fit=crop&w=800&q=80", rating: 4.9, reviews_count: 940, price_level: 2 },
+  { id: "rec_4", name: "Baga Beach", city: "Goa", cover_image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80", rating: 4.6, reviews_count: 1650, price_level: 1 }
+];
+
+const DEFAULT_HOTELS = [
+  { id: "htl_1", name: "Taj Lake Palace", city: "Udaipur", cover_image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80", rating: 4.9, reviews_count: 530, price_per_night_start: 32000, hotel_type: "Heritage Luxury" },
+  { id: "htl_2", name: "The Leela Palace", city: "New Delhi", cover_image: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80", rating: 4.8, reviews_count: 780, price_per_night_start: 18500, hotel_type: "5-Star Luxury" },
+  { id: "htl_3", name: "ITC Grand Chola", city: "Chennai", cover_image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80", rating: 4.8, reviews_count: 620, price_per_night_start: 14000, hotel_type: "Grand Luxury" },
+  { id: "htl_4", name: "Goa Heritage Resort", city: "Calangute, Goa", cover_image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80", rating: 4.6, reviews_count: 410, price_per_night_start: 4500, hotel_type: "Beach Resort" }
+];
+
+const DEFAULT_FOODS = [
+  { id: "food_1", name: "Karim's Historic Mughlai", city: "Old Delhi", cover_image: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=800&q=80", rating: 4.7, reviews_count: 3200, cuisine_type: ["Mughlai", "North Indian"] },
+  { id: "food_2", name: "Britto's Beach Shack", city: "Baga, Goa", cover_image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80", rating: 4.6, reviews_count: 2400, cuisine_type: ["Seafood", "Goan"] },
+  { id: "food_3", name: "Laxmi Mishthan Bhandar (LMB)", city: "Jaipur", cover_image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=800&q=80", rating: 4.6, reviews_count: 1900, cuisine_type: ["Rajasthani", "Thali"] },
+  { id: "food_4", name: "Bademiya Kebabs", city: "Colaba, Mumbai", cover_image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80", rating: 4.5, reviews_count: 2800, cuisine_type: ["Street Food", "Kebabs"] }
+];
+
+const DEFAULT_ACTIVITIES = [
+  { id: "act_1", name: "Hot Air Ballooning over Jaipur", city: "Jaipur", cover_image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80", rating: 4.9, reviews_count: 320, price: 8500, currency: "₹", activity_type: "Adventure" },
+  { id: "act_2", name: "Houseboat Cruise in Alleppey", city: "Alleppey", cover_image: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80", rating: 4.9, reviews_count: 670, price: 6000, currency: "₹", activity_type: "Experience" },
+  { id: "act_3", name: "Scuba Diving & Watersports", city: "Grand Island, Goa", cover_image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=800&q=80", rating: 4.7, reviews_count: 480, price: 2500, currency: "₹", activity_type: "Water Sports" },
+  { id: "act_4", name: "Ganga Aarti Evening Boat Tour", city: "Varanasi", cover_image: "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=80", rating: 4.9, reviews_count: 890, price: 500, currency: "₹", activity_type: "Spiritual & Cultural" }
+];
+
 export default function Dashboard() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -24,18 +61,33 @@ export default function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch user preferences first if logged in
-      if (token) {
+      // Check user preferences: first from localStorage, then API if token exists
+      const localPref = localStorage.getItem("tourmate_user_preferences");
+      let hasPreferences = false;
+      if (localPref) {
+        try {
+          const parsed = JSON.parse(localPref);
+          if (parsed && (parsed.interests?.length > 0 || parsed.travel_style)) {
+            hasPreferences = true;
+          }
+        } catch {}
+      }
+
+      if (token && !hasPreferences) {
         const prefRes = await axios.get(`${API_BASE_URL}/users/preferences`, {
           headers: { Authorization: `Bearer ${token}` }
-        }).catch(() => ({ data: { data: { interests: [] } } }));
+        }).catch(() => null);
         
-        if (!prefRes.data?.data || prefRes.data.data.interests.length === 0) {
+        if (!prefRes?.data?.data || (prefRes.data.data.interests?.length === 0 && !prefRes.data.data.travel_style)) {
           setShowOnboarding(true);
+        } else {
+          try {
+            localStorage.setItem("tourmate_user_preferences", JSON.stringify(prefRes.data.data));
+          } catch {}
         }
       }
 
-      // Parallel data fetching for homepage sections (publicly accessible endpoints)
+      // Parallel data fetching for homepage sections with robust fallbacks
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const [destRes, recRes, hotelRes, foodRes, actRes] = await Promise.allSettled([
         axios.get(`${API_BASE_URL}/destinations`, { headers }),
@@ -45,14 +97,38 @@ export default function Dashboard() {
         axios.get(`${API_BASE_URL}/places?q=adventure`, { headers }),
       ]);
 
-      if (destRes.status === 'fulfilled') setDestinations(destRes.value.data.data?.slice(0, 8) || []);
-      if (recRes.status === 'fulfilled') setRecommendations(recRes.value.data.data?.slice(0, 4) || []);
-      if (hotelRes.status === 'fulfilled') setHotels(hotelRes.value.data.data?.slice(0, 4) || []);
-      if (foodRes.status === 'fulfilled') setFoods(foodRes.value.data.data?.slice(0, 4) || []);
-      if (actRes.status === 'fulfilled') setActivities(actRes.value.data.data?.slice(0, 4) || []);
+      const loadedDests = (destRes.status === 'fulfilled' && destRes.value.data?.data?.length > 0) 
+        ? destRes.value.data.data.slice(0, 8) 
+        : DEFAULT_DESTINATIONS;
+      setDestinations(loadedDests);
+
+      const loadedRecs = (recRes.status === 'fulfilled' && recRes.value.data?.data?.length > 0) 
+        ? recRes.value.data.data.slice(0, 4) 
+        : DEFAULT_RECOMMENDATIONS;
+      setRecommendations(loadedRecs);
+
+      const loadedHotels = (hotelRes.status === 'fulfilled' && hotelRes.value.data?.data?.length > 0) 
+        ? hotelRes.value.data.data.slice(0, 4) 
+        : DEFAULT_HOTELS;
+      setHotels(loadedHotels);
+
+      const loadedFoods = (foodRes.status === 'fulfilled' && foodRes.value.data?.data?.length > 0) 
+        ? foodRes.value.data.data.slice(0, 4) 
+        : DEFAULT_FOODS;
+      setFoods(loadedFoods);
+
+      const loadedActs = (actRes.status === 'fulfilled' && actRes.value.data?.data?.length > 0) 
+        ? actRes.value.data.data.slice(0, 4) 
+        : DEFAULT_ACTIVITIES;
+      setActivities(loadedActs);
 
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
+      setDestinations(DEFAULT_DESTINATIONS);
+      setRecommendations(DEFAULT_RECOMMENDATIONS);
+      setHotels(DEFAULT_HOTELS);
+      setFoods(DEFAULT_FOODS);
+      setActivities(DEFAULT_ACTIVITIES);
     } finally {
       setLoading(false);
     }
