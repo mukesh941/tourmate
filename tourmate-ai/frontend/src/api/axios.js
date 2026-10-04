@@ -4,11 +4,7 @@
  */
 import axios from "axios";
 
-const rawBase =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD
-    ? "https://tourmate-backend-cfcv.onrender.com/api"
-    : "http://localhost:8000/api");
+const rawBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
 
 export const API_BASE_URL = rawBase.trim().replace(/\/+$/, "").replace(/(?<!\/api)$/, "/api");
 

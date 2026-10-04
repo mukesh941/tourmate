@@ -24,7 +24,9 @@ export default function Register() {
       const errorObj = resData?.error;
 
       let errorMsg = "";
-      if (typeof errorObj === "string") {
+      if (err.message) {
+        errorMsg = err.message;
+      } else if (typeof errorObj === "string") {
         errorMsg = errorObj;
       } else if (errorObj?.message || errorObj?.detail) {
         errorMsg = errorObj.detail || errorObj.message;
@@ -34,8 +36,6 @@ export default function Register() {
         errorMsg = detail;
       } else if (detail?.message || detail?.detail) {
         errorMsg = detail.message || detail.detail;
-      } else if (err.code === "ERR_NETWORK" || !err.response) {
-        errorMsg = "Cannot connect to server. The server may be starting up (Render free tier wakes in ~30s), please try again.";
       } else {
         errorMsg = "Registration failed. Please check your details and try again.";
       }

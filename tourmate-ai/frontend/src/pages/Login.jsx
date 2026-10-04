@@ -30,7 +30,9 @@ export default function Login() {
         setTimeout(() => navigate("/verify-email"), 3000);
       } else {
         let errorMsg = "";
-        if (typeof errorObj === "string") {
+        if (err.message) {
+          errorMsg = err.message;
+        } else if (typeof errorObj === "string") {
           errorMsg = errorObj;
         } else if (errorObj?.message || errorObj?.detail) {
           errorMsg = errorObj.detail || errorObj.message;
@@ -40,8 +42,6 @@ export default function Login() {
           errorMsg = detail;
         } else if (detail?.message || detail?.detail) {
           errorMsg = detail.message || detail.detail;
-        } else if (err.code === "ERR_NETWORK" || !err.response) {
-          errorMsg = "Cannot connect to server. The server may be waking up (Render free tier takes ~30s), please try again.";
         } else {
           errorMsg = "Login failed. Please check your email and password.";
         }
