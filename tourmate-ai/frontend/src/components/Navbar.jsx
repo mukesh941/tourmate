@@ -78,7 +78,12 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
               {openDropdown === 'explore' && (
                 <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 py-2 origin-top-left z-50">
                   {menuItems.explore.map((item) => (
-                    <Link key={item.to} to={item.to} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
+                    <Link 
+                      key={item.to} 
+                      to={item.to} 
+                      onClick={() => setOpenDropdown(null)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+                    >
                       {item.icon} {item.label}
                     </Link>
                   ))}
@@ -232,7 +237,12 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
             <div className="space-y-1">
               <div className="font-bold text-xs text-gray-400 uppercase mt-4 mb-2">Explore</div>
               {menuItems.explore.map(item => (
-                <Link key={item.to} to={item.to} className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800">
+                <Link 
+                  key={item.to} 
+                  to={item.to} 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800"
+                >
                   {item.icon} {item.label}
                 </Link>
               ))}
