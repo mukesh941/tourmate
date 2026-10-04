@@ -38,7 +38,11 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
     const langs = ['en', 'hi', 'kn', 'ta', 'ml'];
     const currentIndex = langs.indexOf(i18n.language);
     const nextIndex = (currentIndex + 1) % langs.length;
-    i18n.changeLanguage(langs[nextIndex]);
+    const nextLang = langs[nextIndex];
+    i18n.changeLanguage(nextLang);
+    try {
+      localStorage.setItem("tourmate_language", nextLang);
+    } catch {}
   };
 
   const toggleDropdown = (name) => {
@@ -178,14 +182,14 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
                     </div>
                     {user.role === "admin" && (
                       <Link to="/admin" className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-bold">
-                        <ShieldCheck className="w-4 h-4" /> Admin Panel
+                        <ShieldCheck className="w-4 h-4" /> {t('Admin')}
                       </Link>
                     )}
                     <Link to="/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
                       <User className="w-4 h-4" /> {t('Dashboard')}
                     </Link>
                     <Link to="/change-password" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
-                      <Lock className="w-4 h-4" /> Change Password
+                      <Lock className="w-4 h-4" /> {t('Change Password')}
                     </Link>
                     <button onClick={handleLogout} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors border-t border-gray-100 dark:border-slate-700 mt-2 pt-2">
                       <LogOut className="w-4 h-4" /> {t('Logout')}
@@ -215,6 +219,9 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
                       key={lang}
                       onClick={() => {
                         i18n.changeLanguage(lang);
+                        try {
+                          localStorage.setItem("tourmate_language", lang);
+                        } catch {}
                         setOpenDropdown(null);
                       }}
                       className={`w-full text-left px-4 py-2 text-sm transition-colors ${i18n.language === lang ? 'bg-brand-50 dark:bg-slate-700 text-brand-600 dark:text-brand-400 font-bold' : 'text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
@@ -235,7 +242,7 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-b-2xl overflow-hidden shadow-lg pb-4 px-4 pt-2">
             <div className="space-y-1">
-              <div className="font-bold text-xs text-gray-400 uppercase mt-4 mb-2">Explore</div>
+              <div className="font-bold text-xs text-gray-400 uppercase mt-4 mb-2">{t('Explore')}</div>
               {menuItems.explore.map(item => (
                 <Link 
                   key={item.to} 
@@ -247,10 +254,10 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
                 </Link>
               ))}
               <Link to="/hotels" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800">
-                <Building className="w-4 h-4" /> Stays
+                <Building className="w-4 h-4" /> {t('Stays')}
               </Link>
               
-              <div className="font-bold text-xs text-gray-400 uppercase mt-4 mb-2">Plan Trip</div>
+              <div className="font-bold text-xs text-gray-400 uppercase mt-4 mb-2">{t('Plan Trip')}</div>
               {menuItems.plan.map(item => (
                 <Link key={item.to} to={item.to} className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 dark:text-slate-200 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800">
                   {item.icon} {item.label}
@@ -259,8 +266,8 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
               
               {!user && (
                 <div className="mt-6 flex gap-2">
-                  <Link to="/login" className="flex-1 text-center bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-xl">Login</Link>
-                  <Link to="/register" className="flex-1 text-center bg-brand-600 text-white font-bold px-4 py-2.5 rounded-xl">Sign Up</Link>
+                  <Link to="/login" className="flex-1 text-center bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-xl">{t('Log in')}</Link>
+                  <Link to="/register" className="flex-1 text-center bg-brand-600 text-white font-bold px-4 py-2.5 rounded-xl">{t('Sign up')}</Link>
                 </div>
               )}
             </div>
@@ -271,36 +278,36 @@ export default function Navbar({ toggleDarkMode, darkMode }) {
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-800 flex justify-around items-center p-2 z-50 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         <Link to="/" className={`flex flex-col items-center justify-center p-2 text-[10px] font-medium transition-colors ${location.pathname === '/' || location.pathname === '/dashboard' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'}`}>
           <Compass className={`w-5 h-5 mb-1 ${location.pathname === '/' || location.pathname === '/dashboard' ? 'fill-brand-100 dark:fill-brand-900/50' : ''}`} />
-          Home
+          {t('Home')}
         </Link>
         <Link to="/places" className={`flex flex-col items-center justify-center p-2 text-[10px] font-medium transition-colors ${location.pathname === '/places' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'}`}>
           <MapPin className={`w-5 h-5 mb-1 ${location.pathname === '/places' ? 'fill-brand-100 dark:fill-brand-900/50' : ''}`} />
-          Explore
+          {t('Explore')}
         </Link>
         <Link to="/map/clusters" className={`flex flex-col items-center justify-center p-2 text-[10px] font-medium transition-colors ${location.pathname === '/map/clusters' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'}`}>
           <Map className={`w-5 h-5 mb-1 ${location.pathname === '/map/clusters' ? 'fill-brand-100 dark:fill-brand-900/50' : ''}`} />
-          Map
+          {t('Map')}
         </Link>
         <Link to="/itinerary-builder" className={`flex flex-col items-center justify-center p-2 text-[10px] font-medium transition-colors ${location.pathname === '/itinerary-builder' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'}`}>
           <Briefcase className={`w-5 h-5 mb-1 ${location.pathname === '/itinerary-builder' ? 'fill-brand-100 dark:fill-brand-900/50' : ''}`} />
-          Trips
+          {t('Trips')}
         </Link>
         {user ? (
           <button onClick={() => toggleDropdown('mobileProfile')} className={`flex flex-col items-center justify-center p-2 text-[10px] font-medium transition-colors text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white relative`}>
             <User className="w-5 h-5 mb-1" />
-            Profile
+            {t('Profile')}
             {openDropdown === 'mobileProfile' && (
               <div className="absolute bottom-full right-0 mb-4 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 p-2 overflow-hidden origin-bottom-right">
-                <Link to="/dashboard" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg">Dashboard</Link>
-                <Link to="/change-password" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg">Settings</Link>
-                <button onClick={handleLogout} className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg text-red-500">Logout</button>
+                <Link to="/dashboard" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg">{t('Dashboard')}</Link>
+                <Link to="/change-password" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg">{t('Settings')}</Link>
+                <button onClick={handleLogout} className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg text-red-500">{t('Logout')}</button>
               </div>
             )}
           </button>
         ) : (
           <Link to="/login" className="flex flex-col items-center justify-center p-2 text-[10px] font-medium transition-colors text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white">
             <User className="w-5 h-5 mb-1" />
-            Login
+            {t('Log in')}
           </Link>
         )}
       </div>

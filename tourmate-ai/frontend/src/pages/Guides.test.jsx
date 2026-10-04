@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Guides from './Guides';
+import i18n from '../i18n';
 
 // Mock AuthContext
 vi.mock('../context/AuthContext', () => ({
@@ -39,9 +40,10 @@ const renderGuides = () => {
 };
 
 describe('Guides Page', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear();
     vi.clearAllMocks();
+    await i18n.changeLanguage('en');
   });
 
   it('renders without crashing even when backend API is offline', async () => {
@@ -115,5 +117,32 @@ describe('Guides Page', () => {
     expect(screen.getByText(/My Booked Guides/i)).toBeInTheDocument();
     expect(screen.getByText(/Amanjot Singh Ahluwalia/i)).toBeInTheDocument();
     expect(screen.getByText(/Booking ID: TM-PRE-01/i)).toBeInTheDocument();
+  });
+
+  it('translates content correctly when language is switched to Hindi, Kannada, Tamil, or Malayalam', async () => {
+    const { unmount } = renderGuides();
+    
+    // Switch to Hindi
+    await i18n.changeLanguage('hi');
+    expect(screen.getByText(/स्थानीय गाइड बुक करें/i)).toBeInTheDocument();
+    expect(screen.getByText(/मेरी बुकिंग/i)).toBeInTheDocument();
+    expect(localStorage.getItem('tourmate_language')).toBe('hi');
+
+    // Switch to Kannada
+    await i18n.changeLanguage('kn');
+    expect(screen.getByText(/ಸ್ಥಳೀಯ ಮಾರ್ಗದರ್ಶಿಯನ್ನು ನೇಮಿಸಿ/i)).toBeInTheDocument();
+    expect(screen.getByText(/ನನ್ನ ಬುಕಿಂಗ್‌ಗಳು/i)).toBeInTheDocument();
+
+    // Switch to Tamil
+    await i18n.changeLanguage('ta');
+    expect(screen.getByText(/உள்ளூர் வழிகாட்டியை அமர்த்தவும்/i)).toBeInTheDocument();
+    expect(screen.getByText(/எனது முன்பதிவுகள்/i)).toBeInTheDocument();
+
+    // Switch to Malayalam
+    await i18n.changeLanguage('ml');
+    expect(screen.getByText(/ഒരു പ്രാദേശിക ഗൈഡിനെ തിരഞ്ഞെടുക്കൂ/i)).toBeInTheDocument();
+    expect(screen.getByText(/എന്റെ ബുക്കിംഗുകൾ/i)).toBeInTheDocument();
+
+    unmount();
   });
 });

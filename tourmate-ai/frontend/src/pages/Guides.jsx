@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../api/axios';
 import { DEFAULT_GUIDES } from '../data/guidesData';
 import { 
@@ -13,6 +14,7 @@ import {
 
 export default function Guides() {
   const { token, user } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState('explore'); // 'explore' | 'bookings'
@@ -249,13 +251,13 @@ export default function Guides() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300 border border-brand-200 dark:border-brand-800 mb-3">
               <ShieldCheck className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-              Verified Local Experts Across India
+              {t('Verified Local Experts Across India')}
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-extrabold tracking-tight text-gray-900 dark:text-white">
-              Hire a Local Guide
+              {t('Hire a Local Guide')}
             </h1>
             <p className="mt-2 text-base sm:text-lg text-gray-600 dark:text-slate-400 max-w-2xl">
-              Immerse yourself in authentic stories, historic monuments, hidden culinary gems, and cultural walks led by licensed local guides.
+              {t('Immerse yourself in authentic stories, historic monuments, hidden culinary gems, and cultural walks led by licensed local guides.')}
             </p>
           </div>
 
@@ -270,7 +272,7 @@ export default function Guides() {
               }`}
             >
               <Compass className="w-4 h-4" />
-              Explore Guides
+              {t('Explore Guides')}
             </button>
             <button
               onClick={() => setActiveTab('bookings')}
@@ -281,7 +283,7 @@ export default function Guides() {
               }`}
             >
               <Briefcase className="w-4 h-4" />
-              My Bookings
+              {t('My Bookings')}
               {myBookings.length > 0 && (
                 <span className="ml-1 px-2 py-0.5 text-xs font-extrabold bg-brand-600 text-white rounded-full">
                   {myBookings.length}
@@ -304,7 +306,7 @@ export default function Guides() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by city, monument, guide name, or specialty..."
+                    placeholder={t('Search by city, monument, guide name, or specialty...')}
                     className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-900/60 text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
                   />
                   {searchQuery && (
@@ -324,7 +326,7 @@ export default function Guides() {
                     onChange={(e) => setSelectedState(e.target.value)}
                     className="w-full py-2.5 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-900/60 text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
                   >
-                    <option value="All">All Regions & States</option>
+                    <option value="All">{t('All Regions & States')}</option>
                     {availableStates.filter(s => s !== "All").map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
@@ -338,7 +340,7 @@ export default function Guides() {
                     onChange={(e) => setSelectedLanguage(e.target.value)}
                     className="w-full py-2.5 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-900/60 text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
                   >
-                    <option value="All">All Languages</option>
+                    <option value="All">{t('All Languages')}</option>
                     {availableLanguages.filter(l => l !== "All").map(lang => (
                       <option key={lang} value={lang}>{lang}</option>
                     ))}
@@ -352,10 +354,10 @@ export default function Guides() {
                     onChange={(e) => setSortBy(e.target.value)}
                     className="w-full py-2.5 px-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-900/60 text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
                   >
-                    <option value="rating">Top Rated (⭐)</option>
-                    <option value="reviews">Most Reviewed</option>
-                    <option value="price_asc">Price: Low to High</option>
-                    <option value="price_desc">Price: High to Low</option>
+                    <option value="rating">{t('Top Rated (⭐)')}</option>
+                    <option value="reviews">{t('Most Reviewed')}</option>
+                    <option value="price_asc">{t('Price: Low to High')}</option>
+                    <option value="price_desc">{t('Price: High to Low')}</option>
                   </select>
                 </div>
               </div>
@@ -363,7 +365,7 @@ export default function Guides() {
               {/* Quick State Pills */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs pt-1 no-scrollbar">
                 <span className="text-gray-500 dark:text-slate-400 font-bold whitespace-nowrap flex items-center gap-1">
-                  <Filter className="w-3.5 h-3.5" /> Popular Destinations:
+                  <Filter className="w-3.5 h-3.5" /> {t('Popular Destinations:')}
                 </span>
                 {['All', 'Uttar Pradesh', 'Rajasthan', 'Delhi', 'Kerala', 'Goa', 'Karnataka', 'Himachal Pradesh', 'Maharashtra'].map(st => (
                   <button
@@ -375,7 +377,7 @@ export default function Guides() {
                         : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:border-brand-300'
                     }`}
                   >
-                    {st === 'All' ? 'All India' : st}
+                    {st === 'All' ? t('All India') : st}
                   </button>
                 ))}
               </div>
@@ -384,7 +386,7 @@ export default function Guides() {
             {/* Results count & status */}
             <div className="flex items-center justify-between mb-6 px-1">
               <p className="text-sm font-bold text-gray-600 dark:text-slate-400">
-                Showing <span className="text-gray-900 dark:text-white font-extrabold">{filteredGuides.length}</span> verified guides
+                {t('Showing')} <span className="text-gray-900 dark:text-white font-extrabold">{filteredGuides.length}</span> {t('verified guides')}
                 {selectedState !== "All" && ` in ${selectedState}`}
               </p>
               <div className="flex items-center gap-2">
@@ -393,7 +395,7 @@ export default function Guides() {
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
                 <span className="text-xs font-semibold text-gray-500 dark:text-slate-400">
-                  Instant Booking Available
+                  {t('Instant Booking Available')}
                 </span>
               </div>
             </div>
@@ -408,7 +410,7 @@ export default function Guides() {
             ) : filteredGuides.length === 0 ? (
               <div className="text-center py-16 px-4 bg-white/50 dark:bg-slate-800/50 rounded-3xl border border-gray-200 dark:border-slate-700">
                 <Compass className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">No Local Guides Found</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{t('No Local Guides Found')}</h3>
                 <p className="text-sm text-gray-500 dark:text-slate-400 max-w-md mx-auto mb-4">
                   We couldn't find any guides matching your current filters. Try resetting the filters or searching for another city.
                 </p>
@@ -416,7 +418,7 @@ export default function Guides() {
                   onClick={() => { setSearchQuery(""); setSelectedState("All"); setSelectedLanguage("All"); }}
                   className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-bold transition shadow-sm"
                 >
-                  Reset All Filters
+                  {t('Reset All Filters')}
                 </button>
               </div>
             ) : (
@@ -444,7 +446,7 @@ export default function Guides() {
                       <div className="absolute top-3 left-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
                         <ShieldCheck className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
                         <span className="text-[11px] font-bold text-gray-800 dark:text-slate-200">
-                          ASI Verified
+                          {t('ASI Verified')}
                         </span>
                       </div>
 
@@ -503,7 +505,7 @@ export default function Guides() {
 
                         {/* Languages Spoken */}
                         <div className="flex items-center gap-1.5 flex-wrap pt-1 text-xs text-gray-500 dark:text-slate-400">
-                          <span className="font-bold text-[11px] uppercase tracking-wider text-gray-400">Languages:</span>
+                          <span className="font-bold text-[11px] uppercase tracking-wider text-gray-400">{t('Languages:')}</span>
                           {(guide.languages || ["English", "Hindi"]).map(lang => (
                             <span
                               key={lang}
@@ -522,7 +524,7 @@ export default function Guides() {
                           className="flex-1 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-bold py-2.5 px-4 rounded-xl text-sm transition shadow-sm flex items-center justify-center gap-1.5"
                         >
                           <Calendar className="w-4 h-4" />
-                          Book Guided Tour
+                          {t('Book Guided Tour')}
                         </button>
                         {guide.contact_phone && (
                           <a
@@ -550,32 +552,32 @@ export default function Guides() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-display font-bold text-gray-900 dark:text-white">
-                  My Booked Guides
+                  {t('My Booked Guides')}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-slate-400">
-                  Manage your upcoming excursions and connect with your scheduled local experts.
+                  {t('Manage your upcoming excursions and connect with your scheduled local experts.')}
                 </p>
               </div>
               <button
                 onClick={() => setActiveTab('explore')}
                 className="text-sm font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1"
               >
-                + Book Another Guide
+                {t('Book Another Guide')}
               </button>
             </div>
 
             {myBookings.length === 0 ? (
               <div className="text-center py-20 bg-white/70 dark:bg-slate-800/70 rounded-3xl border border-gray-200 dark:border-slate-700">
                 <Briefcase className="w-16 h-16 text-gray-300 dark:text-slate-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Bookings Yet</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('No Bookings Yet')}</h3>
                 <p className="text-gray-500 dark:text-slate-400 max-w-sm mx-auto mb-6 text-sm">
-                  You haven't booked any local guides yet. Explore verified guides across India and schedule your dream heritage tour.
+                  {t("You haven't booked any local guides yet. Explore verified guides across India and schedule your dream heritage tour.")}
                 </p>
                 <button
                   onClick={() => setActiveTab('explore')}
                   className="bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-6 rounded-xl text-sm transition shadow-md"
                 >
-                  Explore Local Guides
+                  {t('Explore Local Guides')}
                 </button>
               </div>
             ) : (
@@ -616,29 +618,29 @@ export default function Guides() {
 
                     <div className="grid grid-cols-2 gap-3 text-xs bg-gray-50 dark:bg-slate-900/60 p-3 rounded-xl">
                       <div>
-                        <span className="text-gray-400 block font-semibold">Scheduled Date</span>
+                        <span className="text-gray-400 block font-semibold">{t('Scheduled Date')}</span>
                         <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1 mt-0.5">
                           <Calendar className="w-3.5 h-3.5 text-brand-500" />
                           {b.date}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-400 block font-semibold">Duration</span>
+                        <span className="text-gray-400 block font-semibold">{t('Duration')}</span>
                         <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1 mt-0.5">
                           <Clock className="w-3.5 h-3.5 text-amber-500" />
-                          {b.hours} hours
+                          {b.hours} {t('Hours')}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-400 block font-semibold">Total Paid / Due</span>
+                        <span className="text-gray-400 block font-semibold">{t('Total Paid / Due')}</span>
                         <span className="font-bold text-brand-600 dark:text-brand-400 text-sm mt-0.5">
                           ₹{b.total_price}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-400 block font-semibold">Contact Status</span>
+                        <span className="text-gray-400 block font-semibold">{t('Contact Status')}</span>
                         <span className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                          Guide Ready
+                          {t('Guide Ready')}
                         </span>
                       </div>
                     </div>
@@ -656,7 +658,7 @@ export default function Guides() {
                           className="flex-1 py-2 px-3 rounded-xl border border-gray-200 dark:border-slate-700 text-xs font-bold text-center text-gray-800 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center justify-center gap-1.5 transition"
                         >
                           <Phone className="w-3.5 h-3.5 text-brand-500" />
-                          Call Guide
+                          {t('Call Guide')}
                         </a>
                       )}
                       {b.guide?.contact_phone && (
@@ -667,7 +669,7 @@ export default function Guides() {
                           className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-center text-white flex items-center justify-center gap-1.5 transition shadow-sm"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
-                          WhatsApp
+                          {t('WhatsApp')}
                         </a>
                       )}
                     </div>
@@ -702,32 +704,32 @@ export default function Guides() {
 
                 <div>
                   <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 block mb-1">
-                    Booking Confirmed! Reference: {confirmedBooking.id}
+                    {t('Booking Confirmed!')} Reference: {confirmedBooking.id}
                   </span>
                   <h3 className="text-2xl font-display font-extrabold text-gray-900 dark:text-white">
-                    Your Tour with {selectedGuide.name} is Confirmed
+                    {t('Your Tour with')} {selectedGuide.name} {t('is Confirmed')}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-slate-300 mt-2">
-                    We've reserved {confirmedBooking.hours} hours on {confirmedBooking.date}. Your guide has been notified and will coordinate with you.
+                    We've reserved {confirmedBooking.hours} {t('Hours')} on {confirmedBooking.date}. Your guide has been notified and will coordinate with you.
                   </p>
                 </div>
 
                 {/* Summary Card */}
                 <div className="bg-gray-50 dark:bg-slate-900/60 rounded-2xl p-4 text-left space-y-2 text-xs border border-gray-100 dark:border-slate-700">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Local Guide:</span>
+                    <span className="text-gray-500">{t('Local Guide:')}</span>
                     <span className="font-bold text-gray-900 dark:text-white">{selectedGuide.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Destination:</span>
+                    <span className="text-gray-500">{t('Destination:')}</span>
                     <span className="font-bold text-gray-900 dark:text-white">{selectedGuide.city || selectedGuide.location}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Date & Hours:</span>
-                    <span className="font-bold text-gray-900 dark:text-white">{confirmedBooking.date} ({confirmedBooking.hours} hrs)</span>
+                    <span className="text-gray-500">{t('Date & Hours:')}</span>
+                    <span className="font-bold text-gray-900 dark:text-white">{confirmedBooking.date} ({confirmedBooking.hours} {t('Hours')})</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700">
-                    <span className="text-gray-700 dark:text-slate-300 font-bold">Total Fare:</span>
+                    <span className="text-gray-700 dark:text-slate-300 font-bold">{t('Total Fare:')}</span>
                     <span className="font-extrabold text-brand-600 dark:text-brand-400 text-sm">₹{confirmedBooking.total_price}</span>
                   </div>
                 </div>
@@ -741,7 +743,7 @@ export default function Guides() {
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-sm"
                     >
                       <MessageSquare className="w-4 h-4" />
-                      Chat on WhatsApp Now
+                      {t('Chat on WhatsApp Now')}
                     </a>
                     <button
                       onClick={() => {
@@ -750,7 +752,7 @@ export default function Guides() {
                       }}
                       className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-3 px-4 rounded-xl text-xs transition"
                     >
-                      View in My Bookings
+                      {t('View in My Bookings')}
                     </button>
                   </div>
                 )}
@@ -772,7 +774,7 @@ export default function Guides() {
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
                   <div className="absolute bottom-3 left-5 right-5 text-white">
                     <span className="text-[10px] font-bold uppercase tracking-wider bg-brand-600 px-2 py-0.5 rounded text-white inline-block mb-1">
-                      Direct Expert Booking
+                      {t('Direct Expert Booking')}
                     </span>
                     <h3 className="text-2xl font-bold font-display leading-tight">{selectedGuide.name}</h3>
                     <p className="text-xs text-slate-300 flex items-center gap-1">
@@ -788,7 +790,7 @@ export default function Guides() {
                   <div>
                     <label className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5 text-brand-500" />
-                      Tour Date
+                      {t('Tour Date')}
                     </label>
                     <input
                       type="date"
@@ -805,10 +807,10 @@ export default function Guides() {
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-brand-500" />
-                        Duration
+                        {t('Duration')}
                       </label>
                       <span className="text-xs font-extrabold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 px-2 py-0.5 rounded-md">
-                        {bookingHours} Hours
+                        {bookingHours} {t('Hours')}
                       </span>
                     </div>
                     <input
@@ -821,9 +823,9 @@ export default function Guides() {
                       className="w-full accent-brand-600 cursor-pointer"
                     />
                     <div className="flex justify-between text-[10px] text-gray-400 mt-1 font-semibold">
-                      <span>1 hr (Quick Highlight)</span>
-                      <span>4 hrs (Half Day)</span>
-                      <span>8 hrs (Full Day)</span>
+                      <span>1 hr</span>
+                      <span>4 hrs</span>
+                      <span>8 hrs</span>
                     </div>
                   </div>
 
@@ -831,7 +833,7 @@ export default function Guides() {
                   <div>
                     <label className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
                       <MessageSquare className="w-3.5 h-3.5 text-brand-500" />
-                      Meeting Point & Tour Preferences (Optional)
+                      {t('Meeting Point & Tour Preferences (Optional)')}
                     </label>
                     <textarea
                       rows={2}
@@ -845,15 +847,15 @@ export default function Guides() {
                   {/* Price Calculation Box */}
                   <div className="bg-gray-50 dark:bg-slate-900/80 rounded-2xl p-4 border border-gray-200/80 dark:border-slate-700 space-y-2">
                     <div className="flex justify-between text-xs text-gray-600 dark:text-slate-400">
-                      <span>Rate: ₹{selectedGuide.hourly_rate || 500} / hour × {bookingHours} hrs</span>
+                      <span>{t('Rate:')} ₹{selectedGuide.hourly_rate || 500} / hour × {bookingHours} {t('Hours')}</span>
                       <span>₹{(selectedGuide.hourly_rate || 500) * bookingHours}</span>
                     </div>
                     <div className="flex justify-between text-xs text-gray-600 dark:text-slate-400">
-                      <span>TourMate Safety & Guarantee Fee</span>
-                      <span className="text-emerald-600 font-bold">FREE</span>
+                      <span>{t('TourMate Safety & Guarantee Fee')}</span>
+                      <span className="text-emerald-600 font-bold">{t('FREE')}</span>
                     </div>
                     <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 text-sm font-bold text-gray-900 dark:text-white">
-                      <span>Estimated Total</span>
+                      <span>{t('Estimated Total')}</span>
                       <span className="text-lg font-extrabold text-brand-600 dark:text-brand-400">
                         ₹{(selectedGuide.hourly_rate || 500) * bookingHours}
                       </span>
@@ -871,12 +873,12 @@ export default function Guides() {
                     ) : (
                       <>
                         <Check className="w-4 h-4" />
-                        Confirm Booking (Pay Guide on Arrival)
+                        {t('Confirm Booking (Pay Guide on Arrival)')}
                       </>
                     )}
                   </button>
                   <p className="text-[11px] text-center text-gray-400">
-                    No advance payment required. Free cancellation up to 4 hours before tour.
+                    {t('No advance payment required. Free cancellation up to 4 hours before tour.')}
                   </p>
                 </form>
               </div>
