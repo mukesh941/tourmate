@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "dev": "cd tourmate-ai/frontend && npm run dev",
     "build": "cd tourmate-ai/frontend && npm install && npm run build",
     "test": "cd tourmate-ai/frontend && npm test"
   }
