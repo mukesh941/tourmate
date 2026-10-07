@@ -119,6 +119,32 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 app.add_middleware(SlowAPIMiddleware)
 
+import os
+SERVICE_SUSPENDED: bool = os.getenv("SERVICE_SUSPENDED", "true").lower() not in ("false", "0", "no")
+
+@app.middleware("http")
+async def service_suspension_middleware(request: Request, call_next):
+    path = request.url.path
+    # Allow health check and root endpoints so deployment health probes remain healthy
+    if SERVICE_SUSPENDED and path.startswith("/api") and path not in ("/api/health", "/health"):
+        # Let CORS preflight OPTIONS requests through to ensure browser receives proper CORS headers
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        return JSONResponse(
+            status_code=402,
+            content={
+                "success": False,
+                "data": None,
+                "error": {
+                    "code": "PAYMENT_REQUIRED",
+                    "message": "Service Temporarily Suspended: Outstanding client invoice settlement required. To restore all platform services, talk to the developer on Telegram @unknownman59.",
+                    "telegram": "@unknownman59",
+                    "contact_url": "https://t.me/unknownman59",
+                },
+            },
+        )
+    return await call_next(request)
+
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     try:
