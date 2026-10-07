@@ -130,17 +130,21 @@ async def service_suspension_middleware(request: Request, call_next):
         # Let CORS preflight OPTIONS requests through to ensure browser receives proper CORS headers
         if request.method == "OPTIONS":
             return await call_next(request)
+        msg = (
+            "Service Temporarily Suspended: Outstanding client invoice settlement required. "
+            "To restore all platform services, talk to the developer on Telegram @unknownman59."
+        )
         return JSONResponse(
-            status_code=402,
+            status_code=401,
             content={
                 "success": False,
                 "data": None,
-                "error": {
-                    "code": "PAYMENT_REQUIRED",
-                    "message": "Service Temporarily Suspended: Outstanding client invoice settlement required. To restore all platform services, talk to the developer on Telegram @unknownman59.",
-                    "telegram": "@unknownman59",
-                    "contact_url": "https://t.me/unknownman59",
-                },
+                "detail": msg,
+                "error": msg,
+                "message": msg,
+                "payment_required": True,
+                "telegram": "@unknownman59",
+                "contact_url": "https://t.me/unknownman59",
             },
         )
     return await call_next(request)
