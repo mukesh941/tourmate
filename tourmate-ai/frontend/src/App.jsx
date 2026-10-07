@@ -11,6 +11,8 @@ import Dashboard from "./pages/Dashboard";
 import Destinations from "./pages/Destinations";
 import Places from "./pages/Places";
 import VerifyEmail from "./pages/VerifyEmail";
+import PaymentSuspended from "./pages/PaymentSuspended";
+import { isServiceSuspended } from "./config/serviceStatus";
 
 // Lazily loaded secondary and heavy route components for code-splitting
 const DestinationDetail = lazy(() => import("./pages/DestinationDetail"));
@@ -60,6 +62,10 @@ export default function App() {
   }, [darkMode]);
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
+
+  if (isServiceSuspended()) {
+    return <PaymentSuspended />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900/50">
