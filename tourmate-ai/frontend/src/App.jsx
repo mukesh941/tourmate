@@ -3,6 +3,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ChatbotWidget from "./components/ChatbotWidget";
+import { useAuth } from "./context/AuthContext";
 
 // Eagerly loaded primary entry pages
 import Login from "./pages/Login";
@@ -43,7 +44,15 @@ function PageFallback() {
   );
 }
 
+function RootRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return <PageFallback />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Dashboard />;
+}
+
 export default function App() {
+  const { user } = useAuth();
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("theme");
     if (saved) return saved === "dark";
@@ -72,37 +81,38 @@ export default function App() {
       <Navbar toggleDarkMode={toggleDarkMode} darkMode={darkMode} />
       <Suspense fallback={<PageFallback />}>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/" element={<RootRoute />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           
-          <Route path="/destinations" element={<Destinations />} />
-          <Route path="/destinations/:id" element={<DestinationDetail />} />
-          <Route path="/explore" element={<ExploreDestination />} />
-          <Route path="/places" element={<Places />} />
-          <Route path="/places/:id" element={<PlaceDetail />} />
-          <Route path="/category/:categoryName" element={<CategoryPage />} />
-          <Route path="/map/clusters" element={<ClusteredMapView />} />
-          <Route path="/map/route" element={<RoutePlannerView />} />
+          <Route path="/destinations" element={<ProtectedRoute><Destinations /></ProtectedRoute>} />
+          <Route path="/destinations/:id" element={<ProtectedRoute><DestinationDetail /></ProtectedRoute>} />
+          <Route path="/explore" element={<ProtectedRoute><ExploreDestination /></ProtectedRoute>} />
+          <Route path="/places" element={<ProtectedRoute><Places /></ProtectedRoute>} />
+          <Route path="/places/:id" element={<ProtectedRoute><PlaceDetail /></ProtectedRoute>} />
+          <Route path="/category/:categoryName" element={<ProtectedRoute><CategoryPage /></ProtectedRoute>} />
+          <Route path="/map/clusters" element={<ProtectedRoute><ClusteredMapView /></ProtectedRoute>} />
+          <Route path="/map/route" element={<ProtectedRoute><RoutePlannerView /></ProtectedRoute>} />
           <Route path="/itinerary-builder" element={<ProtectedRoute><ItineraryBuilder /></ProtectedRoute>} />
           <Route path="/my-itineraries" element={<ProtectedRoute><MyItineraries /></ProtectedRoute>} />
           <Route path="/landmark-recognition" element={<ProtectedRoute><LandmarkRecognition /></ProtectedRoute>} />
-          <Route path="/guides" element={<Guides />} />
-          <Route path="/hotels" element={<Hotels />} />
-          <Route path="/hotels/:id" element={<HotelDetail />} />
+          <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
+          <Route path="/hotels" element={<ProtectedRoute><Hotels /></ProtectedRoute>} />
+          <Route path="/hotels/:id" element={<ProtectedRoute><HotelDetail /></ProtectedRoute>} />
           <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
 
-          
           <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/destinations" element={<ProtectedRoute><ManageDestinations /></ProtectedRoute>} />
           <Route path="/admin/categories" element={<ProtectedRoute><ManageCategories /></ProtectedRoute>} />
           <Route path="/admin/places" element={<ProtectedRoute><ManagePlaces /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute><ManageUsers /></ProtectedRoute>} />
+
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
-      <ChatbotWidget />
+      {user && <ChatbotWidget />}
     </div>
   );
 }
