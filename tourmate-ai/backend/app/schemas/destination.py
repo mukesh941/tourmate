@@ -19,3 +19,10 @@ class DestinationUpdate(BaseModel):
 
 class DestinationResponse(DestinationCreate):
     id: str
+
+class PaginatedDestinationResponse(BaseModel):
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+    results: list[DestinationResponse]

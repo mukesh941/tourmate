@@ -5,16 +5,21 @@ from app.api.deps import require_admin
 from app.core.db import get_async_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.common import Envelope
-from app.schemas.destination import DestinationCreate, DestinationUpdate, DestinationResponse
+from app.schemas.destination import DestinationCreate, DestinationUpdate, DestinationResponse, PaginatedDestinationResponse
 from app.services.destination_service import (
     get_all_destinations, get_destination, create_destination, update_destination, delete_destination
 )
 
 router = APIRouter(prefix="/destinations", tags=["destinations"])
 
-@router.get("", response_model=Envelope[List[DestinationResponse]])
-async def read_destinations(db: AsyncSession = Depends(get_async_db)):
-    destinations = await get_all_destinations(db=db)
+@router.get("", response_model=Envelope[PaginatedDestinationResponse])
+async def read_destinations(
+    db: AsyncSession = Depends(get_async_db),
+    page: int = 1,
+    page_size: int = 50,
+    search: str = ""
+):
+    destinations = await get_all_destinations(db=db, page=page, page_size=page_size, search=search)
     return Envelope(success=True, data=destinations)
 
 @router.get("/{destination_id}", response_model=Envelope[DestinationResponse])

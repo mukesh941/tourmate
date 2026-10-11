@@ -42,3 +42,11 @@ models/
 **/*.wav
 scratch/
 **/scratch/
+
+# Temporary artifacts
+*.html
+*.png
+places_output.json
+temp.js
+fetch_api.cjs
+

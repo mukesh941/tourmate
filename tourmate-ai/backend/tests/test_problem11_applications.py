@@ -19,6 +19,7 @@ def mock_user_alice():
         email="alice@example.com",
         role="user",
         preferred_language="en",
+        is_email_verified=True,
     )
 
 
@@ -30,6 +31,7 @@ def mock_user_bob():
         email="bob@example.com",
         role="user",
         preferred_language="en",
+        is_email_verified=True,
     )
 
 

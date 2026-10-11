@@ -724,12 +724,64 @@ export default function ItineraryBuilder() {
                   tripStyle={interests.join(' • ')}
                   budget={budget}
                   totalEstimatedCost={calculatedTotalCost}
+                  totalEstimatedDistance={currentOption.transportation?.estimated_distance_km || 0}
                   totalEstimatedTravelMinutes={currentOption.schedule.reduce((total, day) => total + day.activities.reduce((sum, act) => sum + (act.travel_time_minutes || 0), 0), 0)}
                   onRegenerate={() => setGeneratedItinerary(null)}
                   onSave={handleSave}
                   saving={saving}
                   onViewBudget={() => setIsBudgetModalOpen(true)}
                 />
+
+                <div className="mb-8 p-6 bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 shadow-sm animate-fade-in-up">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    {transportationMode === 'flight' && <Plane className="w-5 h-5 text-brand-500" />}
+                    {transportationMode === 'train' && <Train className="w-5 h-5 text-brand-500" />}
+                    {transportationMode === 'car' && <Car className="w-5 h-5 text-brand-500" />}
+                    {transportationMode === 'bike' && <Bike className="w-5 h-5 text-brand-500" />}
+                    Travel Arrangements
+                  </h3>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {transportationMode === 'flight' ? 'Flights to' : transportationMode === 'train' ? 'Trains to' : transportationMode === 'car' ? 'Rental Cars in' : 'Travel to'} {destinationName}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                        {transportationMode === 'flight' ? 'Find the best flight deals for your dates.' : transportationMode === 'train' ? 'Book your train journey in advance.' : transportationMode === 'car' ? 'Explore at your own pace with a rental vehicle.' : 'Plan your journey.'}
+                      </p>
+                    </div>
+                    {['flight', 'train'].includes(transportationMode) && (
+                      <a 
+                        href={`https://www.google.com/search?q=book+${transportationMode}+to+${destinationName}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm flex items-center gap-2 transition-colors shadow-sm"
+                      >
+                        {transportationMode === 'flight' ? <Plane className="w-4 h-4" /> : <Train className="w-4 h-4" />}
+                        Book {transportationMode === 'flight' ? 'Flight' : 'Train'}
+                      </a>
+                    )}
+                    {transportationMode === 'car' && (
+                      <div className="flex gap-2 shrink-0 flex-wrap">
+                        <a 
+                          href="https://www.olacabs.com/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-5 py-2.5 bg-[#d4e157] hover:bg-[#c0ca4c] text-black font-bold rounded-xl text-sm flex items-center gap-2 transition-colors shadow-sm"
+                        >
+                          <Car className="w-4 h-4" /> Book Ola
+                        </a>
+                        <a 
+                          href="https://www.uber.com/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-5 py-2.5 bg-black hover:bg-gray-800 text-white font-bold rounded-xl text-sm flex items-center gap-2 transition-colors shadow-sm"
+                        >
+                          <Car className="w-4 h-4" /> Book Uber
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <div className="flex flex-col lg:flex-row gap-8 relative">
                   {/* Left Column: Timeline */}

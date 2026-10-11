@@ -11,8 +11,7 @@ from app.services.hotel_service import (
     get_all_hotels,
     get_hotel_by_id,
     create_hotel_booking,
-    get_user_hotel_bookings,
-    cancel_hotel_booking
+    check_availability
 )
 
 router = APIRouter(prefix="/hotels", tags=["hotels"])
@@ -51,17 +50,36 @@ async def get_hotel(hotel_id: str, db: AsyncSession = Depends(get_async_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hotel not found")
     return Envelope(success=True, data=hotel)
 
-@router.post("/book", response_model=Envelope[HotelBookingResponse])
+@router.get("/{hotel_id}/availability", response_model=Envelope[dict])
+async def get_hotel_availability(
+    hotel_id: str,
+    check_in: str = Query(...),
+    check_out: str = Query(...),
+    rooms: int = Query(1),
+    db: AsyncSession = Depends(get_async_db)
+):
+    avail = await check_availability(hotel_id, check_in, check_out, rooms, db=db)
+    if "error" in avail:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=avail["error"])
+    return Envelope(success=True, data=avail)
+
+
+@router.post("/{hotel_id}/bookings", response_model=Envelope[HotelBookingResponse])
 async def book_hotel_stay(
+    hotel_id: str,
     payload: HotelBookingCreate,
-    current_user: UserPublic = Depends(get_current_user_dependency)
+    current_user: UserPublic = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_async_db)
 ):
     try:
+        # Override hotel_id in payload if passed in URL
+        payload.hotel_id = hotel_id
         booking = await create_hotel_booking(
-            user_id=current_user.id,
+            user_id=str(current_user.id),
             user_name=current_user.name,
             user_email=current_user.email,
-            payload=payload
+            payload=payload,
+            db=db
         )
         return Envelope(success=True, data=booking)
     except ValueError as e:
@@ -69,19 +87,23 @@ async def book_hotel_stay(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create booking")
 
-@router.get("/bookings/me", response_model=Envelope[List[HotelBookingResponse]])
-async def my_hotel_bookings(
-    current_user: UserPublic = Depends(get_current_user_dependency)
+# Keep old endpoints for backwards compatibility temporarily
+@router.post("/book", response_model=Envelope[HotelBookingResponse])
+async def legacy_book_hotel_stay(
+    payload: HotelBookingCreate,
+    current_user: UserPublic = Depends(get_current_user_dependency),
+    db: AsyncSession = Depends(get_async_db)
 ):
-    bookings = await get_user_hotel_bookings(current_user.id)
-    return Envelope(success=True, data=bookings)
-
-@router.delete("/bookings/{booking_id}", response_model=Envelope[dict])
-async def cancel_booking(
-    booking_id: str,
-    current_user: UserPublic = Depends(get_current_user_dependency)
-):
-    success = await cancel_hotel_booking(booking_id, current_user.id)
-    if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found or already cancelled")
-    return Envelope(success=True, data={"message": "Hotel reservation cancelled successfully"})
+    try:
+        booking = await create_hotel_booking(
+            user_id=str(current_user.id),
+            user_name=current_user.name,
+            user_email=current_user.email,
+            payload=payload,
+            db=db
+        )
+        return Envelope(success=True, data=booking)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create booking")

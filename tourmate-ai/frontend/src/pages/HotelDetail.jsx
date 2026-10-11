@@ -51,11 +51,49 @@ export default function HotelDetail() {
 
   const [checkIn, setCheckIn] = useState(today);
   const [checkOut, setCheckOut] = useState(defaultOut);
+  const [rooms, setRooms] = useState(1);
   const [guests, setGuests] = useState(2);
   const [specialRequests, setSpecialRequests] = useState("");
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(null);
+  const [availabilityStatus, setAvailabilityStatus] = useState(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+
+  const [roomAvailabilities, setRoomAvailabilities] = useState({});
+  const [checkingAll, setCheckingAll] = useState(false);
+
+  // Reset availability when dates or guests change
+  useEffect(() => {
+    setAvailabilityStatus(null);
+  }, [checkIn, checkOut, guests, rooms, selectedRoom]);
+
+  useEffect(() => {
+    if (hotel && hotel.id && checkIn && checkOut) {
+      checkAllRoomsAvailability();
+    }
+  }, [hotel, checkIn, checkOut, rooms]);
+
+  const checkAllRoomsAvailability = async () => {
+    setCheckingAll(true);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/hotels/${hotel.id}/availability?check_in=${checkIn}&check_out=${checkOut}&rooms=${rooms}`
+      );
+      const data = res.data.data;
+      const newAvail = {};
+      if (data && data.room_types) {
+        data.room_types.forEach(r => {
+          newAvail[r.room_type_id] = r.status;
+        });
+      }
+      setRoomAvailabilities(newAvail);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCheckingAll(false);
+    }
+  };
 
   useEffect(() => {
     fetchHotel();
@@ -91,7 +129,7 @@ export default function HotelDetail() {
 
   const nights = calculateNights();
   const roomPrice = selectedRoom?.price_per_night || hotel?.price_per_night_start || 100;
-  const subtotal = nights > 0 ? roomPrice * nights : 0;
+  const subtotal = nights > 0 ? roomPrice * nights * rooms : 0;
   const taxes = Math.round(subtotal * 0.12);
   const total = subtotal + taxes;
 
@@ -103,6 +141,8 @@ export default function HotelDetail() {
       return;
     }
     setSelectedRoom(room);
+    setRooms(1);
+    setGuests(1);
     setBookingSuccess(null);
     setIsModalOpen(true);
   };
@@ -117,6 +157,7 @@ export default function HotelDetail() {
         room_name: selectedRoom.name,
         check_in_date: checkIn,
         check_out_date: checkOut,
+        rooms: parseInt(rooms),
         guests: parseInt(guests),
         special_requests: specialRequests
       };
@@ -133,6 +174,31 @@ export default function HotelDetail() {
       alert(err.response?.data?.detail || "Failed to complete reservation. Please try again.");
     } finally {
       setBookingLoading(false);
+    }
+  };
+
+  const handleCheckAvailability = async (e) => {
+    e.preventDefault();
+    setAvailabilityLoading(true);
+    setAvailabilityStatus(null);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/hotels/${hotel.id}/availability?check_in=${checkIn}&check_out=${checkOut}&rooms=${rooms}`
+      );
+      
+      const availabilityData = res.data.data;
+      const roomAvail = availabilityData.room_types.find(r => r.room_type_id === selectedRoom.id);
+      
+      if (roomAvail) {
+        setAvailabilityStatus(roomAvail.status);
+      } else {
+        setAvailabilityStatus("Availability not verified");
+      }
+    } catch (err) {
+      console.error("Availability check failed:", err);
+      setAvailabilityStatus(err.response?.data?.detail || "Availability not verified");
+    } finally {
+      setAvailabilityLoading(false);
     }
   };
 
@@ -305,13 +371,48 @@ export default function HotelDetail() {
 
         {/* Available Room Types */}
         <div id="rooms-section" className="scroll-mt-24 mb-16">
-          <div className="mb-6">
-            <h2 className="text-2xl font-extrabold text-gray-900 dark:text-slate-100">
-              Available Room Types ({hotel.rooms?.length || 0})
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-              Select your room to customize stay dates and finalize your reservation.
-            </p>
+          <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-extrabold text-gray-900 dark:text-slate-100">
+                Available Room Types ({hotel.rooms?.length || 0})
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                Select your dates to check availability before booking.
+              </p>
+            </div>
+            
+            <div className="flex flex-wrap items-end gap-3 bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Check-In</label>
+                <input
+                  type="date"
+                  min={today}
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                  className="px-3 py-1.5 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none text-gray-900 dark:text-slate-100"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Check-Out</label>
+                <input
+                  type="date"
+                  min={checkIn}
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                  className="px-3 py-1.5 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none text-gray-900 dark:text-slate-100"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Rooms</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={rooms}
+                  onChange={(e) => setRooms(parseInt(e.target.value) || 1)}
+                  className="w-16 px-3 py-1.5 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg outline-none text-gray-900 dark:text-slate-100"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -363,12 +464,42 @@ export default function HotelDetail() {
                 </div>
 
                 <div className="p-5 pt-0">
-                  <button
-                    onClick={() => handleOpenBooking(room)}
-                    className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5"
-                  >
-                    <Calendar className="w-3.5 h-3.5" /> Book This Room
-                  </button>
+                  <div className="mb-3 flex justify-center">
+                    {checkingAll ? (
+                      <span className="text-[11px] font-semibold text-gray-500 flex items-center gap-1 animate-pulse">
+                        Checking availability...
+                      </span>
+                    ) : roomAvailabilities[room.id] === "Available" ? (
+                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" /> Rooms Available
+                      </span>
+                    ) : roomAvailabilities[room.id] === "Unavailable" ? (
+                      <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <X className="w-3 h-3" /> Not Available
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
+                        Select dates to check
+                      </span>
+                    )}
+                  </div>
+                  
+                  {roomAvailabilities[room.id] === "Unavailable" ? (
+                    <button
+                      disabled
+                      className="w-full py-2.5 bg-gray-300 dark:bg-slate-700 text-gray-500 dark:text-slate-400 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5 cursor-not-allowed"
+                    >
+                      <X className="w-3.5 h-3.5" /> Cannot Book
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleOpenBooking(room)}
+                      disabled={checkingAll || roomAvailabilities[room.id] !== "Available"}
+                      className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Calendar className="w-3.5 h-3.5" /> Book This Room
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -413,8 +544,8 @@ export default function HotelDetail() {
                     <span>{bookingSuccess.check_in_date} to {bookingSuccess.check_out_date} ({bookingSuccess.nights} nights)</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Guests:</span>
-                    <span>{bookingSuccess.guests} Guests</span>
+                    <span className="text-gray-400">Rooms & Guests:</span>
+                    <span>{bookingSuccess.rooms} Room{bookingSuccess.rooms > 1 ? 's' : ''}, {bookingSuccess.guests} Guest{bookingSuccess.guests > 1 ? 's' : ''}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-bold text-sm">
                     <span>Total Paid:</span>
@@ -472,18 +603,54 @@ export default function HotelDetail() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
-                    Number of Guests
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max={selectedRoom?.capacity || 4}
-                    value={guests}
-                    onChange={(e) => setGuests(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-gray-900 dark:text-slate-100"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                      Number of Rooms
+                    </label>
+                    <div className="flex items-center">
+                      <button 
+                        type="button" 
+                        onClick={() => setRooms(Math.max(1, rooms - 1))}
+                        className="px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-l-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        value={rooms}
+                        readOnly
+                        className="w-full px-3 py-2 text-sm text-center bg-gray-50 dark:bg-slate-900 border-y border-gray-200 dark:border-slate-700 outline-none text-gray-900 dark:text-slate-100"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setRooms(rooms + 1)}
+                        className="px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-r-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-slate-300 mb-1">
+                      Number of Guests
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={(selectedRoom?.capacity || 4) * rooms}
+                      value={guests}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value);
+                        let maxGuests = (selectedRoom?.capacity || 4) * rooms;
+                        if (val > maxGuests) val = maxGuests;
+                        setGuests(val);
+                      }}
+                      className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-gray-900 dark:text-slate-100"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -502,7 +669,7 @@ export default function HotelDetail() {
                 {/* Price Summary Breakdown */}
                 <div className="p-4 bg-gray-50 dark:bg-slate-900/60 rounded-xl border border-gray-100 dark:border-slate-700/50 space-y-1.5 text-xs text-gray-600 dark:text-slate-300">
                   <div className="flex justify-between">
-                    <span>{formatCurrency(roomPrice)} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
+                    <span>{formatCurrency(roomPrice)} × {rooms} {rooms === 1 ? 'room' : 'rooms'} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
                     <span>{formatCurrency(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
@@ -521,6 +688,20 @@ export default function HotelDetail() {
                   </p>
                 )}
 
+                {availabilityStatus && (
+                  <div className={`p-3 rounded-xl text-xs font-semibold ${
+                    availabilityStatus === "Available" 
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                      : availabilityStatus === "Unavailable"
+                      ? "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
+                      : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                  }`}>
+                    {availabilityStatus === "Available" ? "✓ Available (Demo Simulated Inventory)" : 
+                     availabilityStatus === "Unavailable" ? "✗ Unavailable (Demo Simulated Inventory)" : 
+                     "⚠️ Availability not verified (Demo Simulated Inventory)"}
+                  </div>
+                )}
+
                 <div className="pt-2 flex justify-end gap-3">
                   <button
                     type="button"
@@ -529,13 +710,24 @@ export default function HotelDetail() {
                   >
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={bookingLoading || nights <= 0}
-                    className="px-5 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {bookingLoading ? "Confirming..." : (nights <= 0 ? "Select Valid Dates" : `Confirm & Reserve (${formatCurrency(total)})`)}
-                  </button>
+                  {availabilityStatus === "Available" ? (
+                    <button
+                      type="submit"
+                      disabled={bookingLoading || nights <= 0}
+                      className="px-5 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {bookingLoading ? "Confirming..." : `Confirm & Reserve (${formatCurrency(total)})`}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleCheckAvailability}
+                      disabled={availabilityLoading || nights <= 0}
+                      className="px-5 py-2 text-sm font-semibold text-white bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {availabilityLoading ? "Checking..." : "Check Availability"}
+                    </button>
+                  )}
                 </div>
               </form>
             )}

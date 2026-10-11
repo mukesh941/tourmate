@@ -25,6 +25,7 @@ const LandmarkRecognition = lazy(() => import("./pages/LandmarkRecognition"));
 const Guides = lazy(() => import("./pages/Guides"));
 const Hotels = lazy(() => import("./pages/Hotels"));
 const HotelDetail = lazy(() => import("./pages/HotelDetail"));
+const MyHotelBookings = lazy(() => import("./pages/MyHotelBookings"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const ManageDestinations = lazy(() => import("./pages/admin/ManageDestinations"));
@@ -86,6 +87,7 @@ export default function App() {
           <Route path="/guides" element={<ProtectedRoute><Guides /></ProtectedRoute>} />
           <Route path="/hotels" element={<Hotels />} />
           <Route path="/hotels/:id" element={<HotelDetail />} />
+          <Route path="/my-hotel-bookings" element={<ProtectedRoute><MyHotelBookings /></ProtectedRoute>} />
           <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
 
           

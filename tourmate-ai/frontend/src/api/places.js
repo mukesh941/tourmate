@@ -1,6 +1,22 @@
 import api from "./axios";
 
-export const getDestinations = async () => (await api.get("/destinations")).data.data;
+export const getDestinations = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.append("page", params.page);
+  if (params.page_size) query.append("page_size", params.page_size);
+  if (params.search) query.append("search", params.search);
+  const response = await api.get(`/destinations?${query.toString()}`);
+  return response.data.data.results || response.data.data;
+};
+
+export const getDestinationsPaginated = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.append("page", params.page);
+  if (params.page_size) query.append("page_size", params.page_size);
+  if (params.search) query.append("search", params.search);
+  const response = await api.get(`/destinations?${query.toString()}`);
+  return response.data.data;
+};
 export const getDestination = async (id) => (await api.get(`/destinations/${id}`)).data.data;
 export const getCategories = async () => (await api.get("/categories")).data.data;
 export const getPlaces = async (params = {}, config = {}) => {

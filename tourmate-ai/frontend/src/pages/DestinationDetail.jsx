@@ -21,8 +21,17 @@ export default function DestinationDetail() {
       window.speechSynthesis.cancel();
       
       const utterance = new SpeechSynthesisUtterance(destination.description);
-      // Try to set language based on current i18n language
-      utterance.lang = i18n.language === 'hi' ? 'hi-IN' : 'en-US';
+      const targetLang = i18n.language === 'hi' ? 'hi-IN' : 'en-US';
+      utterance.lang = targetLang;
+      
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const voice = voices.find(v => v.lang.replace('_', '-').toLowerCase() === targetLang.toLowerCase()) || 
+                      voices.find(v => v.lang.replace('_', '-').toLowerCase().startsWith(targetLang.split('-')[0].toLowerCase()));
+        if (voice) {
+          utterance.voice = voice;
+        }
+      }
       
       window.speechSynthesis.speak(utterance);
     } else {

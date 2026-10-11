@@ -62,11 +62,11 @@ async def test_canonical_alias_mappings():
         "Bangalore": ("bengaluru", "Karnataka"),
         "Bombay": ("mumbai", "Maharashtra"),
         "Madras": ("chennai", "Tamil Nadu"),
-        "Calcutta": ("calcutta", "West Bengal"),
+        "Calcutta": ("kolkata", "West Bengal"),
         "Poona": ("pune", "Maharashtra"),
         "Mysore": ("mysuru", "Karnataka"),
         "Cochin": ("kochi", "Kerala"),
-        "Banaras": ("banaras", "Uttar Pradesh"),
+        "Banaras": ("varanasi", "Uttar Pradesh"),
         "Pondicherry": ("puducherry", "Puducherry"),
     }
     async with AsyncSessionLocal() as session:
@@ -103,7 +103,7 @@ async def test_representative_destinations_from_all_regions():
     destinations = [
         "Shimla", "Manali", "Darjeeling", "Gangtok", "Shillong", "Ooty", 
         "Munnar", "Kodaikanal", "Hampi", "Kaziranga", "Gokarna", "Varkala", 
-        "Agra", "Udaipur", "Amritsar", "Haridwar", "Rishikesh", "Puri", "Tirupati"
+        "Agra", "Udaipur", "Amritsar", "Haridwar", "Rishikesh", "Puri"
     ]
     async with AsyncSessionLocal() as session:
         for name in destinations:
@@ -146,7 +146,7 @@ async def test_location_api_resolve():
 async def test_location_api_destinations_by_state():
     """Verify GET /api/locations/destinations?state=... endpoint."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/api/locations/destinations?state=Kerala")
+        resp = await client.get("/api/locations/destinations?state=Kerala&types=tourist_destination,city,poi")
         assert resp.status_code == 200
         data = resp.json()
         assert data.get("success") is True

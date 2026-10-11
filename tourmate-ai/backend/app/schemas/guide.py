@@ -13,6 +13,7 @@ class GuideCreate(BaseModel):
     location: str = Field(default="")
     is_demo: bool = Field(default=True)
     is_lgbtq: bool = Field(default=False)
+    gender: Optional[str] = None
 
 class GuideResponse(GuideCreate):
     id: str

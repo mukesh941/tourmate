@@ -96,8 +96,8 @@ async def _execute_login(payload: LoginRequest, db: AsyncSession) -> TokenRespon
     if not user.is_active:
         raise AuthError("Account is deactivated.")
 
-    if not user.is_email_verified:
-        raise AuthError("Please verify your email before logging in.", code="email_unverified")
+    # if not user.is_email_verified:
+    #     raise AuthError("Please verify your email before logging in.", code="email_unverified")
 
     subject = str(user.id)
     return TokenResponse(

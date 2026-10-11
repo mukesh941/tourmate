@@ -49,6 +49,7 @@ class HotelBookingCreate(BaseModel):
     check_in_date: str  # YYYY-MM-DD
     check_out_date: str # YYYY-MM-DD
     guests: int = Field(default=2, ge=1)
+    rooms: int = Field(default=1, ge=1)
     special_requests: Optional[str] = None
 
 class HotelBookingResponse(BaseModel):
@@ -64,6 +65,7 @@ class HotelBookingResponse(BaseModel):
     check_in_date: str
     check_out_date: str
     nights: int
+    rooms: int
     guests: int
     price_per_night: float
     total_price: float

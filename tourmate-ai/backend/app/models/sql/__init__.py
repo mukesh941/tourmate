@@ -14,6 +14,7 @@ from app.models.sql.trip import Trip, TripAccommodation, TripTransport, POIClust
 from app.models.sql.itinerary import Itinerary, ItineraryStop, Route, AlternativeRoute
 from app.models.sql.media import Image, POIImage, AccommodationImage
 from app.models.sql.interaction import Feedback, Offer
+from app.models.sql.hotel import Hotel, RoomType, RoomInventory, RoomRate, HotelBooking
 
 __all__ = [
     "Base",
@@ -65,4 +66,10 @@ __all__ = [
     "Feedback",
     # 23. offers
     "Offer",
+    # 24. hotels
+    "Hotel",
+    "RoomType",
+    "RoomInventory",
+    "RoomRate",
+    "HotelBooking",
 ]

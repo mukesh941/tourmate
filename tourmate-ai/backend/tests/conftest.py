@@ -30,6 +30,7 @@ def test_user():
         name="Test User",
         role="user",
         preferred_language="en",
+        is_email_verified=True,
     )
 
 
@@ -41,6 +42,7 @@ def admin_user():
         name="Admin User",
         role="admin",
         preferred_language="en",
+        is_email_verified=True,
     )
 
 

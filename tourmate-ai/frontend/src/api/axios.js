@@ -10,7 +10,11 @@ const rawBase =
     ? "https://tourmate-backend-cfcv.onrender.com/api"
     : "http://localhost:8000/api");
 
-export const API_BASE_URL = rawBase.trim().replace(/\/+$/, "").replace(/(?<!\/api)$/, "/api");
+let cleanBase = rawBase.trim().replace(/\/+$/, "");
+if (!cleanBase.endsWith("/api")) {
+  cleanBase += "/api";
+}
+export const API_BASE_URL = cleanBase;
 
 const api = axios.create({
   baseURL: API_BASE_URL,

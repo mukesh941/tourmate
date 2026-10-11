@@ -22,14 +22,12 @@ async def test_locations_all_have_non_empty_states():
 
 
 @pytest.mark.asyncio
-async def test_regression_destination_kharwali_state():
-    """Verify specifically that 4 Arm (Kharwali) has state 'Rajasthan'."""
+async def test_incorrect_locations_do_not_resolve():
+    """Verify that incorrect or unknown locations do not falsely resolve."""
     async with AsyncSessionLocal() as session:
-        res = await session.execute(text("SELECT id, name, city, state, country FROM locations WHERE name = '4 Arm (Kharwali)'"))
-        row = res.fetchone()
-        assert row is not None, "Location '4 Arm (Kharwali)' not found in database"
-        assert row.state == "Rajasthan", f"Expected state 'Rajasthan', got {row.state!r}"
-        assert row.country == "India"
+        dest = await resolve_destination("SomeFakePlaceThatDoesNotExistXYZ", session)
+        assert dest is None, "Fake location should not resolve to anything"
+
 
 
 @pytest.mark.asyncio

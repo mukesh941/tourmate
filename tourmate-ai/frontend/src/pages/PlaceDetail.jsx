@@ -83,7 +83,18 @@ export default function PlaceDetail() {
     const text = `${place.name}. ${place.description}`;
     const utterance = new SpeechSynthesisUtterance(text);
     
-    utterance.lang = i18n.language === 'hi' ? 'hi-IN' : 'en-US';
+    const targetLang = i18n.language === 'hi' ? 'hi-IN' : 'en-US';
+    utterance.lang = targetLang;
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const voice = voices.find(v => v.lang.replace('_', '-').toLowerCase() === targetLang.toLowerCase()) || 
+                    voices.find(v => v.lang.replace('_', '-').toLowerCase().startsWith(targetLang.split('-')[0].toLowerCase()));
+      if (voice) {
+        utterance.voice = voice;
+      }
+    }
+
     utterance.onend = () => setIsPlaying(false);
     
     window.speechSynthesis.speak(utterance);

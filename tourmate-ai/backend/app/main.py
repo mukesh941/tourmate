@@ -26,6 +26,7 @@ from app.api.routes.admin import router as admin_router
 from app.api.routes.guides import router as guides_router
 from app.api.routes.applications import router as applications_router
 from app.api.routes.hotels import router as hotels_router
+from app.api.routes.hotel_bookings import router as hotel_bookings_router
 from app.api.routes.restaurants import router as restaurants_router
 from app.api.routes.activities import router as activities_router
 from app.api.routes.locations import router as locations_router
@@ -123,7 +124,7 @@ async def add_security_headers(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
-    allow_origin_regex=r"^https://[\w-]+\.vercel\.app$|^https://[\w-]+\.netlify\.app$|^http://localhost(:\d+)?$|^http://127\.0\.0\.1(:\d+)?$",
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -142,6 +143,7 @@ app.include_router(admin_router, prefix="/api")
 app.include_router(guides_router, prefix="/api")
 app.include_router(applications_router, prefix="/api")
 app.include_router(hotels_router, prefix="/api")
+app.include_router(hotel_bookings_router, prefix="/api")
 app.include_router(restaurants_router, prefix="/api")
 app.include_router(activities_router, prefix="/api")
 app.include_router(locations_router, prefix="/api")

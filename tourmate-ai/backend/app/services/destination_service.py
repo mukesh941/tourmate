@@ -87,81 +87,124 @@ CANONICAL_DESTINATION_METADATA = {
         "cover_image": "https://images.unsplash.com/photo-1598091383021-15ddea10925d?auto=format&fit=crop&w=1200&q=80",
         "state": "Jammu and Kashmir"
     },
+    "agra fort": {
+        "description": "A historical fort in the city of Agra, representing the pinnacle of Mughal architecture and power.",
+        "cover_image": "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1200&q=80",
+        "state": "Uttar Pradesh"
+    },
+    "amer fort": {
+        "description": "A massive fort located in Amer, Rajasthan, renowned for its artistic Hindu style elements and cobbled paths.",
+        "cover_image": "https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?auto=format&fit=crop&w=1200&q=80",
+        "state": "Rajasthan"
+    },
+    "basilica of bom jesus": {
+        "description": "A Catholic basilica in Goa and a UNESCO World Heritage Site, housing the mortal remains of St. Francis Xavier.",
+        "cover_image": "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80",
+        "state": "Goa"
+    },
 }
 
 NEUTRAL_PLACEHOLDER_COVER = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22800%22%20height%3D%22600%22%20viewBox%3D%220%200%20800%20600%22%20fill%3D%22none%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23f1f5f9%22%2F%3E%3Ccircle%20cx%3D%22400%22%20cy%3D%22260%22%20r%3D%2248%22%20fill%3D%22%23cbd5e1%22%2F%3E%3Cpath%20d%3D%22M400%20228c-17.7%200-32%2014.3-32%2032%200%2028%2032%2056%2032%2056s32-28%2032-56c0-17.7-14.3-32-32-32zm0%2044c-6.6%200-12-5.4-12-12s5.4-12%2012-12%2012%205.4%2012%2012-5.4%2012-12%2012z%22%20fill%3D%22%2364748b%22%2F%3E%3Ctext%20x%3D%22400%22%20y%3D%22360%22%20fill%3D%22%23475569%22%20font-family%3D%22system-ui%2C%20sans-serif%22%20font-size%3D%2220%22%20font-weight%3D%22600%22%20text-anchor%3D%22middle%22%3ETourMate%20Verified%20Destination%3C%2Ftext%3E%3Ctext%20x%3D%22400%22%20y%3D%22390%22%20fill%3D%22%2394a3b8%22%20font-family%3D%22system-ui%2C%20sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22400%22%20text-anchor%3D%22middle%22%3EAuthentic%20Travel%20%26%20Heritage%3C%2Ftext%3E%3C%2Fsvg%3E"
 
 
-async def get_all_destinations(db: Optional[AsyncSession] = None) -> List[DestinationResponse]:
+from app.schemas.destination import DestinationCreate, DestinationUpdate, DestinationResponse, PaginatedDestinationResponse
+import math
+
+async def get_all_destinations(
+    db: Optional[AsyncSession] = None,
+    page: int = 1,
+    page_size: int = 50,
+    search: str = ""
+) -> PaginatedDestinationResponse:
     """
-    Queries distinct canonical destinations (cities) from PostgreSQL locations.
+    Queries all active locations, with pagination and search.
     """
-    async def _query(session: AsyncSession) -> List[DestinationResponse]:
-        # Query distinct locations that have active POIs or are explicitly marked as city/destination
-        stmt = (
-            select(Location)
-            .where(
-                and_(
-                    Location.is_active == True,
-                    or_(
-                        Location.pois.any(POI.is_active == True),
-                        Location.location_type.in_(["city", "destination"]),
-                    )
+    async def _query(session: AsyncSession) -> PaginatedDestinationResponse:
+        stmt = select(Location).where(Location.is_active == True)
+        
+        if search:
+            search_term = f"%{search.lower()}%"
+            stmt = stmt.where(
+                or_(
+                    func.lower(Location.city).like(search_term),
+                    func.lower(Location.name).like(search_term),
+                    func.lower(Location.state).like(search_term)
                 )
             )
-            .options(
-                selectinload(Location.pois).selectinload(POI.poi_images).selectinload(POIImage.image)
-            )
-            .order_by(Location.city.asc())
+            
+        stmt = stmt.options(
+            selectinload(Location.pois).selectinload(POI.poi_images).selectinload(POIImage.image)
         )
+        
+        # We need to sort by popularity. 
+        # We will sort canonical destinations first, then by name in SQL to maintain exact order.
+        canonical_keys = list(CANONICAL_DESTINATION_METADATA.keys())
+        from sqlalchemy import case
+        
+        # Calculate total
+        total_stmt = select(func.count()).select_from(stmt.subquery())
+        total = (await session.execute(total_stmt)).scalar() or 0
+        total_pages = math.ceil(total / page_size) if page_size > 0 else 0
+        
+        # Add sorting
+        stmt = stmt.order_by(
+            case(
+                (func.lower(Location.name).in_(canonical_keys), 0),
+                else_=1
+            ),
+            Location.name.asc(),
+            Location.id.asc()
+        )
+        
+        # Paginate in SQL
+        if page_size > 0:
+            stmt = stmt.limit(page_size).offset((page - 1) * page_size)
+            
         result = await session.execute(stmt)
         locations = result.scalars().all()
-
-        city_dict = {}
+        
+        destinations = []
         for loc in locations:
-            city = loc.city.strip()
-            city_key = city.lower()
-            if not city_key:
-                continue
-            meta = CANONICAL_DESTINATION_METADATA.get(city_key, {})
-            if city_key not in city_dict:
-                city_dict[city_key] = {
-                    "city": city,
-                    "state": loc.state or meta.get("state", ""),
-                    "country": loc.country or "India",
-                    "cover_image": loc.image or meta.get("cover_image", ""),
-                    "description": loc.description or meta.get("description", "")
-                }
-            if not city_dict[city_key]["cover_image"]:
+            # We use loc.id as the primary identifier instead of city name to prevent dropping locations
+            loc_name = loc.name or loc.city or str(loc.id)
+            name_key = (loc.name or "").strip().lower()
+            city_key = (loc.city or "").strip().lower()
+            meta = CANONICAL_DESTINATION_METADATA.get(name_key) or CANONICAL_DESTINATION_METADATA.get(city_key, {})
+            
+            cover_img = loc.image
+            if not cover_img:
                 for poi in loc.pois:
                     if poi.poi_images:
                         sorted_imgs = sorted(poi.poi_images, key=lambda x: (not x.is_primary, x.display_order))
                         for pi in sorted_imgs:
                             if pi.image and pi.image.url:
-                                city_dict[city_key]["cover_image"] = pi.image.url
+                                cover_img = pi.image.url
                                 break
-                    if city_dict[city_key]["cover_image"]:
+                    if cover_img:
                         break
-
-        destinations = []
-        for city_key, city_info in city_dict.items():
-            city_name = city_info["city"]
-            meta = CANONICAL_DESTINATION_METADATA.get(city_key, {})
-            cover_img = city_info["cover_image"] or meta.get("cover_image") or NEUTRAL_PLACEHOLDER_COVER
-            description = city_info["description"] or meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {city_name}.")
+            
+            final_cover = cover_img or meta.get("cover_image") or NEUTRAL_PLACEHOLDER_COVER
+            description = loc.description or meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {loc_name}.")
+            
             destinations.append(
                 DestinationResponse(
-                    id=city_name,
-                    name=city_name,
-                    state=city_info["state"],
-                    country=city_info["country"],
+                    id=str(loc.id),
+                    name=loc_name,
+                    state=loc.state or meta.get("state", ""),
+                    country=loc.country or "India",
                     description=description,
-                    cover_image=cover_img,
+                    cover_image=final_cover,
                     popularity_score=4.9
                 )
             )
 
-        return destinations
+        return PaginatedDestinationResponse(
+            page=page,
+            page_size=page_size,
+            total=total,
+            total_pages=total_pages,
+            results=destinations
+        )
 
     if db is not None:
         return await _query(db)
@@ -221,10 +264,11 @@ async def get_destination(destination_id: str, db: Optional[AsyncSession] = None
                 if cover_image:
                     break
 
-        city_key = loc.city.strip().lower()
-        meta = CANONICAL_DESTINATION_METADATA.get(city_key, {})
+        name_key = (loc.name or "").strip().lower()
+        city_key = (loc.city or "").strip().lower()
+        meta = CANONICAL_DESTINATION_METADATA.get(name_key) or CANONICAL_DESTINATION_METADATA.get(city_key, {})
         final_cover = cover_image or meta.get("cover_image") or NEUTRAL_PLACEHOLDER_COVER
-        description = loc.description or meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {loc.city}.")
+        description = loc.description or meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {loc.name or loc.city}.")
         state_val = loc.state or meta.get("state", "")
 
         return DestinationResponse(
@@ -359,10 +403,11 @@ async def update_destination(destination_id: str, payload: DestinationUpdate, db
         await session.commit()
         await session.refresh(loc)
 
-        city_key = loc.city.strip().lower()
-        meta = CANONICAL_DESTINATION_METADATA.get(city_key, {})
+        name_key = (loc.name or "").strip().lower()
+        city_key = (loc.city or "").strip().lower()
+        meta = CANONICAL_DESTINATION_METADATA.get(name_key) or CANONICAL_DESTINATION_METADATA.get(city_key, {})
         cover_img = loc.image or meta.get("cover_image") or NEUTRAL_PLACEHOLDER_COVER
-        desc = loc.description or meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {loc.city}.")
+        desc = loc.description or meta.get("description", f"Explore historic attractions, architecture, and cultural landmarks in {loc.name or loc.city}.")
 
         return DestinationResponse(
             id=loc.city,

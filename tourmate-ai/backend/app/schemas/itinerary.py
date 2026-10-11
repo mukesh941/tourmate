@@ -81,7 +81,7 @@ class ItineraryGenerateRequest(BaseModel):
     origin: Optional[str] = Field(default="")
     destination_name: str = Field(default="")
     place_ids: List[str] = Field(default_factory=list)
-    days: int = Field(..., ge=1, le=7)
+    days: int = Field(..., ge=1, le=14)
     start_time: str = Field(default="09:00")
     end_time: str = Field(default="20:00")
     accommodation: Optional[str] = Field(default=None)

@@ -10,6 +10,7 @@ export default function ItineraryHeader({
   budget, 
   totalEstimatedCost, 
   totalEstimatedTravelMinutes, 
+  totalEstimatedDistance,
   onRegenerate, 
   onSave, 
   saving,
@@ -75,12 +76,24 @@ export default function ItineraryHeader({
                 <IndianRupee className="w-4 h-4" /> {totalEstimatedCost ? totalEstimatedCost.toLocaleString('en-IN') : '0'}
               </p>
             </div>
-            {totalEstimatedTravelMinutes > 0 && (
-              <div>
-                <p className="text-[10px] text-gray-500 dark:text-slate-500 uppercase tracking-wider font-bold mb-1">Total Travel Time</p>
-                <p className="text-xl font-black text-gray-900 dark:text-white flex items-center justify-end gap-1">
-                  <Clock className="w-4 h-4 text-brand-500" /> {Math.floor(totalEstimatedTravelMinutes / 60)}h {totalEstimatedTravelMinutes % 60}m
-                </p>
+            {(totalEstimatedTravelMinutes > 0 || totalEstimatedDistance > 0) && (
+              <div className="flex gap-4 text-right">
+                {totalEstimatedDistance > 0 && (
+                  <div>
+                    <p className="text-[10px] text-gray-500 dark:text-slate-500 uppercase tracking-wider font-bold mb-1">Est. Distance</p>
+                    <p className="text-xl font-black text-gray-900 dark:text-white flex items-center justify-end gap-1">
+                      <MapPin className="w-4 h-4 text-brand-500" /> {Math.round(totalEstimatedDistance)} km
+                    </p>
+                  </div>
+                )}
+                {totalEstimatedTravelMinutes > 0 && (
+                  <div>
+                    <p className="text-[10px] text-gray-500 dark:text-slate-500 uppercase tracking-wider font-bold mb-1">Travel Time</p>
+                    <p className="text-xl font-black text-gray-900 dark:text-white flex items-center justify-end gap-1">
+                      <Clock className="w-4 h-4 text-brand-500" /> {Math.floor(totalEstimatedTravelMinutes / 60)}h {totalEstimatedTravelMinutes % 60}m
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

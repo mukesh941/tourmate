@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # PostgreSQL + pgvector
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5435/tourmate"
+    database_url: str = "postgresql+asyncpg://tourmate:devpassword123@localhost:5432/tourmate"
 
     # Backward-compatible MongoDB configuration (optional during transition, disabled by default)
     mongo_uri: str | None = None
@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     cors_origins: str = "https://frontend-delta-six-hf0z79dpo8.vercel.app,http://localhost:5173,http://127.0.0.1:5173,https://tourmate-ai.netlify.app,https://tourmate.vercel.app,http://localhost:3000"
     gemini_api_key: str | None = None
     google_maps_api_key: str | None = None
+    google_application_credentials_json: str | None = None
 
     # Email & Verification
     frontend_url: str = "http://localhost:5173"
