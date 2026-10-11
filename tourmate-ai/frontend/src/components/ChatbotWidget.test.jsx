@@ -56,29 +56,29 @@ describe('ChatbotWidget Component', () => {
 
   it('renders the floating open chat button with accessibility attributes', () => {
     render(<ChatbotWidget />);
-    const openBtn = screen.getAllByRole('button', { name: /Open TourMate AI Guide/i })[0];
+    const openBtn = screen.getAllByRole('button', { name: /Open TourMate Chatbot/i })[0];
     expect(openBtn).toBeTruthy();
     expect(openBtn.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('opens and closes chat window when tapped/clicked', () => {
     render(<ChatbotWidget />);
-    const openBtn = screen.getAllByRole('button', { name: /Open TourMate AI Guide/i })[0];
+    const openBtn = screen.getAllByRole('button', { name: /Open TourMate Chatbot/i })[0];
     
     // Tap to open
     fireEvent.click(openBtn);
-    expect(screen.getByText('TourMate Guide')).toBeTruthy();
+    expect(screen.getByText('TourMate Chatbot')).toBeTruthy();
     expect(screen.getByPlaceholderText('Ask about places, tips...')).toBeTruthy();
 
     // Close button
     const closeBtn = screen.getByRole('button', { name: /Close TourMate Guide/i });
     fireEvent.click(closeBtn);
-    expect(screen.queryByText('TourMate Guide')).toBeNull();
+    expect(screen.queryByText('TourMate Chatbot')).toBeNull();
   });
 
   it('allows user to type into the message input', () => {
     render(<ChatbotWidget />);
-    const openBtn = screen.getAllByRole('button', { name: /Open TourMate AI Guide/i })[0];
+    const openBtn = screen.getAllByRole('button', { name: /Open TourMate Chatbot/i })[0];
     fireEvent.click(openBtn);
 
     const input = screen.getByPlaceholderText('Ask about places, tips...');
@@ -106,7 +106,7 @@ describe('ChatbotWidget Component', () => {
     window.innerHeight = 844;
 
     const { container } = render(<ChatbotWidget />);
-    const openBtn = screen.getAllByRole('button', { name: /Open TourMate AI Guide/i })[0];
+    const openBtn = screen.getAllByRole('button', { name: /Open TourMate Chatbot/i })[0];
     const wrapper = container.querySelector('.z-\\[50\\]');
 
     // Initial position: 318, 708
@@ -126,7 +126,7 @@ describe('ChatbotWidget Component', () => {
     fireEvent.click(openBtn);
 
     // Chat should NOT be open
-    expect(screen.queryByText('TourMate Guide')).toBeNull();
+    expect(screen.queryByText('TourMate Chatbot')).toBeNull();
 
     // Position should be updated and clamped
     // 318 + 50 = 368, but max is 390 - 56 - 12 = 322px
@@ -154,16 +154,17 @@ describe('ChatbotWidget Component', () => {
 
   it('supports keyboard navigation (Enter/Space)', () => {
     render(<ChatbotWidget />);
-    const openBtn = screen.getAllByRole('button', { name: /Open TourMate AI Guide/i })[0];
+    const openBtn = screen.getAllByRole('button', { name: /Open TourMate Chatbot/i })[0];
 
     // Press Enter to open
     fireEvent.keyDown(openBtn, { key: 'Enter', code: 'Enter' });
-    expect(screen.getByText('TourMate Guide')).toBeTruthy();
+    expect(screen.getByText('TourMate Chatbot')).toBeTruthy();
 
     // Press Space to toggle/close
     fireEvent.keyDown(openBtn, { key: ' ', code: 'Space' });
-    expect(screen.queryByText('TourMate Guide')).toBeNull();
+    expect(screen.queryByText('TourMate Chatbot')).toBeNull();
   });
+
 
   it('re-clamps position on window resize and orientation change', () => {
     window.innerWidth = 1024;

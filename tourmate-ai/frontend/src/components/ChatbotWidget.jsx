@@ -567,9 +567,9 @@ export default function ChatbotWidget() {
                 🤖
               </div>
               <div>
-                <h3 className="font-bold text-sm tracking-wide leading-tight">TourMate Guide</h3>
+                <h3 className="font-bold text-sm tracking-wide leading-tight">TourMate Chatbot</h3>
                 <p className="text-[10px] text-brand-50 uppercase tracking-wider font-semibold">
-                  Grounded AI Assistant
+                  Text & Places Assistant
                 </p>
               </div>
             </div>
@@ -778,9 +778,9 @@ export default function ChatbotWidget() {
           onClick={handleButtonClick}
           onKeyDown={handleKeyDown}
           onPointerDown={handlePointerDown}
-          aria-label={isOpen ? "Close TourMate AI Guide" : "Open TourMate AI Guide"}
+          aria-label={isOpen ? "Close TourMate Chatbot" : "Open TourMate Chatbot"}
           aria-expanded={isOpen}
-          title="Drag to reposition, tap to open AI guide"
+          title="TourMate Chatbot - Text & places chat"
           className={`w-14 h-14 rounded-full bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center shadow-xl dark:shadow-2xl hover:shadow-brand-500/50 transition-transform select-none cursor-grab active:cursor-grabbing focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-300 dark:focus-visible:ring-brand-800 ${
             isDragging ? "scale-105 opacity-90 shadow-2xl" : "hover:-translate-y-0.5"
           }`}

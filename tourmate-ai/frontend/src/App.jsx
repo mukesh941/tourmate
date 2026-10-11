@@ -3,6 +3,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ChatbotWidget from "./components/ChatbotWidget";
+import VoiceAssistantWidget from "./components/VoiceAssistantWidget";
 
 // Eagerly loaded primary entry pages
 import Login from "./pages/Login";
@@ -99,6 +100,7 @@ export default function App() {
         </Routes>
       </Suspense>
       <ChatbotWidget />
+      <VoiceAssistantWidget />
     </div>
   );
 }
