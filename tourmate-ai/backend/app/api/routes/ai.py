@@ -446,3 +446,31 @@ async def discover_route(
     )
     return Envelope(success=True, data={"suggestions": suggestions})
 
+class TTSRequest(BaseModel):
+    text: str
+    language: str
+
+from fastapi.responses import Response
+
+@router.post("/tts")
+@limiter.limit("20/minute")
+async def generate_tts(
+    request: Request,
+    payload: TTSRequest,
+    current_user: Optional[UserPublic] = Depends(get_optional_current_user),
+):
+    from app.services.ai_service import generate_tts_audio
+    
+    if not payload.text or len(payload.text.strip()) == 0:
+        return Envelope(success=False, error="Text is required.")
+        
+    if len(payload.text) > 1500:
+        return Envelope(success=False, error="Text exceeds 1500 characters limit.")
+        
+    audio_bytes = await generate_tts_audio(payload.text, payload.language)
+    
+    if not audio_bytes:
+        return Response(status_code=503, content="TTS service unavailable or improperly configured.")
+        
+    return Response(content=audio_bytes, media_type="audio/wav")
+

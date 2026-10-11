@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import axios from "axios";
+import api, { API_BASE_URL } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
-import { API_BASE_URL } from "../api/axios";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -19,6 +18,15 @@ export default function ChatbotWidget() {
   const location = useLocation();
   // User GPS coordinates for "near me" queries
   const [userCoords, setUserCoords] = useState(null);
+  const [chatLanguage, setChatLanguage] = useState("en");
+  const [playingMsgIndex, setPlayingMsgIndex] = useState(null);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const audioRef = useRef(null);
+
+  // Speech Recognition State
+  const [isListening, setIsListening] = useState(false);
+  const [speechError, setSpeechError] = useState("");
+  const recognitionRef = useRef(null);
 
   // Position state: { x, y } in viewport pixels
   const [position, setPosition] = useState(() => {
@@ -205,24 +213,238 @@ export default function ChatbotWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isOpen]);
 
+  // Pre-load voices for TTS
+  const [voices, setVoices] = useState([]);
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      const loadVoices = () => setVoices(window.speechSynthesis.getVoices());
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+      return () => {
+        window.speechSynthesis.onvoiceschanged = null;
+      };
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+         window.speechSynthesis.cancel();
+      }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        
+        recognition.onstart = () => {
+          setIsListening(true);
+          setSpeechError("");
+        };
+        
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error", event.error);
+          setIsListening(false);
+          setSpeechError(event.error === 'not-allowed' ? "Mic permission denied." : "Speech recognition failed.");
+          setTimeout(() => setSpeechError(""), 3000);
+        };
+        
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+        
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          if (transcript.trim()) {
+            setInput("");
+            handleSend(null, transcript);
+          }
+        };
+        
+        recognitionRef.current = recognition;
+      }
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+    
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      let langCode = 'en-IN';
+      switch(chatLanguage) {
+        case 'hi': langCode = 'hi-IN'; break;
+        case 'kn': langCode = 'kn-IN'; break;
+        case 'ta': langCode = 'ta-IN'; break;
+        case 'ml': langCode = 'ml-IN'; break;
+        default: langCode = 'en-IN'; break;
+      }
+      recognitionRef.current.lang = langCode;
+      try {
+        recognitionRef.current.start();
+      } catch (e) {
+        console.error("Error starting recognition", e);
+      }
+    }
+  };
+
+  // When language changes, cancel current audio
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setPlayingMsgIndex(null);
+    }
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+       window.speechSynthesis.cancel();
+       setPlayingMsgIndex(null);
+    }
+  }, [chatLanguage]);
+
+  const speakMessage = async (text, idx) => {
+    if (typeof window === "undefined") return;
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    if (playingMsgIndex === idx && !audioLoading) {
+      setPlayingMsgIndex(null);
+      return;
+    }
+
+    setPlayingMsgIndex(idx);
+    setAudioLoading(true);
+
+    const cleanText = text.replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*/g, "");
+    
+    let targetLang = 'en-IN';
+    switch(chatLanguage) {
+      case 'hi': targetLang = 'hi-IN'; break;
+      case 'kn': targetLang = 'kn-IN'; break;
+      case 'ta': targetLang = 'ta-IN'; break;
+      case 'ml': targetLang = 'ml-IN'; break;
+      default: targetLang = 'en-IN'; break;
+    }
+
+    // Use Backend Cloud TTS for Hindi
+    if (chatLanguage === 'hi') {
+      try {
+        const res = await api.post('/ai/tts', { text: cleanText, language: targetLang }, { responseType: 'blob' });
+        const url = URL.createObjectURL(res.data);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        
+        audio.onended = () => setPlayingMsgIndex(null);
+        audio.onerror = () => {
+           setPlayingMsgIndex(null);
+           alert("Failed to play Hindi audio from cloud. Please try again.");
+        };
+        
+        await audio.play();
+        setAudioLoading(false);
+        return;
+      } catch (e) {
+        console.error("Cloud TTS failed:", e);
+        // Fall back to native if possible
+        if (voices.length > 0) {
+          const voice = voices.find(v => v.lang.replace('_', '-').toLowerCase() === targetLang.toLowerCase()) || 
+                        voices.find(v => v.lang.replace('_', '-').toLowerCase().startsWith('hi'));
+          if (!voice) {
+            alert("Cloud TTS is unavailable and no local Hindi voice was found.");
+            setAudioLoading(false);
+            setPlayingMsgIndex(null);
+            return;
+          }
+        }
+      }
+    }
+
+    // Native browser fallback
+    if (!window.speechSynthesis) {
+      setAudioLoading(false);
+      setPlayingMsgIndex(null);
+      return;
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = targetLang;
+
+    if (voices.length > 0) {
+      const voice = voices.find(v => v.lang.replace('_', '-').toLowerCase() === targetLang.toLowerCase()) || 
+                    voices.find(v => v.lang.replace('_', '-').toLowerCase().startsWith(targetLang.split('-')[0].toLowerCase()));
+      if (voice) {
+        utterance.voice = voice;
+      } else if (chatLanguage !== 'en') {
+        alert(`Note: No native voice found for ${chatLanguage.toUpperCase()} on your device. The browser might read it in English or remain silent.`);
+      }
+    }
+    
+    utterance.onstart = () => setAudioLoading(false);
+    utterance.onend = () => setPlayingMsgIndex(null);
+    utterance.onerror = (e) => {
+      console.warn("Speech synthesis error", e);
+      setAudioLoading(false);
+      setPlayingMsgIndex(null);
+    };
+
+    window.speechSynthesis.speak(utterance);
+    
+    // Fallback loading cleanup just in case onstart never fires
+    setTimeout(() => {
+      setAudioLoading(false);
+    }, 1000);
+  };
+
   // Initial greeting
   useEffect(() => {
     if (isOpen && messages.length === 0) {
+      let greeting = `Hi ${user?.name?.split(" ")[0] || "there"}! I'm your TourMate AI guide. What kind of trip are you planning today?`;
+      if (chatLanguage === 'hi') {
+        greeting = `नमस्ते ${user?.name?.split(" ")[0] || ""}! मैं आपका टूरमेट एआई गाइड हूं। आज आप किस तरह की यात्रा की योजना बना रहे हैं?`;
+      } else if (chatLanguage === 'kn') {
+        greeting = `ನಮಸ್ಕಾರ ${user?.name?.split(" ")[0] || ""}! ನಾನು ನಿಮ್ಮ TourMate AI ಮಾರ್ಗದರ್ಶಿ. ಇಂದು ನೀವು ಯಾವ ರೀತಿಯ ಪ್ರವಾಸವನ್ನು ಯೋಜಿಸುತ್ತಿದ್ದೀರಿ?`;
+      } else if (chatLanguage === 'ta') {
+        greeting = `வணக்கம் ${user?.name?.split(" ")[0] || ""}! நான் உங்கள் TourMate AI வழிகாட்டி. இன்று நீங்கள் எதைப் பற்றி திட்டமிடுகிறீர்கள்?`;
+      } else if (chatLanguage === 'ml') {
+        greeting = `നമസ്കാരം ${user?.name?.split(" ")[0] || ""}! ഞാൻ നിങ്ങളുടെ TourMate AI ഗൈഡാണ്. ഇന്ന് നിങ്ങൾ എന്ത് യാത്രയാണ് പ്ലാൻ ചെയ്യുന്നത്?`;
+      }
+      
       setMessages([
         {
           role: "model",
-          content: `Hi ${user?.name?.split(" ")[0] || "there"}! I'm your TourMate AI guide. What kind of trip are you planning today?`,
+          content: greeting,
         },
       ]);
     }
-  }, [isOpen, messages.length, user]);
+  }, [isOpen, messages.length, user, chatLanguage]);
 
-  const handleSend = async (e) => {
+  const handleSend = async (e, directText = null) => {
     e?.preventDefault();
-    if (!input.trim() || !token) return;
+    const textToSend = directText || input;
+    if (!textToSend.trim() || !token) return;
 
-    const userMessage = input.trim();
-    setInput("");
+    const userMessage = textToSend.trim();
+    if (!directText) setInput("");
 
     // Add user message to UI immediately
     const newMessages = [...messages, { role: "user", content: userMessage }];
@@ -237,18 +459,18 @@ export default function ChatbotWidget() {
 
       const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
-      const res = await axios.post(
-        `${API_BASE_URL}/ai/chat`,
+      const res = await api.post(
+        `/ai/chat`,
         {
           message: userMessage,
           history,
           place_id: placeId,
-          language: i18n.language,
+          language: chatLanguage,
           // Send GPS coords if available (enables "near me" queries)
           user_lat: userCoords?.lat ?? null,
           user_lng: userCoords?.lng ?? null,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+        }
+        // Authorization header is automatically attached by the api interceptor
       );
 
       const data = res.data?.data || {};
@@ -351,13 +573,26 @@ export default function ChatbotWidget() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              aria-label="Close TourMate Guide"
-              className="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-2">
+              <select 
+                value={chatLanguage} 
+                onChange={(e) => setChatLanguage(e.target.value)}
+                className="bg-brand-700/50 text-white text-[10px] rounded px-1.5 py-1 outline-none border border-white/20 hover:bg-brand-700/80 cursor-pointer"
+              >
+                <option value="en">EN</option>
+                <option value="hi">HI</option>
+                <option value="kn">KN</option>
+                <option value="ta">TA</option>
+                <option value="ml">ML</option>
+              </select>
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Close TourMate Guide"
+                className="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {/* Messages Area */}
@@ -365,7 +600,7 @@ export default function ChatbotWidget() {
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-sm dark:shadow-none ${
+                  className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-sm dark:shadow-none relative group ${
                     msg.role === "user"
                       ? "bg-brand-600 text-white rounded-br-sm"
                       : msg.isError
@@ -373,12 +608,36 @@ export default function ChatbotWidget() {
                       : "bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-slate-100 rounded-bl-sm"
                   }`}
                 >
+                  {msg.role !== "user" && !msg.isError && (
+                    <button
+                      onClick={() => speakMessage(msg.content, idx)}
+                      className={`absolute top-2 right-2 transition-opacity p-1 rounded focus:outline-none ${playingMsgIndex === idx ? 'opacity-100 bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-300' : 'opacity-0 group-hover:opacity-100 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
+                      title={playingMsgIndex === idx ? "Stop playing" : "Read aloud"}
+                      aria-label={playingMsgIndex === idx ? "Stop playing" : "Read aloud"}
+                    >
+                      {playingMsgIndex === idx && audioLoading ? (
+                        <div className="w-4 h-4 rounded-full border-2 border-brand-500 border-t-transparent animate-spin"></div>
+                      ) : playingMsgIndex === idx ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <rect x="5" y="4" width="3" height="12" rx="1" />
+                          <rect x="12" y="4" width="3" height="12" rx="1" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                  
                   {/* Basic markdown rendering for paragraphs */}
-                  {msg.content.split("\n").map((line, i) => (
-                    <p key={i} className={i > 0 ? "mt-1.5" : ""}>
-                      {line.replace(/\*\*(.*?)\*\*/g, "$1")}
-                    </p>
-                  ))}
+                  <div className={msg.role !== "user" ? "pr-6" : ""}>
+                    {msg.content.split("\n").map((line, i) => (
+                      <p key={i} className={i > 0 ? "mt-1.5" : ""}>
+                        {line.replace(/\*\*(.*?)\*\*/g, "$1")}
+                      </p>
+                    ))}
+                  </div>
 
                   {/* Place result cards (from nearby search) */}
                   {msg.results && msg.results.length > 0 && (
@@ -466,15 +725,29 @@ export default function ChatbotWidget() {
 
           {/* Input Area */}
           <div className="p-3 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 shrink-0">
-            <form onSubmit={handleSend} className="flex items-center gap-2">
+            {speechError && (
+              <div className="text-xs text-red-500 mb-2 text-center">{speechError}</div>
+            )}
+            <form onSubmit={(e) => handleSend(e, null)} className="flex items-center gap-2">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about places, tips..."
-                className="flex-1 bg-gray-100 dark:bg-slate-800/80 border border-transparent focus:bg-white dark:focus:bg-slate-800 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 rounded-full px-4 py-2 text-sm transition-all outline-none text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400"
+                placeholder={isListening ? "Listening..." : "Ask about places, tips..."}
+                className={`flex-1 bg-gray-100 dark:bg-slate-800/80 border ${isListening ? "border-red-400 bg-red-50 dark:bg-red-900/10" : "border-transparent"} focus:bg-white dark:focus:bg-slate-800 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 rounded-full px-4 py-2 text-sm transition-all outline-none text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400`}
                 disabled={isLoading}
               />
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={isLoading}
+                aria-label={isListening ? "Stop listening" : "Start voice input"}
+                className={`${isListening ? "bg-red-500 hover:bg-red-600 animate-pulse" : "bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-slate-600"} rounded-full w-9 h-9 flex items-center justify-center transition-colors shadow-sm dark:shadow-none shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                </svg>
+              </button>
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}

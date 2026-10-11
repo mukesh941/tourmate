@@ -35,3 +35,10 @@ Thumbs.db
 # Vercel deployment artifacts
 .vercel/
 
+# Piper TTS Models and audio tests
+models/
+**/models/
+*.wav
+**/*.wav
+scratch/
+**/scratch/

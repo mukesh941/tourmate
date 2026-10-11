@@ -336,7 +336,13 @@ def get_ai_response(user_message: str, history: List[Dict[str, str]], context: s
     )
     
     if language == 'hi':
-        system_prompt += "\n\nPlease always reply in Hindi."
+        system_prompt += "\n\nCRITICAL: You MUST generate your entire response in Hindi (हिन्दी). Do NOT reply in English."
+    elif language == 'kn':
+        system_prompt += "\n\nCRITICAL: You MUST generate your entire response in Kannada (ಕನ್ನಡ). Do NOT reply in English."
+    elif language == 'ta':
+        system_prompt += "\n\nCRITICAL: You MUST generate your entire response in Tamil (தமிழ்). Do NOT reply in English."
+    elif language == 'ml':
+        system_prompt += "\n\nCRITICAL: You MUST generate your entire response in Malayalam (മലയാളം). Do NOT reply in English."
     else:
         system_prompt += "\n\nPlease always reply in English."
 
@@ -1183,3 +1189,77 @@ def enrich_cluster_with_ai(places: List[Dict], user_interests: List[str] = []) -
             "categories": [],
             "reasons": ["Geographically close to each other"]
         }
+
+async def generate_tts_audio(text: str, language_code: str) -> Optional[bytes]:
+    """
+    Generates text-to-speech audio using local Piper TTS engine.
+    Returns the WAV audio bytes, or None if configured improperly or fails.
+    """
+    try:
+        import os
+        import tempfile
+        import subprocess
+        from app.core.config import settings
+
+        # We will only support Hindi natively via Piper for now since browser handles English well.
+        # But if English is requested, we can gracefully fall back or support it if we add an English model.
+        if "hi" in language_code.lower():
+            model_name = "hi_IN-pratham-medium"
+        else:
+            # For simplicity, if we don't have an English model downloaded, we can just return None 
+            # and let the frontend fallback to browser native speech.
+            # (The frontend already falls back if the backend returns an error/503).
+            return None
+
+        # Determine models path
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        model_path = os.path.join(base_dir, "models", "piper", f"{model_name}.onnx")
+        
+        if not os.path.exists(model_path):
+            logger.warning(f"Piper model not found at {model_path}")
+            return None
+
+        # Piper needs an output file, we'll use a temp file
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+            temp_audio_path = temp_audio.name
+
+        try:
+            piper_cmd = [
+                "piper",
+                "--model", model_path,
+                "--output_file", temp_audio_path
+            ]
+            
+            piper_env = os.environ.copy()
+            piper_env["PYTHONIOENCODING"] = "utf-8"
+
+            # Run Piper
+            import subprocess
+            process = subprocess.Popen(
+                piper_cmd, 
+                stdin=subprocess.PIPE, 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE,
+                env=piper_env
+            )
+            
+            # Pass text (limit to 1000 chars)
+            safe_text = text[:1000].replace('\n', ' ') + '\n'
+            _, stderr_data = process.communicate(input=safe_text.encode('utf-8'))
+            
+            if process.returncode != 0:
+                logger.error(f"Piper TTS failed: {stderr_data.decode('utf-8')}")
+                return None
+                
+            # Read the generated WAV file
+            with open(temp_audio_path, "rb") as f:
+                audio_bytes = f.read()
+                
+            return audio_bytes
+        finally:
+            if os.path.exists(temp_audio_path):
+                os.remove(temp_audio_path)
+
+    except Exception as e:
+        logger.error("TTS generation failed: %s", e)
+        return None
